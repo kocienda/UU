@@ -1,0 +1,82 @@
+#
+# CMakeLists.txt for UU
+#
+cmake_minimum_required(VERSION 3.0.0)
+
+# Set the project name and version
+project(UU VERSION 0.1.0)
+
+set(CMAKE_CXX_FLAGS -std=c++17)
+set(CMAKE_INSTALL_PREFIX /u)
+
+set(CODE_DIR UU)
+
+set(PUBLIC_HEADERS
+  ${CODE_DIR}/UU.h
+  ${CODE_DIR}/Assertions.h
+  ${CODE_DIR}/Any.h
+  ${CODE_DIR}/Compiler.h
+  ${CODE_DIR}/Mathy.h
+  ${CODE_DIR}/Platform.h
+  ${CODE_DIR}/Range.h
+  ${CODE_DIR}/SmallMap.h
+  ${CODE_DIR}/SmallVector.h
+  ${CODE_DIR}/Span.h
+  ${CODE_DIR}/StackTrace.h
+  ${CODE_DIR}/Stringy.h
+  ${CODE_DIR}/TextRef.h
+  ${CODE_DIR}/Types.h
+  ${CODE_DIR}/UTF8.h
+)
+
+set(SOURCES
+  ${CODE_DIR}/Assertions.cpp
+  ${CODE_DIR}/SmallVector.cpp
+  ${CODE_DIR}/Span.cpp
+  ${CODE_DIR}/StackTrace.cpp
+  ${CODE_DIR}/Stringy.cpp
+  ${CODE_DIR}/TextRef.cpp
+)
+
+# Add the library target
+add_library(UU ${SOURCES} ${PUBLIC_HEADERS})
+
+# Set the include directories for the library
+target_include_directories(UU
+  PUBLIC
+    $<INSTALL_INTERFACE:include/UU>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# Set the installation directory for the library
+install(TARGETS UU
+  EXPORT UUConfig
+  ARCHIVE  DESTINATION lib
+  LIBRARY  DESTINATION lib
+  RUNTIME  DESTINATION bin
+)
+
+# Set the installation directory for the library headers
+install(FILES ${PUBLIC_HEADERS} DESTINATION include/UU)
+
+# Set the installation directory for the cmake configuration file
+install(EXPORT UUConfig DESTINATION lib/cmake/UU)
+
+# Set the export target for the library
+export(TARGETS UU FILE UUConfig.cmake)
+
+include(CTest)
+enable_testing()
+
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+include(CPack)
+
+# To use:
+# find_package(UU REQUIRED)
+# # Add the include directories for the library
+# target_include_directories(MyTarget PRIVATE ${UU_INCLUDE_DIRS})
+# # Link the library to your target
+# target_link_libraries(MyTarget UU)
