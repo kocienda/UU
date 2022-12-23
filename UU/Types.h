@@ -61,6 +61,13 @@ static constexpr UInt64 UInt64Max = std::numeric_limits<UInt64>::max();
 using Index = uint32_t;
 static constexpr Index NotAnIndex = std::numeric_limits<Index>::max();
 
+using Byte = UInt8;
+using BytePtr = Byte *;
+static constexpr Byte ByteMin = UInt8Min;
+static constexpr Byte ByteMax = UInt8Max;
+
+using SizeType = size_t;
+
 }  // namespace UU
 
 #endif  // UU_TYPES_H

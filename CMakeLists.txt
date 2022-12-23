@@ -15,7 +15,10 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/UU.h
   ${CODE_DIR}/Assertions.h
   ${CODE_DIR}/Any.h
+  ${CODE_DIR}/ByteReader.h
+  ${CODE_DIR}/ByteWriter.h
   ${CODE_DIR}/Compiler.h
+  ${CODE_DIR}/DynamicByteBuffer.h
   ${CODE_DIR}/Mathy.h
   ${CODE_DIR}/Platform.h
   ${CODE_DIR}/Range.h
@@ -23,10 +26,12 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/SmallVector.h
   ${CODE_DIR}/Span.h
   ${CODE_DIR}/StackTrace.h
+  ${CODE_DIR}/StaticByteBuffer.h
   ${CODE_DIR}/Stringy.h
   ${CODE_DIR}/TextRef.h
   ${CODE_DIR}/Types.h
   ${CODE_DIR}/UTF8.h
+  ${CODE_DIR}/Unixy.h
 )
 
 set(SOURCES
@@ -36,6 +41,7 @@ set(SOURCES
   ${CODE_DIR}/StackTrace.cpp
   ${CODE_DIR}/Stringy.cpp
   ${CODE_DIR}/TextRef.cpp
+  ${CODE_DIR}/Unixy.cpp
 )
 
 # Add the library target

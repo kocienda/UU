@@ -23,5 +23,6 @@ static constexpr int UU_FIXES_VERSION = 0;
 #include <UU/TextRef.h>
 #include <UU/Types.h>
 #include <UU/UTF8.h>
+#include <UU/Unixy.h>
 
 #endif // UU_H
