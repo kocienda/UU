@@ -19,7 +19,8 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/ByteWriter.h
   ${CODE_DIR}/Compiler.h
   ${CODE_DIR}/DynamicByteBuffer.h
-  ${CODE_DIR}/Mathy.h
+  ${CODE_DIR}/FileLike.h
+  ${CODE_DIR}/MathLike.h
   ${CODE_DIR}/Platform.h
   ${CODE_DIR}/Range.h
   ${CODE_DIR}/SmallMap.h
@@ -27,21 +28,22 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Span.h
   ${CODE_DIR}/StackTrace.h
   ${CODE_DIR}/StaticByteBuffer.h
-  ${CODE_DIR}/Stringy.h
+  ${CODE_DIR}/StringLike.h
   ${CODE_DIR}/TextRef.h
   ${CODE_DIR}/Types.h
   ${CODE_DIR}/UTF8.h
-  ${CODE_DIR}/Unixy.h
+  ${CODE_DIR}/UnixLike.h
 )
 
 set(SOURCES
   ${CODE_DIR}/Assertions.cpp
+  ${CODE_DIR}/FileLike.cpp
   ${CODE_DIR}/SmallVector.cpp
   ${CODE_DIR}/Span.cpp
   ${CODE_DIR}/StackTrace.cpp
-  ${CODE_DIR}/Stringy.cpp
+  ${CODE_DIR}/StringLike.cpp
   ${CODE_DIR}/TextRef.cpp
-  ${CODE_DIR}/Unixy.cpp
+  ${CODE_DIR}/UnixLike.cpp
 )
 
 # Add the library target

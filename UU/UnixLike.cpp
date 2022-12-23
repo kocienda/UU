@@ -1,11 +1,11 @@
 //
-//  Unixy.cpp
+//  UnixLike.cpp
 //
 
 #include <unistd.h>
 
 #include "DynamicByteBuffer.h"
-#include "Unixy.h"
+#include "UnixLike.h"
 
 namespace fs = std::filesystem;
 

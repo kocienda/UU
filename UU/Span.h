@@ -14,7 +14,7 @@
 
 #include <UU/Range.h>
 #include <UU/SmallVector.h>
-#include <UU/Stringy.h>
+#include <UU/StringLike.h>
 
 namespace UU {
 

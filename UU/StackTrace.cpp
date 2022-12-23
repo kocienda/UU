@@ -34,7 +34,7 @@
 #include <dlfcn.h>
 
 #include "Assertions.h"
-#include "Mathy.h"
+#include "MathLike.h"
 #include "StackTrace.h"
 
 void UUGetBacktrace(void** stack, int* size)

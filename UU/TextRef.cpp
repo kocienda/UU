@@ -6,7 +6,7 @@
 #include <iostream>
 #include <regex>
 
-#include "Stringy.h"
+#include "StringLike.h"
 #include "TextRef.h"
 
 namespace UU {

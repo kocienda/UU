@@ -1,9 +1,9 @@
 //
-//  Unixy.h
+//  UnixLike.h
 //
 
-#ifndef UU_UNIXY_H
-#define UU_UNIXY_H
+#ifndef UU_UNIX_LIKE_H
+#define UU_UNIX_LIKE_H
 
 #include <filesystem>
 #include <string>
@@ -16,4 +16,4 @@ std::string shell_escaped_string(const std::string &str);
 
 }  // namespace UU
 
-#endif // UU_UNIXY_H
+#endif // UU_UNIX_LIKE_H

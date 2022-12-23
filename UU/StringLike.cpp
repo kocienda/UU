@@ -1,8 +1,8 @@
 //
-//  Stringy.cpp
+//  StringLike.cpp
 //
 
-#include "Stringy.h"
+#include "StringLike.h"
 #include "UTF8.h"
 
 namespace UU {

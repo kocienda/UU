@@ -1,9 +1,9 @@
 //
-//  Stringy.h
+//  StringLike.h
 //
 
-#ifndef UU_STRINGY_H
-#define UU_STRINGY_H
+#ifndef UU_STRING_LIKE_H
+#define UU_STRING_LIKE_H
 
 #include <UU/Compiler.h>
 #include <UU/Types.h>
@@ -98,4 +98,4 @@ STATIC_INLINE std::pair<long long, bool> parse_long_long(const std::string &s, s
 
 }  // namespace UU
 
-#endif // UU_STRINGY_H
+#endif // UU_STRING_LIKE_H

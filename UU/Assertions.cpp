@@ -37,7 +37,7 @@
 
 #include "Assertions.h"
 #include "StackTrace.h"
-#include "Stringy.h"
+#include "StringLike.h"
 
 namespace UU {
 

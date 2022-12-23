@@ -1,9 +1,9 @@
 //
-//  Mathy.h
+//  MathLike.h
 //
 
-#ifndef UU_MATHY_H
-#define UU_MATHY_H
+#ifndef UU_MATH_LIKE_H
+#define UU_MATH_LIKE_H
 
 #include <math.h>
 #include <stdbool.h>
@@ -155,4 +155,4 @@ inline size_t hash_combine(std::size_t &seed, const T &v)
 
 }  // namespace UU
 
-#endif // UU_MATHY_H
+#endif // UU_MATH_LIKE_H

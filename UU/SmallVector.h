@@ -79,7 +79,7 @@ SOFTWARE.
 
 #include <UU/Assertions.h>
 #include <UU/Compiler.h>
-#include <UU/Mathy.h>
+#include <UU/MathLike.h>
 
 namespace UU {
 
