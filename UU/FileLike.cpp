@@ -28,20 +28,55 @@ std::vector<fs::path> skippable_paths()
         }
         skippables_path = fs::absolute(skippables_path);
 
-        std::stringstream contents(get_file_contents_as_string(skippables_path));
+        std::string skippables_contents = get_file_contents_as_string(skippables_path);
+        std::stringstream skippables_contents_stream(skippables_contents);
         std::string line;
-        while (getline(contents, line, '\n')) {
+        while (getline(skippables_contents_stream, line, '\n')) {
             result.push_back(line);
         }
     });
-
     return result;
 }
 
 bool is_skippable(const std::vector<fs::path> skippables, const fs::path &path, int flags)
 {
     for (const auto &skippable : skippables) {
-        if (fnmatch(skippable.c_str(), path.filename().c_str(), flags) == 0) {
+        if (filename_match(skippable, path, flags)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::filesystem::path> searchable_paths()
+{
+    static std::vector<fs::path> result;
+    static std::once_flag flag;
+    std::call_once(flag, []() { 
+        char *env_path = getenv("SEARCHABLES_PATH");
+        fs::path searchables_path;
+        if (env_path) {
+            searchables_path = env_path;
+        }
+        else {
+            searchables_path = "~/.searchables";
+        }
+        searchables_path = fs::absolute(searchables_path);
+
+        std::string searchables_contents = get_file_contents_as_string(searchables_path);
+        std::stringstream searchables_contents_stream(searchables_contents);
+        std::string line;
+        while (getline(searchables_contents_stream, line, '\n')) {
+            result.push_back(line);
+        }
+    });
+    return result;
+}
+
+bool is_searchable(const std::vector<std::filesystem::path> searchables, const std::filesystem::path &path, int flags)
+{
+    for (const auto &searchable : searchables) {
+        if (filename_match(searchable, path, flags)) {
             return true;
         }
     }
@@ -53,22 +88,24 @@ std::string get_file_contents_as_string(const fs::path &path)
     std::string result;
 
     std::ifstream f(path, std::ios::in | std::ios::binary);
-    if (!f) {
-        return result;
+    if (f) {
+        f.seekg(0, std::ios::end);
+        size_t size = f.tellg();
+        result.resize(size);
+        f.seekg(0, std::ios::beg);
+        f.read(&result[0], size);
+        f.close();
     }
-
-    const auto size = fs::file_size(path);
-    result.reserve(size);
-    f.read(result.data(), size);
 
     return result;
 }
 
-bool filename_match(const std::string &pattern, const fs::path &path, FilenameMatchFlag flag)
+bool filename_match(const std::string &pattern, const fs::path &path, int flags)
 {
     std::string filename = path.filename().c_str();
-    std::string effective_pattern = (flag == FilenameMatchFlag::WILDCARD ? ("*" + pattern + "*") : pattern);
-    return fnmatch(effective_pattern.c_str(), filename.c_str(), FNM_CASEFOLD) == 0;
+    std::string effective_pattern = (flags & FilenameMatchExact) ? pattern : ("*" + pattern + "*");
+    int fnmatch_flags = (flags & FilenameMatchCaseSensitive) ? 0 : FNM_CASEFOLD;
+    return fnmatch(effective_pattern.c_str(), filename.c_str(), fnmatch_flags) == 0;
 }
 
 }  // namespace UU

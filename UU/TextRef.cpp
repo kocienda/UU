@@ -9,6 +9,8 @@
 #include "StringLike.h"
 #include "TextRef.h"
 
+namespace fs = std::filesystem;
+
 namespace UU {
 
 TextRef TextRef::from_rune_string(const RuneString &str)
@@ -19,10 +21,10 @@ TextRef TextRef::from_rune_string(const RuneString &str)
 TextRef TextRef::from_string(const std::string &str)
 {
     size_t index = NotAnIndex;
-    RuneString path;
+    fs::path path;
     size_t line = NotALine;
     size_t column = NotAColumn;
-    RuneString message;
+    std::string message;
 
     static std::regex rx("([0-9]+[)][ ]+)([^:]+)(:([0-9]+):(([0-9]+):)?(.*))?");        
     std::cmatch ms;
@@ -31,7 +33,7 @@ TextRef TextRef::from_string(const std::string &str)
         if (pindex.second) {
             index = pindex.first;
         }
-        path = UU::to_rune_string(ms[2]);
+        path = ms[2];
         auto pline = UU::parse_unsigned_int(ms[4]);
         if (pline.second) {
             line = pline.first;
@@ -40,25 +42,30 @@ TextRef TextRef::from_string(const std::string &str)
         if (pcolumn.second) {
             column = pcolumn.first;
         }
-        message = UU::to_rune_string(ms[7]);
+        message = ms[7];
     }
 
     return TextRef(index, path, line, column, message);
 }
 
-std::string TextRef::to_string(int flags, bool make_source_name_absolute) const
+std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path) const
 {
     std::stringstream ss;
 
     if (has_index() && (flags & TextRef::Index)) {
         ss << index() << ") ";
     }
-    if (has_source_name() && (flags & TextRef::SourceName)) {
-        if (make_source_name_absolute) {
-            ss << std::filesystem::absolute(UU::to_string(source_name()));
+    if (has_filename() && (flags & TextRef::Filename)) {
+        if (filename_format == FilenameFormat::ABSOLUTE) {
+            ss << fs::absolute(filename()).c_str();
+        }
+        else if (!reference_path.empty()) {
+            fs::path absolute_reference_path = fs::absolute(reference_path);
+            fs::path absolute_filename_path = fs::absolute(filename());
+            ss << absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
         }
         else {
-            ss << UU::to_string(source_name());
+            ss << filename().c_str();
         }
     }
     if (has_line() && (flags & TextRef::Line)) {

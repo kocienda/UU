@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.0.0)
 # Set the project name and version
 project(UU VERSION 0.1.0)
 
-set(CMAKE_CXX_FLAGS -std=c++17)
+set(CMAKE_CXX_FLAGS "-std=c++17")
 set(CMAKE_INSTALL_PREFIX /u)
 
 set(CODE_DIR UU)

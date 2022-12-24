@@ -14,9 +14,9 @@ using namespace UU;
 
 TEST_CASE( "filename_match function", "[file_like]" ) {
     REQUIRE(filename_match("foo", fs::path("foobar")));
-    REQUIRE(filename_match("foo", fs::path("foobar"), FilenameMatchFlag::WILDCARD));
+    REQUIRE(filename_match("foo", fs::path("foobar"), FilenameMatchWildcard));
     REQUIRE(filename_match(".foo", fs::path(".foobar")));
     REQUIRE(filename_match("foo", fs::path(".foobar")));
     REQUIRE_FALSE(filename_match("foo", fs::path("barbaz")));
-    REQUIRE_FALSE(filename_match("foo", fs::path("foobar"), FilenameMatchFlag::EXACT));
+    REQUIRE_FALSE(filename_match("foo", fs::path("foobar"), FilenameMatchExact));
 }

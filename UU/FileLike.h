@@ -13,13 +13,20 @@
 
 namespace UU {
 
+static constexpr int FilenameMatchWildcard = 0;
+static constexpr int FilenameMatchCaseFold = 0;
+static constexpr int FilenameMatchExact = 0x1;
+static constexpr int FilenameMatchCaseSensitive = 0x2;
+
 std::vector<std::filesystem::path> skippable_paths();
-bool is_skippable(const std::vector<std::filesystem::path> skippables, const std::filesystem::path &path, int flags=FNM_CASEFOLD|FNM_PERIOD);
+bool is_skippable(const std::vector<std::filesystem::path> skippables, const std::filesystem::path &path, int flags=0);
+
+std::vector<std::filesystem::path> searchable_paths();
+bool is_searchable(const std::vector<std::filesystem::path> searchables, const std::filesystem::path &path, int flags=0);
 
 std::string get_file_contents_as_string(const std::filesystem::path &path);
 
-enum class FilenameMatchFlag { EXACT, WILDCARD };
-bool filename_match(const std::string &pattern, const std::filesystem::path &path, FilenameMatchFlag flag=FilenameMatchFlag::WILDCARD);
+bool filename_match(const std::string &pattern, const std::filesystem::path &path, int flags=0);
 
 }  // namespace UU
 
