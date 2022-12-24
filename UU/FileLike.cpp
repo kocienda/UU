@@ -3,6 +3,7 @@
 //
 
 #include <fstream>
+#include <iostream>
 #include <mutex>
 #include <sstream>
 
@@ -61,6 +62,13 @@ std::string get_file_contents_as_string(const fs::path &path)
     f.read(result.data(), size);
 
     return result;
+}
+
+bool filename_match(const std::string &pattern, const fs::path &path, FilenameMatchFlag flag)
+{
+    std::string filename = path.filename().c_str();
+    std::string effective_pattern = (flag == FilenameMatchFlag::WILDCARD ? ("*" + pattern + "*") : pattern);
+    return fnmatch(effective_pattern.c_str(), filename.c_str(), FNM_CASEFOLD) == 0;
 }
 
 }  // namespace UU

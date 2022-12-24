@@ -68,7 +68,13 @@
 			"vector": "cpp",
 			"__verbose_abort": "cpp",
 			"algorithm": "cpp",
-			"iterator": "cpp"
+			"iterator": "cpp",
+			"deque": "cpp",
+			"fstream": "cpp",
+			"iomanip": "cpp",
+			"iostream": "cpp",
+			"regex": "cpp",
+			"stack": "cpp"
 		}
 	}
 }

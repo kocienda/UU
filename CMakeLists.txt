@@ -54,8 +54,8 @@ target_include_directories(UU
   PUBLIC
     $<INSTALL_INTERFACE:include/UU>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+  # PRIVATE
+  #   ${CMAKE_CURRENT_SOURCE_DIR}/${CODE_DIR}
 )
 
 # Set the installation directory for the library
@@ -75,8 +75,24 @@ install(EXPORT UUConfig DESTINATION lib/cmake/UU)
 # Set the export target for the library
 export(TARGETS UU FILE UUConfig.cmake)
 
+# Unit tests
 include(CTest)
 enable_testing()
+find_package(Catch2 3 REQUIRED)
+include(Catch)
+
+function(UU_TEST test_name)
+add_executable(${test_name} test/${test_name}.cpp)
+target_include_directories(${test_name} PRIVATE . /u/include)
+target_link_directories(${test_name} PRIVATE build /u/lib)
+target_link_libraries(${test_name} PRIVATE UU libCatch2.a libCatch2Main.a)
+catch_discover_tests(${test_name})
+endfunction()
+
+UU_TEST(smoke_test)
+UU_TEST(file_like_test)
+UU_TEST(span_test)
+UU_TEST(unix_like_test)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

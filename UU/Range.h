@@ -6,6 +6,7 @@
 #define UU_RANGE_H
 
 #include <algorithm>
+#include <iostream>
 #include <limits>
 
 namespace UU {
