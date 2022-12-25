@@ -6,7 +6,18 @@ cmake_minimum_required(VERSION 3.0.0)
 # Set the project name and version
 project(UU VERSION 0.1.0)
 
-set(CMAKE_CXX_FLAGS "-std=c++17")
+set(CXX_VERSION_FLAGS "-std=c++17")
+set(CXX_ARCH_FLAGS "-arch arm64")
+set(CXX_WARNING_FLAGS "-Werror -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror=return-type -Wdocumentation \
+-Wunreachable-code -Wno-non-virtual-dtor -Wno-overloaded-virtual -Wno-exit-time-destructors -Wno-missing-braces -Wparentheses -Wswitch \
+-Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized \
+-Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion \
+-Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion \
+-Wshorten-64-to-32 -Wno-newline-eof -Wno-c++11-extensions -Wdeprecated-declarations -Winvalid-offsetof -Wno-sign-conversion \
+-Winfinite-recursion -Wmove -Wcomma -Wstrict-prototypes -Wrange-loop-analysis -Wunguarded-availability -Wno-nullability-completeness \
+-fvisibility-inlines-hidden -fasm-blocks -fstrict-aliasing -fno-common")
+set(CMAKE_CXX_FLAGS "${CXX_VERSION_FLAGS} ${CXX_ARCH_FLAGS} ${CXX_WARNING_FLAGS}")
+
 set(CMAKE_INSTALL_PREFIX /u)
 
 set(CODE_DIR UU)
@@ -20,6 +31,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Compiler.h
   ${CODE_DIR}/DynamicByteBuffer.h
   ${CODE_DIR}/FileLike.h
+  ${CODE_DIR}/MappedFile.h
   ${CODE_DIR}/MathLike.h
   ${CODE_DIR}/Platform.h
   ${CODE_DIR}/Range.h
@@ -38,6 +50,7 @@ set(PUBLIC_HEADERS
 set(SOURCES
   ${CODE_DIR}/Assertions.cpp
   ${CODE_DIR}/FileLike.cpp
+  ${CODE_DIR}/MappedFile.cpp
   ${CODE_DIR}/SmallVector.cpp
   ${CODE_DIR}/Span.cpp
   ${CODE_DIR}/StackTrace.cpp
@@ -54,8 +67,6 @@ target_include_directories(UU
   PUBLIC
     $<INSTALL_INTERFACE:include/UU>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  # PRIVATE
-  #   ${CMAKE_CURRENT_SOURCE_DIR}/${CODE_DIR}
 )
 
 # Set the installation directory for the library

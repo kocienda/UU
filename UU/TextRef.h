@@ -70,4 +70,24 @@ std::ostream &operator<<(std::ostream &os, const TextRef &ref);
 
 }  // namespace UU
 
+namespace std
+{
+    template <>
+    struct less<UU::TextRef>
+    {
+        bool operator()(const UU::TextRef &lhs, const UU::TextRef &rhs) const {
+            if (lhs.filename() != rhs.filename()) {
+                return lhs.filename() < rhs.filename();
+            }
+            if (lhs.line() != rhs.line()) {
+                return lhs.line() < rhs.line();
+            }
+            if (lhs.column() != rhs.column()) {
+                return lhs.column() < rhs.column();
+            }
+            return lhs.message() < rhs.message();
+        }
+    };
+}
+
 #endif  // UU_TEXT_REF_H

@@ -29,16 +29,16 @@ TextRef TextRef::from_string(const std::string &str)
     static std::regex rx("([0-9]+[)][ ]+)([^:]+)(:([0-9]+):(([0-9]+):)?(.*))?");        
     std::cmatch ms;
     if (regex_search(str.c_str(), ms, rx)) {
-        auto pindex = UU::parse_unsigned_int(ms[1]);
+        auto pindex = UU::parse_uint<UU::UInt32>(ms[1]);
         if (pindex.second) {
             index = pindex.first;
         }
         path = ms[2];
-        auto pline = UU::parse_unsigned_int(ms[4]);
+        auto pline = UU::parse_uint<UU::UInt32>(ms[4]);
         if (pline.second) {
             line = pline.first;
         }
-        auto pcolumn = UU::parse_unsigned_int(ms[6]);
+        auto pcolumn = UU::parse_uint<UU::UInt32>(ms[6]);
         if (pcolumn.second) {
             column = pcolumn.first;
         }

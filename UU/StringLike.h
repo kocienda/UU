@@ -41,12 +41,9 @@ STATIC_INLINE RuneString to_rune_string(const std::string_view &str) {
 
 bool is_valid_utf8(const std::string &s);
 
-STATIC_INLINE std::pair<unsigned int, bool> parse_unsigned_int(const std::string &s, std::size_t *pos = nullptr, int base = 10) {
+template <typename U> std::pair<U, bool> parse_uint(const std::string &s, std::size_t *pos = nullptr, int base = 10) {
     try {
-        long val = std::stoi(s, pos, base);
-        if (val < 0 || val > std::numeric_limits<unsigned int>::max()) {
-            return std::make_pair(0, false);
-        }
+        U val = U(std::stoll(s, pos, base));
         return std::make_pair(val, true);
     }
     catch (std::invalid_argument const &ex) {
@@ -57,35 +54,9 @@ STATIC_INLINE std::pair<unsigned int, bool> parse_unsigned_int(const std::string
     }
 }
 
-STATIC_INLINE std::pair<int, bool> parse_int(const std::string &s, std::size_t *pos = nullptr, int base = 10) {
+template <typename I> std::pair<int, bool> parse_int(const std::string &s, std::size_t *pos = nullptr, int base = 10) {
     try {
-        int val = std::stoi(s, pos, base);
-        return std::make_pair(val, true);
-    }
-    catch (std::invalid_argument const &ex) {
-        return std::make_pair(0, false);
-    }
-    catch (std::out_of_range const& ex) {
-        return std::make_pair(0, false);
-    }
-}
-
-STATIC_INLINE std::pair<long, bool> parse_long(const std::string &s, std::size_t *pos = nullptr, int base = 10) {
-    try {
-        long val = std::stol(s, pos, base);
-        return std::make_pair(val, true);
-    }
-    catch (std::invalid_argument const &ex) {
-        return std::make_pair(0, false);
-    }
-    catch (std::out_of_range const& ex) {
-        return std::make_pair(0, false);
-    }
-}
-
-STATIC_INLINE std::pair<long long, bool> parse_long_long(const std::string &s, std::size_t *pos = nullptr, int base = 10) {
-    try {
-        long long val = std::stoll(s, pos, base);
+        I val = I(std::stoll(s, pos, base));
         return std::make_pair(val, true);
     }
     catch (std::invalid_argument const &ex) {

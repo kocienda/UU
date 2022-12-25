@@ -28,6 +28,8 @@
 #ifndef UU_ANY_H
 #define UU_ANY_H
 
+#include <UU/Assertions.h>
+
 #include <exception>
 #include <initializer_list>
 #include <new>
@@ -37,40 +39,18 @@
 
 #include <string.h>
 
-#ifndef ANY_ALWAYS_INLINE
-#ifdef NDEBUG
-#define ANY_ALWAYS_INLINE inline __attribute__ ((__visibility__("hidden"), __always_inline__))
-#else
-#define ANY_ALWAYS_INLINE inline
+#ifndef USE_SMALL_MEMCPY_STRATEGY
+#define USE_SMALL_MEMCPY_STRATEGY 0
 #endif
-#endif
-
-#ifdef __cpp_rtti
-#define ANY_USE_TYPEINFO 1
-#else
-#define ANY_USE_TYPEINFO 0
-#endif
-
-#ifdef __cpp_exceptions
-#define ANY_USE_EXCEPTIONS 1
-#else
-#define ANY_USE_EXCEPTIONS 0
-#endif
-
-#ifndef ANY_USE_SMALL_MEMCPY_STRATEGY
-#define ANY_USE_SMALL_MEMCPY_STRATEGY 0
-#endif
-
-#define ANY_USE(FEATURE) (defined ANY_USE_##FEATURE && ANY_USE_##FEATURE)
 
 namespace UU {
 
-#if ANY_USE(EXCEPTIONS)
+#if USE(EXCEPTIONS)
 class bad_any_cast : public std::bad_cast {};
-#endif  // ANY_USE(EXCEPTIONS)
+#endif  // USE(EXCEPTIONS)
 
-static ANY_ALWAYS_INLINE void handle_bad_any_cast() {
-#if ANY_USE(EXCEPTIONS)
+static UU_ALWAYS_INLINE void handle_bad_any_cast() {
+#if USE(EXCEPTIONS)
     throw bad_any_cast();
 #endif
     abort();
@@ -104,27 +84,27 @@ union Storage
     void *ptr = nullptr;
 };
 
-#if !ANY_USE(TYPEINFO)
+#if !USE(TYPEINFO)
 template <class T>
 struct fallback_typeinfo { static constexpr int id = 0; };
 
 template <class T>
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 constexpr const void *fallback_typeid() {
     return &fallback_typeinfo<std::decay_t<T>>::id;
 }
-#endif  // !ANY_USE(TYPEINFO)
+#endif  // !USE(TYPEINFO)
 
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 static constexpr void *void_get(Storage *s, const void *info) { return nullptr; }
 
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 static constexpr void void_copy(Storage *dst, const Storage *src) {}
 
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 static constexpr void void_move(Storage *dst, Storage *src) {}
 
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 static constexpr void void_drop(Storage *s) {}
         
 struct AnyActions
@@ -143,7 +123,7 @@ struct AnyActions
     Copy copy = void_copy;
     Move move = void_move;
     Drop drop = void_drop;
-#if ANY_USE(TYPEINFO)
+#if USE(TYPEINFO)
     const void *type = static_cast<const void *>(&typeid(void));
 #else
     const void *type = fallback_typeid<void>();
@@ -153,10 +133,10 @@ struct AnyActions
 template <class T>
 struct AnyTraits
 {
-#if ANY_USE(SMALL_MEMCPY_STRATEGY)
+#if USE(SMALL_MEMCPY_STRATEGY)
     template <class X = T, class... Args, 
         std::enable_if_t<IsStorageBufferSized<X> && std::is_trivially_copyable_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static X &make(Storage *s, std::in_place_type_t<X> vtype, Args &&... args) {
         X v(std::forward<Args>(args)...);
         memcpy(&s->buf, static_cast<void *>(&v), sizeof(X));
@@ -166,23 +146,23 @@ struct AnyTraits
     template <class X = T, class... Args, 
         std::enable_if_t<IsStorageBufferSized<X> && !std::is_trivially_copyable_v<X> &&
             std::is_nothrow_move_constructible_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static X &make(Storage *s, std::in_place_type_t<X> vtype, Args &&... args) {
         return *(::new (static_cast<void *>(&s->buf)) X(std::forward<Args>(args)...));
     }
-#else  // ANY_USE(SMALL_MEMCPY_STRATEGY)
+#else  // USE(SMALL_MEMCPY_STRATEGY)
     template <class X = T, class... Args, 
         std::enable_if_t<IsStorageBufferSized<X> && 
             std::is_nothrow_move_constructible_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static X &make(Storage *s, std::in_place_type_t<X> vtype, Args &&... args) {
         return *(::new (static_cast<void *>(&s->buf)) X(std::forward<Args>(args)...));
     }
-#endif  // ANY_USE(SMALL_MEMCPY_STRATEGY)
+#endif  // USE(SMALL_MEMCPY_STRATEGY)
 
     template <class X = T, class... Args, 
         std::enable_if_t<!IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static X &make(Storage *s, std::in_place_type_t<X> vtype, Args &&... args) {
         s->ptr = new X(std::forward<Args>(args)...);
         return *static_cast<X *>(s->ptr);
@@ -195,9 +175,9 @@ private:
     AnyTraits &operator=(AnyTraits &&) = default;
 
     template <class X = T>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static bool compare_typeid(const void *id) {
-#if ANY_USE(TYPEINFO)
+#if USE(TYPEINFO)
         return *(static_cast<const std::type_info *>(id)) == typeid(X);
 #else
         return (id && id == fallback_typeid<X>());
@@ -209,14 +189,14 @@ private:
     //
     template <class X = T, 
         std::enable_if_t<std::is_same_v<X, void>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void *get(Storage *s, const void *type) {
         return nullptr;
     }
 
     template <class X = T, 
         std::enable_if_t<IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void *get(Storage *s, const void *type) {
         if (compare_typeid<X>(type)) {
             return static_cast<void *>(&s->buf);
@@ -226,7 +206,7 @@ private:
 
     template <class X = T, 
         std::enable_if_t<!IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void *get(Storage *s, const void *type) {
         if (compare_typeid<X>(type)) {
             return s->ptr;
@@ -239,13 +219,13 @@ private:
     //
     template <class X = T, 
         std::enable_if_t<std::is_same_v<X, void>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void copy(Storage *dst, const Storage *src) {}
 
-#if ANY_USE(SMALL_MEMCPY_STRATEGY)
+#if USE(SMALL_MEMCPY_STRATEGY)
     template <class X = T, 
         std::enable_if_t<IsStorageBufferSized<X> && std::is_trivially_copyable_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void copy(Storage *dst, const Storage *src) {
         memcpy(static_cast<void *>(&dst->buf), static_cast<void *>(const_cast<StorageBuffer *>(&src->buf)), sizeof(X));
     }
@@ -253,23 +233,23 @@ private:
     template <class X = T, 
         std::enable_if_t<IsStorageBufferSized<X> && !std::is_trivially_copyable_v<X> && 
             std::is_nothrow_move_constructible_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void copy(Storage *dst, const Storage *src) {
         AnyTraits::make(dst, std::in_place_type_t<X>(), *static_cast<X const *>(static_cast<void const *>(&src->buf)));
     }
-#else  // ANY_USE(SMALL_MEMCPY_STRATEGY)
+#else  // USE(SMALL_MEMCPY_STRATEGY)
     template <class X = T, 
         std::enable_if_t<IsStorageBufferSized<X> &&
             std::is_nothrow_move_constructible_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void copy(Storage *dst, const Storage *src) {
         AnyTraits::make(dst, std::in_place_type_t<X>(), *static_cast<X const *>(static_cast<void const *>(&src->buf)));
     }
-#endif   // ANY_USE(SMALL_MEMCPY_STRATEGY)
+#endif   // USE(SMALL_MEMCPY_STRATEGY)
 
     template <class X = T, 
         std::enable_if_t<!IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void copy(Storage *dst, const Storage *src) {
         AnyTraits::make(dst, std::in_place_type_t<X>(), *static_cast<X const *>(static_cast<void const *>(src->ptr)));
     }
@@ -277,30 +257,30 @@ private:
     //
     // move
     //
-#if ANY_USE(SMALL_MEMCPY_STRATEGY)
+#if USE(SMALL_MEMCPY_STRATEGY)
     template <class X = T, 
         std::enable_if_t<std::is_same_v<X, void>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void move(Storage *dst, Storage *src) {}
 
     template <class X = T, 
         std::enable_if_t<IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void move(Storage *dst, Storage *src) {
         memcpy(static_cast<void *>(&dst->buf), static_cast<void *>(const_cast<StorageBuffer *>(&src->buf)), sizeof(X));
     }
-#else  // ANY_USE(SMALL_MEMCPY_STRATEGY)
+#else  // USE(SMALL_MEMCPY_STRATEGY)
     template <class X = T, 
         std::enable_if_t<IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void move(Storage *dst, Storage *src) {
         AnyTraits::make(dst, std::in_place_type_t<X>(), std::move(*static_cast<X const *>(static_cast<void const *>(&src->buf))));
     }
-#endif   // ANY_USE(SMALL_MEMCPY_STRATEGY)
+#endif   // USE(SMALL_MEMCPY_STRATEGY)
 
     template <class X = T, 
         std::enable_if_t<!IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void move(Storage *dst, Storage *src) {
         dst->ptr = src->ptr;
     }
@@ -310,17 +290,17 @@ private:
     //
     template <class X = T, 
         std::enable_if_t<std::is_same_v<X, void>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void drop(Storage *s) {}
 
     template <class X = T, 
         std::enable_if_t<std::is_trivially_destructible_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void drop(Storage *s) {}
 
     template <class X = T, 
         std::enable_if_t<IsStorageBufferSized<X> && !std::is_trivially_destructible_v<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void drop(Storage *s) {
         X &t = *static_cast<X *>(static_cast<void *>(const_cast<StorageBuffer *>(&s->buf)));
         t.~X();
@@ -328,14 +308,14 @@ private:
 
     template <class X = T, 
         std::enable_if_t<!IsStorageBufferSized<X>, int> = 0>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     static void drop(Storage *s) {
         delete static_cast<X *>(s->ptr);
     }
 
 public:
     static constexpr AnyActions actions = AnyActions(get<T>, copy<T>, move<T>, drop<T>, 
-#if ANY_USE(TYPEINFO)
+#if USE(TYPEINFO)
         &typeid(T)
 #else
         fallback_typeid<T>()  
@@ -436,13 +416,13 @@ public:
         return AnyTraits<T>::make(&storage, std::in_place_type_t<T>(), V{list, std::forward<Args>(args)...});
     }
     
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     void reset() {
         actions->drop(&storage);
         actions = VoidAnyActions;
     }
 
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     void swap(Any &rhs) noexcept {
         if (this == &rhs) {
             return;
@@ -462,13 +442,13 @@ public:
     }
 
     template <bool B>
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     bool has_value() const noexcept { return (actions != VoidAnyActions) == B; }
 
-    ANY_ALWAYS_INLINE
+    UU_ALWAYS_INLINE
     bool has_value() const noexcept { return has_value<true>(); }
     
-#if ANY_USE(TYPEINFO)
+#if USE(TYPEINFO)
     const std::type_info &type() const noexcept { 
         return *static_cast<const std::type_info *>(actions->type); 
     }
@@ -484,19 +464,19 @@ private:
     Storage storage;
 };
 
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 void swap(Any &lhs, Any &rhs) noexcept {
     lhs.swap(rhs);
 }
 
 template <class T, class ...Args>
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 Any make_any(Args&&... args) {
     return Any(std::in_place_type<T>, std::forward<Args>(args)...);
 }
 
 template <class T, class U, class ...Args>
-ANY_ALWAYS_INLINE
+UU_ALWAYS_INLINE
 Any make_any(std::initializer_list<U> il, Args&&... args) {
     return Any(std::in_place_type<T>, il, std::forward<Args>(args)...);
 }
@@ -542,7 +522,7 @@ std::remove_cv_t<std::remove_reference_t<V>> *any_cast(Any *a) noexcept {
     using U = std::decay_t<V>;
     if (a && a->has_value()) {
         void *p = a->actions->get(&a->storage, 
-#if ANY_USE(TYPEINFO)
+#if USE(TYPEINFO)
         &typeid(U)
 #else
         fallback_typeid<U>()

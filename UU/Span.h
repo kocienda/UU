@@ -91,7 +91,7 @@ public:
         std::stringstream ss(str);
         
         while (ss >> buf) {
-            ValueT i1 = UU::parse_long(buf).first;
+            ValueT i1 = UU::parse_uint<ValueT>(buf).first;
             ValueT i2 = i1;
             std::string::size_type pos = buf.find_first_of("..", 0);
             if (std::string::npos != pos) {
@@ -100,7 +100,7 @@ public:
                 }
                 else {
                     std::string buf2(buf.substr(pos+2, buf.length()));
-                    i2 = UU::parse_long(buf2).first;
+                    i2 = UU::parse_uint<ValueT>(buf2).first;
                     if (i2 < i1) {
                         i2 = i1;
                     }

@@ -8,7 +8,7 @@
 using namespace UU;
 
 TEST_CASE( "Span test", "[span]" ) {
-    Span<int> span;
+    Span<long> span;
     REQUIRE(span.is_empty());
     span.add(1);
     REQUIRE(span.contains(1));

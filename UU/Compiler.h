@@ -121,6 +121,18 @@
 #endif
 #endif
 
+#ifdef __cpp_exceptions
+#define USE_EXCEPTIONS 1
+#else
+#define USE_EXCEPTIONS 0
+#endif
+
+#ifdef __cpp_rtti
+#define USE_TYPEINFO 1
+#else
+#define USE_TYPEINFO 0
+#endif
+
 /* ==== Compiler-independent macros for various compiler features, in alphabetical order ==== */
 
 /* ALLOW_UNUSED */
