@@ -41,7 +41,7 @@ std::vector<fs::path> skippable_paths()
 bool is_skippable(const std::vector<fs::path> skippables, const fs::path &path, int flags)
 {
     for (const auto &skippable : skippables) {
-        if (filename_match(skippable, path, flags)) {
+        if (filename_match(skippable, path.filename(), flags)) {
             return true;
         }
     }
@@ -76,7 +76,7 @@ std::vector<std::filesystem::path> searchable_paths()
 bool is_searchable(const std::vector<std::filesystem::path> searchables, const std::filesystem::path &path, int flags)
 {
     for (const auto &searchable : searchables) {
-        if (filename_match(searchable, path, flags)) {
+        if (path.extension() == searchable) {
             return true;
         }
     }
