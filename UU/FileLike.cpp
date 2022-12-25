@@ -100,6 +100,17 @@ std::string get_file_contents_as_string(const fs::path &path)
     return result;
 }
 
+bool write_file(const std::filesystem::path &path, const std::string &string)
+{
+    std::ofstream os(path, std::ios::trunc);
+    if (os.fail()) {
+        return false;
+    }
+    os << string;
+    os.close();
+    return true;
+}
+
 bool filename_match(const std::string &pattern, const fs::path &path, int flags)
 {
     std::string filename = path.filename().c_str();

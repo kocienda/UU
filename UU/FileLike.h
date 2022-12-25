@@ -25,6 +25,7 @@ std::vector<std::filesystem::path> searchable_paths();
 bool is_searchable(const std::vector<std::filesystem::path> searchables, const std::filesystem::path &path, int flags=0);
 
 std::string get_file_contents_as_string(const std::filesystem::path &path);
+bool write_file(const std::filesystem::path &path, const std::string &string);
 
 bool filename_match(const std::string &pattern, const std::filesystem::path &path, int flags=0);
 
