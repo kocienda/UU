@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <iostream>
 #include <regex>
+#include <string_view>
 
 #include "Assertions.h"
 #include "StringLike.h"
@@ -25,7 +26,7 @@ TextRef TextRef::from_string(const std::string &str)
     fs::path path;
     size_t line = Invalid;
     size_t column = Invalid;
-    size_t extent = Invalid;
+    size_t end_column = Invalid;
     std::string message;
 
     static std::regex rx("([0-9]+[)][ ]+)?([^:]+)(:([0-9]+))?(:([0-9]+))?(:([0-9]+))?(:(.+))?");        
@@ -44,14 +45,16 @@ TextRef TextRef::from_string(const std::string &str)
         if (pcolumn.second) {
             column = pcolumn.first;
         }
-        auto pextent = UU::parse_uint<UU::UInt32>(ms[8]);
-        if (pextent.second) {
-            extent = pextent.first;
+        auto pend_column = UU::parse_uint<UU::UInt32>(ms[8]);
+        if (pend_column.second) {
+            end_column = pend_column.first;
         }
         message = ms[10];
     }
 
-    return TextRef(index, path, line, column, extent, message);
+    std::cout << "*** textref: " << column << ":" << end_column << std::endl;
+
+    return TextRef(index, path, line, column, end_column, message);
 }
 
 std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
@@ -80,32 +83,39 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
         }
         ss << line();
     }
-    if (has_column() && (flags & TextRef::Column)) {
+    if (has_span()) {
         if (ss.tellp()) {
             ss << ":";
         }
-        ss << column();
-    }
-    if (has_extent() && (flags & TextRef::Extent)) {
-        if (ss.tellp()) {
-            ss << ":";
+        if ((flags & TextRef::Column) && (flags & TextRef::Span) == 0) {
+            ss << column();
         }
-        ss << extent();
+        else if (flags & TextRef::Span) {
+            ss << span();
+        }
     }
     if (has_message() && (flags & TextRef::Message)) {
         if (ss.tellp()) {
             ss << ":";
         }
-        if (highlight_color == 0 || !has_column() || !has_extent() || (column() + extent()) >= message().length()) {
+        if (highlight_color == 0 || !has_span()) {
             ss << message();
         }
         else {
-            std::string m = message();
-            ss << m.substr(0, column() - 1);
-            ss << "\033[" << highlight_color << "m";
-            ss << m.substr(column() - 1, extent());
-            ss << "\033[0m";
-            ss << m.substr(column() - 1 + extent());
+            std::string_view m(message());
+            size_t idx = 0;
+            for (const auto &range : span().ranges()) {
+                if (range.first() > idx) {
+                    ss << m.substr(idx, range.first() - 1);
+                }
+                ss << "\033[" << highlight_color << "m";
+                ss << m.substr(range.first() - 1, range.last() - range.first());
+                ss << "\033[0m";
+                idx = range.last();
+            }
+            if (span().last() < m.length()) {
+                ss << m.substr(span().last() - 1);
+            }
         }
     }
 

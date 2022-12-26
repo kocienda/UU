@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include <UU/Span.h>
 #include <UU/Types.h>
 
 namespace UU {
@@ -19,11 +20,12 @@ public:
     static constexpr int Index =       0x01;
     static constexpr int Filename =    0x02;
     static constexpr int Line =        0x04;
-    static constexpr int Column =      0x08; 
-    static constexpr int Extent =      0x10; 
-    static constexpr int Message =     0x20;
+    static constexpr int Column =      0x08;
+    static constexpr int Span =        0x10; 
+    static constexpr int Extent =      0x20; 
+    static constexpr int Message =     0x40;
     static constexpr int StandardFeatures = Index | Filename | Line | Column | Message;
-    static constexpr int AllFeatures = Index | Filename | Line | Column | Extent | Message;
+    static constexpr int ExtendedFeatures = Index | Filename | Line | Span | Message;
 
     enum class FilenameFormat { RELATIVE, ABSOLUTE };
 
@@ -32,46 +34,59 @@ public:
     static TextRef from_rune_string(const RuneString &str);
     static TextRef from_string(const std::string &str);
 
-    TextRef() : m_index(NotAnIndex), m_line(Invalid), m_column(Invalid) {}
+    TextRef() : m_index(NotAnIndex), m_line(Invalid) {}
     
     TextRef(const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, const std::string &message = std::string()) :
-        m_index(NotAnIndex), m_filename(filename), m_line(line), m_column(column), m_extent(Invalid), m_message(message) {}
+        m_index(NotAnIndex), m_filename(filename), m_line(line), m_message(message) {
+        if (column != Invalid) {
+            m_span.add(column);
+        }
+    }
     
     TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, const std::string &message = std::string()) :
-        m_index(index), m_filename(filename), m_line(line), m_column(Invalid), m_extent(Invalid), m_message(message) {}
+        m_index(index), m_filename(filename), m_line(line), m_message(message) {}
 
     TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, 
         const std::string &message = std::string()) :
-        m_index(index), m_filename(filename), m_line(line), m_column(column), m_extent(Invalid), m_message(message) {}
+        m_index(index), m_filename(filename), m_line(line), m_message(message) {
+        if (column != Invalid) {
+            m_span.add(column);
+        }
+    }
 
-    TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, size_t extent = Invalid,
+    TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, size_t end_column = Invalid,
         const std::string &message = std::string()) :
-        m_index(index), m_filename(filename), m_line(line), m_column(column), m_extent(extent), m_message(message) {}
+        m_index(index), m_filename(filename), m_line(line), m_message(message) {
+        if (column != Invalid && end_column != Invalid) {
+            m_span.add(column, end_column);
+        }
+        else if (column != Invalid) {
+            m_span.add(column);
+        }
+    }
 
     size_t index() const { return m_index; }
     void set_index(size_t index) { m_index = index; }
     const std::filesystem::path &filename() const { return m_filename; }
     size_t line() const { return m_line; }
-    size_t column() const { return m_column; }
-    size_t extent() const { return m_extent; }
+    size_t column() const { return m_span.is_empty() ? Invalid : m_span.first(); }
+    const UU::Span<size_t> &span() const { return m_span; }
     const std::string &message() const { return m_message; }
 
-    std::string to_string(int flags = TextRef::AllFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE, 
-        const std::filesystem::path &reference_path = std::filesystem::path(""), int highlight_color = -1) const;
+    std::string to_string(int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE, 
+        const std::filesystem::path &reference_path = std::filesystem::path(""), int highlight_color = 0) const;
 
     template <bool B = true> bool has_index() const { return (m_index != Invalid) == B; }
     template <bool B = true> bool has_filename() const { return (!m_filename.empty()) == B; }
     template <bool B = true> bool has_line() const { return (m_line != Invalid) == B; }
-    template <bool B = true> bool has_column() const { return (m_column != Invalid) == B; }
-    template <bool B = true> bool has_extent() const { return (m_extent != Invalid) == B; }
+    template <bool B = true> bool has_span() const { return (m_span.is_empty<false>()) == B; }
     template <bool B = true> bool has_message() const { return (m_message.length() > 0) == B; }
 
 private:
     size_t m_index;
     std::filesystem::path m_filename;
     size_t m_line;
-    size_t m_column;
-    size_t m_extent;
+    UU::Span<size_t> m_span;
     std::string m_message;
 };
 
@@ -91,11 +106,8 @@ namespace std
             if (lhs.line() != rhs.line()) {
                 return lhs.line() < rhs.line();
             }
-            if (lhs.column() != rhs.column()) {
-                return lhs.column() < rhs.column();
-            }
-            if (lhs.extent() != rhs.extent()) {
-                return lhs.extent() < rhs.extent();
+            if (lhs.span() != rhs.span()) {
+                return lhs.span().first() < rhs.span().first();
             }
             return lhs.message() < rhs.message();
         }
