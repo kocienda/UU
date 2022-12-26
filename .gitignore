@@ -1,6 +1,9 @@
 # cmake build directory
 build
 
+# cache directory
+.cache
+
 # Prerequisites
 *.d
 
