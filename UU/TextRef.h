@@ -57,7 +57,7 @@ public:
     const std::string &message() const { return m_message; }
 
     std::string to_string(int flags = TextRef::AllFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE, 
-        const std::filesystem::path &reference_path = std::filesystem::path("")) const;
+        const std::filesystem::path &reference_path = std::filesystem::path(""), int highlight_color = -1) const;
 
     template <bool B = true> bool has_index() const { return (m_index != Invalid) == B; }
     template <bool B = true> bool has_filename() const { return (!m_filename.empty()) == B; }
@@ -93,6 +93,9 @@ namespace std
             }
             if (lhs.column() != rhs.column()) {
                 return lhs.column() < rhs.column();
+            }
+            if (lhs.extent() != rhs.extent()) {
+                return lhs.extent() < rhs.extent();
             }
             return lhs.message() < rhs.message();
         }

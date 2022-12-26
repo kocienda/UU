@@ -54,7 +54,7 @@ TextRef TextRef::from_string(const std::string &str)
     return TextRef(index, path, line, column, extent, message);
 }
 
-std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path) const
+std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
 {
     std::stringstream ss;
 
@@ -96,7 +96,17 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
         if (ss.tellp()) {
             ss << ":";
         }
-        ss << message();
+        if (highlight_color == 0 || !has_column() || !has_extent() || (column() + extent()) >= message().length()) {
+            ss << message();
+        }
+        else {
+            std::string m = message();
+            ss << m.substr(0, column() - 1);
+            ss << "\033[" << highlight_color << "m";
+            ss << m.substr(column() - 1, extent());
+            ss << "\033[0m";
+            ss << m.substr(column() - 1 + extent());
+        }
     }
 
     return ss.str();
