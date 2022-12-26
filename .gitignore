@@ -1,8 +1,11 @@
 # cmake build directory
 build
 
-# cache directory
+# editing files
 .cache
+.clangd
+.editorconfig
+.vscode
 
 # Prerequisites
 *.d
