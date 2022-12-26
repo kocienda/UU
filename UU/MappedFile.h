@@ -39,6 +39,7 @@ public:
 
 private:
     void set_valid(bool flag = true) { m_valid = flag; }
+    void invalidate();
     void map(void *addr = 0);
 
     std::filesystem::path m_path;

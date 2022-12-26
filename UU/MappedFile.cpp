@@ -31,7 +31,7 @@ MappedFile::MappedFile(const std::filesystem::path &path, int flags, std::filesy
     
     if (m_prot == PROT_NONE) {
         fprintf(stderr, "MappedFile: illegal protection mode: %d\n", m_prot);
-        set_valid(false);
+        close();
         return;
     }
 
@@ -39,7 +39,7 @@ MappedFile::MappedFile(const std::filesystem::path &path, int flags, std::filesy
     int rc = stat(path.c_str(), &sb);
     if (rc) {
         fprintf(stderr, "MappedFile: stat error: %s\n", strerror(errno));
-        set_valid(false);
+        close();
         return;
     }
     
@@ -47,7 +47,6 @@ MappedFile::MappedFile(const std::filesystem::path &path, int flags, std::filesy
     size_t provisional_map_length = 0;
     if (m_file_length == 0) {
         if ((m_prot & PROT_WRITE) == 0) {
-            set_valid(false);
             close();
             return;
         }
@@ -64,6 +63,10 @@ MappedFile::MappedFile(const std::filesystem::path &path, int flags, std::filesy
         m_map_length = provisional_map_length;
         map();
     }
+
+    if (is_valid<false>()) {
+        close();
+    }
 }
 
 MappedFile::~MappedFile()
@@ -73,18 +76,25 @@ MappedFile::~MappedFile()
 
 void MappedFile::map(void *addr)
 {
+    if (m_base) {
+        munmap(m_base, m_map_length);
+    }
     m_base = mmap(addr, m_map_length, m_prot, MAP_FILE | MAP_SHARED, fd(), 0);
     if (m_base == MAP_FAILED) {
         fprintf(stderr, "MappedFile: mmap error: %s\n", strerror(errno));
-        set_valid(false);
+        close();
     }
 }
 
 void MappedFile::sync()
 {
-    if (is_valid() && is_dirty() && (prot() & PROT_WRITE)) {
-        msync(base(), map_length(), MS_SYNC);
-        set_dirty(false);
+    if (m_base && is_valid() && is_dirty() && (prot() & PROT_WRITE)) {
+        if (msync(base(), map_length(), MS_SYNC) == 0) {
+            set_dirty(false);
+        }
+        else {
+            close();
+        }
     }
 }
 
@@ -122,13 +132,20 @@ bool MappedFile::resize(int32_t pages)
 
 void MappedFile::close()
 {
-    if (is_valid<false>()) {
-        return;
-    }
     sync();
-    munmap(m_base, m_map_length);
-    ::close(m_fd);
-    m_fd = NotAnFD;
+    invalidate();
+}
+
+void MappedFile::invalidate()
+{
+    if (m_base) {
+        munmap(m_base, m_map_length);
+        m_base = nullptr;
+    }
+    if (m_fd != NotAnFD) {
+        ::close(m_fd);
+        m_fd = NotAnFD;
+    }
     m_valid = false;
 }
 
