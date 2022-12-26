@@ -103,6 +103,7 @@ endfunction()
 UU_TEST(smoke_test)
 UU_TEST(file_like_test)
 UU_TEST(span_test)
+UU_TEST(textref_test)
 UU_TEST(unix_like_test)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

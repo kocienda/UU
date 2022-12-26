@@ -6,6 +6,7 @@
 #include <iostream>
 #include <regex>
 
+#include "Assertions.h"
 #include "StringLike.h"
 #include "TextRef.h"
 
@@ -20,15 +21,16 @@ TextRef TextRef::from_rune_string(const RuneString &str)
 
 TextRef TextRef::from_string(const std::string &str)
 {
-    size_t index = NotAnIndex;
+    size_t index = Invalid;
     fs::path path;
-    size_t line = NotALine;
-    size_t column = NotAColumn;
+    size_t line = Invalid;
+    size_t column = Invalid;
+    size_t extent = Invalid;
     std::string message;
 
-    static std::regex rx("([0-9]+[)][ ]+)([^:]+)(:([0-9]+):(([0-9]+):)?(.*))?");        
+    static std::regex rx("([0-9]+[)][ ]+)?([^:]+)(:([0-9]+))?(:([0-9]+))?(:([0-9]+))?(:(.+))?");        
     std::cmatch ms;
-    if (regex_search(str.c_str(), ms, rx)) {
+    if (regex_match(str.c_str(), ms, rx)) {
         auto pindex = UU::parse_uint<UU::UInt32>(ms[1]);
         if (pindex.second) {
             index = pindex.first;
@@ -42,10 +44,14 @@ TextRef TextRef::from_string(const std::string &str)
         if (pcolumn.second) {
             column = pcolumn.first;
         }
-        message = ms[7];
+        auto pextent = UU::parse_uint<UU::UInt32>(ms[8]);
+        if (pextent.second) {
+            extent = pextent.first;
+        }
+        message = ms[10];
     }
 
-    return TextRef(index, path, line, column, message);
+    return TextRef(index, path, line, column, extent, message);
 }
 
 std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path) const
@@ -79,6 +85,12 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
             ss << ":";
         }
         ss << column();
+    }
+    if (has_extent() && (flags & TextRef::Extent)) {
+        if (ss.tellp()) {
+            ss << ":";
+        }
+        ss << extent();
     }
     if (has_message() && (flags & TextRef::Message)) {
         if (ss.tellp()) {

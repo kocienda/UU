@@ -110,9 +110,6 @@ public:
         }
     }
 
-
-
-
     ValueT first() const { return m_ranges.size() ? m_ranges.front().first() : std::numeric_limits<ValueT>::max(); }
     ValueT last() const { return m_ranges.size() ? m_ranges.back().last() : std::numeric_limits<ValueT>::max(); }
 
