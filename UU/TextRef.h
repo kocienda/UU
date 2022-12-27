@@ -80,6 +80,7 @@ public:
     void add_span(const UU::Span<size_t> &span) { m_span.add(span); }
     void simplify_span() { m_span.simplify(); }
     const std::string &message() const { return m_message; }
+    void set_message(const std::string &message) { m_message = message; }
 
     std::string to_string(int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE, 
         const std::filesystem::path &reference_path = std::filesystem::path(""), int highlight_color = 0) const;
