@@ -234,7 +234,7 @@ std::ostream &operator<<(std::ostream &os, const Span<T> &span)
     bool initial = true;
     for (const auto &r : span.ranges()) {
         if (!initial) {
-            os << " ; ";
+            os << ",";
         }
         os << r;
         initial = false;

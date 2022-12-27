@@ -35,7 +35,7 @@ TextRef TextRef::from_string(const std::string &str)
     // optional index:filename:line
     static std::regex rx1("([0-9]+[)][ ]+)?([^:]+):([0-9]+)");        
     if (regex_match(str.c_str(), match, rx1)) {
-        std::cout << "*** match rx1: " << str.length() << ":" << match.length() << std::endl;
+        // std::cout << "*** match rx1: " << str.length() << ":" << match.length() << std::endl;
         auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
         if (pindex.second) {
             index = pindex.first;
@@ -51,7 +51,7 @@ TextRef TextRef::from_string(const std::string &str)
     // optional index:filename:line:span:optional message
     static std::regex rx2("([0-9]+[)][ ]+)?([^:]+):([0-9]+):([0-9]+((\\.{2}|,)[0-9]+)+)(:(.+))?");        
     if (regex_match(str.c_str(), match, rx2)) {
-        std::cout << "*** match rx2" << std::endl;
+        // std::cout << "*** match rx2" << std::endl;
         auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
         if (pindex.second) {
             index = pindex.first;
@@ -70,7 +70,7 @@ TextRef TextRef::from_string(const std::string &str)
     // optional index:filename:optional line:optional column:optional column end:optional message
     static std::regex rx3("([0-9]+[)][ ]+)?([^:]+)(:([0-9]+))?(:([0-9]+))?(:([0-9]+))?(:(.+))?");        
     if (regex_match(str.c_str(), match, rx3)) {
-        std::cout << "*** match rx3" << std::endl;
+        // std::cout << "*** match rx3" << std::endl;
         auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
         if (pindex.second) {
             index = pindex.first;
@@ -122,13 +122,16 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
         ss << line();
     }
     if (has_span()) {
-        if (ss.tellp()) {
-            ss << ":";
-        }
         if ((flags & TextRef::Column) && (flags & TextRef::Span) == 0) {
+            if (ss.tellp()) {
+                ss << ":";
+            }
             ss << column();
         }
         else if (flags & TextRef::Span) {
+            if (ss.tellp()) {
+                ss << ":";
+            }
             ss << span();
         }
     }
@@ -147,14 +150,14 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
             size_t idx = 0;
             for (const auto &range : span().ranges()) {
                 if (range.first() - 1 > idx) {
-                    ss << m.substr(idx, range.first() - 1);
+                    ss << m.substr(idx, range.first() - idx - 1);
                 }
                 ss << "\033[" << highlight_color << "m";
                 ss << m.substr(range.first() - 1, range.last() - range.first());
                 ss << "\033[0m";
                 idx = range.last() - 1;
             }
-            if (span().last() < m.length()) {
+            if (span().last() - 1 < m.length()) {
                 ss << m.substr(span().last() - 1);
             }
         }

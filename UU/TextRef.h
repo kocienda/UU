@@ -24,6 +24,7 @@ public:
     static constexpr int Span =        0x10; 
     static constexpr int Extent =      0x20; 
     static constexpr int Message =     0x40;
+    static constexpr int CompactFeatures = Index | Filename | Line | Message;
     static constexpr int StandardFeatures = Index | Filename | Line | Column | Message;
     static constexpr int ExtendedFeatures = Index | Filename | Line | Span | Message;
 
@@ -76,6 +77,8 @@ public:
     size_t line() const { return m_line; }
     size_t column() const { return m_span.is_empty() ? Invalid : m_span.first(); }
     const UU::Span<size_t> &span() const { return m_span; }
+    void add_span(const UU::Span<size_t> &span) { m_span.add(span); }
+    void simplify_span() { m_span.simplify(); }
     const std::string &message() const { return m_message; }
 
     std::string to_string(int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE, 

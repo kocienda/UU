@@ -12,7 +12,7 @@ std::ostream &operator<<(std::ostream &os, const Span<char32_t> &span)
     bool first = true;
     for (const auto &r : span.ranges()) {
         if (!first) {
-            os << " ; ";
+            os << ",";
         }
         if (r.first() == r.last()) {
             if (r.first() < 256) {
