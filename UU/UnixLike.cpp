@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 
+#include "Assertions.h"
 #include "DynamicByteBuffer.h"
 #include "UnixLike.h"
 
