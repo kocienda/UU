@@ -35,6 +35,7 @@ public:
     explicit Span(ValueT first, ValueT last) { add(first, last); };
     explicit Span(const RangeVector &v) : m_ranges(v) {};
     explicit Span(RangeVector &&v) : m_ranges(std::move(v)) {};
+    explicit Span(const std::string &s) { add(s); };
     Span(const Span &span) : m_ranges(span.ranges()) {}
     Span(Span &&span) : m_ranges(std::move(span.ranges())) {}
 

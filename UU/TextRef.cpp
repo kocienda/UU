@@ -27,34 +27,72 @@ TextRef TextRef::from_string(const std::string &str)
     size_t line = Invalid;
     size_t column = Invalid;
     size_t end_column = Invalid;
+    UU::Span<size_t> span;
     std::string message;
 
-    static std::regex rx("([0-9]+[)][ ]+)?([^:]+)(:([0-9]+))?(:([0-9]+))?(:([0-9]+))?(:(.+))?");        
-    std::cmatch ms;
-    if (regex_match(str.c_str(), ms, rx)) {
-        auto pindex = UU::parse_uint<UU::UInt32>(ms[1]);
+    std::cmatch match;
+
+    // optional index:filename:line
+    static std::regex rx1("([0-9]+[)][ ]+)?([^:]+):([0-9]+)");        
+    if (regex_match(str.c_str(), match, rx1)) {
+        std::cout << "*** match rx1: " << str.length() << ":" << match.length() << std::endl;
+        auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
         if (pindex.second) {
             index = pindex.first;
         }
-        path = ms[2];
-        auto pline = UU::parse_uint<UU::UInt32>(ms[4]);
+        path = match[2];
+        auto pline = UU::parse_uint<UU::UInt32>(match[3]);
         if (pline.second) {
             line = pline.first;
         }
-        auto pcolumn = UU::parse_uint<UU::UInt32>(ms[6]);
+        return TextRef(index, path, line, Invalid);
+    }
+
+    // optional index:filename:line:span:optional message
+    static std::regex rx2("([0-9]+[)][ ]+)?([^:]+):([0-9]+):([0-9]+((\\.{2}|,)[0-9]+)+)(:(.+))?");        
+    if (regex_match(str.c_str(), match, rx2)) {
+        std::cout << "*** match rx2" << std::endl;
+        auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
+        if (pindex.second) {
+            index = pindex.first;
+        }
+        path = match[2];
+        auto pline = UU::parse_uint<UU::UInt32>(match[3]);
+        if (pline.second) {
+            line = pline.first;
+        }
+        span = UU::Span<size_t>(match[4]);
+        message = match[8];
+ 
+        return TextRef(index, path, line, span, message);
+    }
+
+    // optional index:filename:optional line:optional column:optional column end:optional message
+    static std::regex rx3("([0-9]+[)][ ]+)?([^:]+)(:([0-9]+))?(:([0-9]+))?(:([0-9]+))?(:(.+))?");        
+    if (regex_match(str.c_str(), match, rx3)) {
+        std::cout << "*** match rx3" << std::endl;
+        auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
+        if (pindex.second) {
+            index = pindex.first;
+        }
+        path = match[2];
+        auto pline = UU::parse_uint<UU::UInt32>(match[4]);
+        if (pline.second) {
+            line = pline.first;
+        }
+        auto pcolumn = UU::parse_uint<UU::UInt32>(match[6]);
         if (pcolumn.second) {
             column = pcolumn.first;
         }
-        auto pend_column = UU::parse_uint<UU::UInt32>(ms[8]);
+        auto pend_column = UU::parse_uint<UU::UInt32>(match[8]);
         if (pend_column.second) {
             end_column = pend_column.first;
         }
-        message = ms[10];
+        message = match[10];
+        return TextRef(index, path, line, column, end_column, message);
     }
 
-    std::cout << "*** textref: " << column << ":" << end_column << std::endl;
-
-    return TextRef(index, path, line, column, end_column, message);
+    return TextRef();
 }
 
 std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
@@ -102,16 +140,19 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
             ss << message();
         }
         else {
+            // note that ranges are stored counting from 1,
+            // but strings are indexed from 0, 
+            // so subtract 1 when creating substrings
             std::string_view m(message());
             size_t idx = 0;
             for (const auto &range : span().ranges()) {
-                if (range.first() > idx) {
+                if (range.first() - 1 > idx) {
                     ss << m.substr(idx, range.first() - 1);
                 }
                 ss << "\033[" << highlight_color << "m";
                 ss << m.substr(range.first() - 1, range.last() - range.first());
                 ss << "\033[0m";
-                idx = range.last();
+                idx = range.last() - 1;
             }
             if (span().last() < m.length()) {
                 ss << m.substr(span().last() - 1);

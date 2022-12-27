@@ -66,3 +66,31 @@ TEST_CASE( "TextRef parsing function 7", "[textref]" ) {
     REQUIRE(t.span() == Span<size_t>(10, 14));
     REQUIRE(t.message() == "33 std::string");
 }
+
+TEST_CASE( "TextRef parsing function 8", "[textref]" ) {
+    TextRef t = TextRef::from_string("81) search-tool.cpp:291:42..48:                std::string str = ref.to_string()");
+    REQUIRE(t.index() == 81);
+    REQUIRE(t.filename() == std::string("search-tool.cpp"));
+    REQUIRE(t.line() == 291);
+    REQUIRE(t.column() == 42);
+    REQUIRE(t.span() == Span<size_t>(42, 48));
+    REQUIRE(t.message() == "                std::string str = ref.to_string()");
+}
+
+TEST_CASE( "TextRef parsing function 9", "[textref]" ) {
+    TextRef t = TextRef::from_string("81) search-tool.cpp:291:42..48,56:                std::string str = ref.to_string()");
+    REQUIRE(t.index() == 81);
+    REQUIRE(t.filename() == std::string("search-tool.cpp"));
+    REQUIRE(t.line() == 291);
+    REQUIRE(t.column() == 42);
+    REQUIRE(t.span() == Span<size_t>("42..48,56"));
+    REQUIRE(t.message() == "                std::string str = ref.to_string()");
+}
+
+TEST_CASE( "TextRef parsing function 10", "[textref]" ) {
+    TextRef t = TextRef::from_string("81) search-tool.cpp:291");
+    REQUIRE(t.index() == 81);
+    REQUIRE(t.filename() == std::string("search-tool.cpp"));
+    REQUIRE(t.line() == 291);
+}
+

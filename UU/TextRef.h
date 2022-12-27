@@ -43,16 +43,16 @@ public:
         }
     }
     
-    TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, const std::string &message = std::string()) :
-        m_index(index), m_filename(filename), m_line(line), m_message(message) {}
+    // TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, const std::string &message = std::string()) :
+    //     m_index(index), m_filename(filename), m_line(line), m_message(message) {}
 
-    TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, 
-        const std::string &message = std::string()) :
-        m_index(index), m_filename(filename), m_line(line), m_message(message) {
-        if (column != Invalid) {
-            m_span.add(column);
-        }
-    }
+    // TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, 
+    //     const std::string &message = std::string()) :
+    //     m_index(index), m_filename(filename), m_line(line), m_message(message) {
+    //     if (column != Invalid) {
+    //         m_span.add(column);
+    //     }
+    // }
 
     TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, size_t end_column = Invalid,
         const std::string &message = std::string()) :
@@ -63,6 +63,11 @@ public:
         else if (column != Invalid) {
             m_span.add(column);
         }
+    }
+
+    TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, const UU::Span<size_t> span = UU::Span<size_t>(), 
+        const std::string &message = std::string()) :
+        m_index(index), m_filename(filename), m_line(line), m_span(span), m_message(message) {
     }
 
     size_t index() const { return m_index; }
