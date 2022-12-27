@@ -156,8 +156,8 @@ NO_RETURN_DUE_TO_CRASH void UUCrash(void);
 #else
 #define UU_LOG_CHANNELS(M) \
 M(General) \
-M(Leaks) \
-M(Settings) \
+M(Error) \
+M(Leak) \
 
 UU_LOG_CHANNELS(DECLARE_LOG_CHANNEL)
 #endif

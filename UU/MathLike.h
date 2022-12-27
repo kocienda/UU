@@ -7,6 +7,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #include <UU/Compiler.h>
 
@@ -116,6 +117,15 @@ size_t next_power_of_2(size_t n)
     n |= (n >> 16);
     n |= (n >> 32);
     return n + 1;
+}
+
+
+UU_ALWAYS_INLINE
+size_t ceil_to_page_size(size_t length)
+{
+    size_t page_size = getpagesize();
+    bool even = length % page_size == 0;
+    return even ? length : ((length / page_size) + 1) * page_size;
 }
 
 }  // namespace UU
