@@ -47,7 +47,7 @@ public:
     }
     
     static bool overlap(const Range &a, const Range &b) {
-        return !(a.last() < b.first() - 1 || a.first() - 1 > b.last());
+        return !(a.last() < b.first() || a.first() > b.last());
     }
     
 private:
