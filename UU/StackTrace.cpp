@@ -1,7 +1,8 @@
 //
-//  StackTrace.cpp
+// StackTrace.cpp
 //
-//  Based (substantially) on StackTrace.cpp from WebKit.
+// Based (substantially) on StackTrace.cpp from WebKit.
+// Copyright (c) 2022 Ken Kocienda. All rights reserved.
 //
 /*
  * Copyright (C) 2017 Apple Inc. All rights reserved.
