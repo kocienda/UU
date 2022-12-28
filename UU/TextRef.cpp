@@ -146,16 +146,16 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
             std::string_view m(message());
             size_t idx = 0;
             for (const auto &range : span().ranges()) {
-                if (range.first() > idx) {
-                    ss << m.substr(idx, range.first() - idx);
+                if (range.first() - 1 > idx) {
+                    ss << m.substr(idx, range.first() - 1 - idx);
                 }
                 ss << "\033[" << highlight_color << "m";
-                ss << m.substr(range.first(), range.last() - range.first());
+                ss << m.substr(range.first() - 1, range.last() - range.first());
                 ss << "\033[0m";
-                idx = range.last();
+                idx = range.last() - 1;
             }
-            if (span().last() < m.length()) {
-                ss << m.substr(span().last());
+            if (span().last() - 1 < m.length()) {
+                ss << m.substr(span().last() - 1);
             }
         }
     }

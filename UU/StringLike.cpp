@@ -31,22 +31,24 @@ std::vector<SizeType> find_line_end_offsets(const std::string_view &str, SizeTyp
     bool added_last_line_ending = false;
 
     // find all line endings in str up to and including the line with the last match
-    for (SizeType idx = 0; idx < max_string_index; idx++) {
+    SizeType idx = 0;
+    for (; idx < max_string_index; idx++) {
         if (str[idx] == '\n') {
             result.push_back(idx);
-            if (result.size() > max_line || idx == max_string_index - 1) {
+            if (result.size() > max_line) {
                 added_last_line_ending = true;
                 break;
             }
         }
     }
-
     // add the line end after the last match, or if there is none, the last index in the file
-    for (SizeType idx = max_string_index; idx < str.length(); idx++) {
-        if (str[idx] == '\n') {
-            result.push_back(idx);
-            added_last_line_ending = true;
-            break;
+    if (!added_last_line_ending) {
+        for (SizeType idx = max_string_index; idx < str.length(); idx++) {
+            if (str[idx] == '\n') {
+                result.push_back(idx);
+                added_last_line_ending = true;
+                break;
+            }
         }
     }
     if (!added_last_line_ending) {
