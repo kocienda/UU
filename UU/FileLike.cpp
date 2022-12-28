@@ -119,4 +119,12 @@ bool filename_match(const std::string &pattern, const fs::path &path, int flags)
     return fnmatch(effective_pattern.c_str(), filename.c_str(), fnmatch_flags) == 0;
 }
 
+fs::path absolute_path_relative_to(const fs::path &path, const fs::path &reference_path)
+{
+    fs::path absolute_path = fs::absolute(path);
+    fs::path absolute_reference_path = fs::absolute(reference_path);
+    return fs::path(absolute_path.string().substr(absolute_reference_path.string().length() + 1));
+}
+
+
 }  // namespace UU

@@ -13,6 +13,7 @@ static constexpr int UU_FIXES_VERSION = 0;
 
 #include <UU/AcquireReleaseGuard.h>
 #include <UU/Any.h>
+#include <UU/CloseGuard.h>
 #include <UU/Compiler.h>
 #include <UU/FileLike.h>
 #include <UU/MappedFile.h>

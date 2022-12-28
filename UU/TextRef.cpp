@@ -10,6 +10,7 @@
 #include "Assertions.h"
 #include "StringLike.h"
 #include "TextRef.h"
+#include "UU/UnixLike.h"
 
 namespace fs = std::filesystem;
 
@@ -103,17 +104,16 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
         ss << index() << ") ";
     }
     if (has_filename() && (flags & TextRef::Filename)) {
+        std::string path = filename();
         if (filename_format == FilenameFormat::ABSOLUTE) {
-            ss << fs::absolute(filename()).c_str();
+            path = fs::absolute(filename());
         }
         else if (!reference_path.empty()) {
             fs::path absolute_reference_path = fs::absolute(reference_path);
             fs::path absolute_filename_path = fs::absolute(filename());
-            ss << absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
+            path = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
         }
-        else {
-            ss << filename().c_str();
-        }
+        ss << shell_escaped_string(path.c_str());
     }
     if (has_line() && (flags & TextRef::Line)) {
         if (ss.tellp()) {

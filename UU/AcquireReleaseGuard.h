@@ -14,6 +14,8 @@ public:
     AcquireReleaseGuard(Resource &rsrc) : m_rsrc(rsrc) { m_rsrc.acquire(); }
     ~AcquireReleaseGuard() { m_rsrc.release(); }
 private:
+    AcquireReleaseGuard(const AcquireReleaseGuard &) = delete;
+    AcquireReleaseGuard &operator=(const AcquireReleaseGuard &) = delete;
     Resource &m_rsrc;
 };
 

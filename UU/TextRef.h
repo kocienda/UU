@@ -55,7 +55,7 @@ public:
         }
     }
 
-    TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, const UU::Span<size_t> span = UU::Span<size_t>(), 
+    TextRef(size_t index, const std::filesystem::path &filename, size_t line, const UU::Span<size_t> span = UU::Span<size_t>(), 
         const std::string &message = std::string()) :
         m_index(index), m_filename(filename), m_line(line), m_span(span), m_message(message) {}
 

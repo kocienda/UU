@@ -29,6 +29,8 @@ bool write_file(const std::filesystem::path &path, const std::string &string);
 
 bool filename_match(const std::string &pattern, const std::filesystem::path &path, int flags=0);
 
+std::filesystem::path absolute_path_relative_to(const std::filesystem::path &path, const std::filesystem::path &reference_path);
+
 }  // namespace UU
 
 #endif // UU_FILE_LIKE_H

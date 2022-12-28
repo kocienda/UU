@@ -17,8 +17,16 @@ set(CXX_WARNING_FLAGS "-Werror -Wno-trigraphs -Wno-missing-field-initializers -W
 -Winfinite-recursion -Wmove -Wcomma -Wstrict-prototypes -Wrange-loop-analysis -Wunguarded-availability -Wno-nullability-completeness \
 -fvisibility-inlines-hidden -fasm-blocks -fstrict-aliasing -fno-common")
 set(CMAKE_CXX_FLAGS "${CXX_VERSION_FLAGS} ${CXX_ARCH_FLAGS} ${CXX_WARNING_FLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0")
+set(CMAKE_CXX_FLAGS_RELEASE "-Os -DNDEBUG")
 
-set(CMAKE_INSTALL_PREFIX /u)
+IF(DEFINED ENV{UDIR})
+set(PREFIX $ENV{UDIR})
+set(CMAKE_INSTALL_PREFIX ${PREFIX})
+ELSE()
+set(PREFIX /usr/local)
+set(CMAKE_INSTALL_PREFIX ${PREFIX})
+ENDIF()
 
 set(CODE_DIR UU)
 
@@ -29,6 +37,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Any.h
   ${CODE_DIR}/ByteReader.h
   ${CODE_DIR}/ByteWriter.h
+  ${CODE_DIR}/CloseGuard.h
   ${CODE_DIR}/Compiler.h
   ${CODE_DIR}/DynamicByteBuffer.h
   ${CODE_DIR}/FileLike.h
