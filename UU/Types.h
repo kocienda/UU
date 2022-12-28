@@ -67,6 +67,8 @@ static constexpr Byte ByteMin = UInt8Min;
 static constexpr Byte ByteMax = UInt8Max;
 
 using SizeType = size_t;
+static constexpr SizeType SizeTypeMin = std::numeric_limits<SizeType>::min();
+static constexpr SizeType SizeTypeMax = std::numeric_limits<SizeType>::max();
 
 }  // namespace UU
 

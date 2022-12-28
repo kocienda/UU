@@ -5,14 +5,14 @@
 #ifndef UU_STRING_LIKE_H
 #define UU_STRING_LIKE_H
 
-#include <UU/Compiler.h>
-#include <UU/Types.h>
-
 #include <codecvt>
 #include <limits>
 #include <locale>
 #include <string>
 #include <string_view>
+
+#include <UU/Compiler.h>
+#include <UU/Types.h>
 
 namespace UU {
 
@@ -66,6 +66,10 @@ template <typename I> std::pair<int, bool> parse_int(const std::string &s, std::
         return std::make_pair(0, false);
     }
 }
+
+std::vector<SizeType> find_line_end_offsets(const std::string_view &str, SizeType max_string_index = SizeTypeMax, SizeType max_line = SizeTypeMax);
+std::string_view string_view_for_line(const std::string_view &str, const std::vector<SizeType> &line_end_offsets, SizeType line);
+std::string_view string_view_for_line(const std::string_view &str, SizeType line);
 
 }  // namespace UU
 
