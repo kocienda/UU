@@ -5,12 +5,14 @@
 #include <filesystem>
 #include <iostream>
 #include <regex>
+#include <string>
 #include <string_view>
 
 #include "Assertions.h"
 #include "StringLike.h"
 #include "TextRef.h"
-#include "UU/UnixLike.h"
+#include "Span.h"
+#include "UnixLike.h"
 
 namespace fs = std::filesystem;
 
@@ -96,6 +98,23 @@ TextRef TextRef::from_string(const std::string &str)
     return TextRef();
 }
 
+UU_ALWAYS_INLINE static void zap_gremlins(std::stringstream &ss, std::string_view &sv) {
+    if (contains_gremlins<false>(sv)) {
+        ss << sv;
+    }
+    else {
+        // zap
+        for (int idx = 0; idx < sv.length(); idx++) {
+            if (is_gremlin(sv[idx])) {
+                ss << '?';
+            }
+            else {
+                ss << sv[idx];
+            }
+        }
+    }
+}
+
 std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
 {
     std::stringstream ss;
@@ -139,23 +158,28 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
         if (ss.tellp()) {
             ss << ":";
         }
+        std::string_view msg(message());
         if (highlight_color == 0 || !has_span()) {
-            ss << message();
+            zap_gremlins(ss, msg);
         }
         else {
-            std::string_view m(message());
+            const auto &spn = span();
             size_t idx = 0;
-            for (const auto &range : span().ranges()) {
-                if (range.first() - 1 > idx) {
-                    ss << m.substr(idx, range.first() - 1 - idx);
+            for (const auto &range : spn.ranges()) {
+                const auto first = range.first();
+                const auto last = range.last();
+                if (first - 1 > idx) {
+                    std::string_view chunk = msg.substr(idx, first - 1 - idx);
+                    zap_gremlins(ss, chunk);
                 }
                 ss << "\033[" << highlight_color << "m";
-                ss << m.substr(range.first() - 1, range.last() - range.first());
+                ss << msg.substr(first - 1, last - first);
                 ss << "\033[0m";
-                idx = range.last() - 1;
+                idx = last - 1;
             }
-            if (span().last() - 1 < m.length()) {
-                ss << m.substr(span().last() - 1);
+            if (spn.last() - 1 < msg.length()) {
+                std::string_view chunk = msg.substr(spn.last() - 1);
+                zap_gremlins(ss, chunk);
             }
         }
     }

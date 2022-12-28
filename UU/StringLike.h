@@ -71,6 +71,19 @@ std::vector<SizeType> find_line_end_offsets(const std::string_view &str, SizeTyp
 std::string_view string_view_for_line(const std::string_view &str, const std::vector<SizeType> &line_end_offsets, SizeType line);
 std::string_view string_view_for_line(const std::string_view &str, SizeType line);
 
+template <bool B = true> bool is_gremlin(char c) { return (c < 32) == B; }
+template <bool B = true> bool contains_gremlins(const std::string_view &str) { 
+    bool b = false;
+    for (size_t idx = 0; idx < str.length(); idx++) {
+        if (is_gremlin(str[idx])) {
+            b = true;
+            break;
+        }
+    }
+    return B == b;
+}
+template <bool B = true> bool contains_gremlins(const std::string &str) { return (contains_gremlins(std::string_view(str))) == B; }
+
 }  // namespace UU
 
 #endif // UU_STRING_LIKE_H
