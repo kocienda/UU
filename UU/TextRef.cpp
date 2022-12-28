@@ -143,22 +143,19 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
             ss << message();
         }
         else {
-            // note that ranges are stored counting from 1,
-            // but strings are indexed from 0, 
-            // so subtract 1 when creating substrings
             std::string_view m(message());
             size_t idx = 0;
             for (const auto &range : span().ranges()) {
-                if (range.first() - 1 > idx) {
-                    ss << m.substr(idx, range.first() - idx - 1);
+                if (range.first() > idx) {
+                    ss << m.substr(idx, range.first() - idx);
                 }
                 ss << "\033[" << highlight_color << "m";
-                ss << m.substr(range.first() - 1, range.last() - range.first());
+                ss << m.substr(range.first(), range.last() - range.first());
                 ss << "\033[0m";
-                idx = range.last() - 1;
+                idx = range.last();
             }
-            if (span().last() - 1 < m.length()) {
-                ss << m.substr(span().last() - 1);
+            if (span().last() < m.length()) {
+                ss << m.substr(span().last());
             }
         }
     }

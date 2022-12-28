@@ -28,6 +28,8 @@ public:
     
     ValueT last() const { return m_last; }
     void set_last(ValueT last) { m_last = last; }
+
+    ValueT length() const { return m_last - m_first; }
     
     template <bool B=true> bool contains(ValueT t) const { return (t >= first() && t <= last()) == B; }
     template <bool B=true> bool empty() const { return (first() == last()) == B; }

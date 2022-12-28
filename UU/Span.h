@@ -136,6 +136,7 @@ public:
         }
         std::sort(m_ranges.begin(), m_ranges.end(), RangeT::compare);
         RangeVector simplified;
+        simplified.reserve(m_ranges.size());
         simplified.push_back(m_ranges[0]);
         for (size_t idx = 1; idx < m_ranges.size(); idx++) {
             RangeT &r1 = simplified.back();

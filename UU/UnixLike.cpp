@@ -2,6 +2,8 @@
 //  UnixLike.cpp
 //
 
+#include <sys/types.h>
+#include <sys/sysctl.h>
 #include <unistd.h>
 
 #include "Assertions.h"
@@ -50,5 +52,24 @@ std::string shell_escaped_string(const std::string &str)
     }
     return result;
 }
+
+int get_sysctl_logicalcpu()
+{
+    int num = 0;
+    size_t len = sizeof(num);
+    int rc = sysctlbyname("hw.logicalcpu", &num, &len, NULL, 0);
+    if (rc == -1) {
+        LOG(Error, "get_sysctl_logicalcpu: failed: %s", strerror(errno));
+        return 0;
+    }
+    return num;
+}
+
+int get_good_concurrency_count()
+{
+    int c = get_sysctl_logicalcpu();
+    return c > 0 ? c : 8;
+}
+
 
 }  // namespace UU
