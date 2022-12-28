@@ -1,8 +1,9 @@
 //
-//  Platform.h
+// Platform.h
 //
-//  Based on Platform.h from WebKit.
-//  Provides support for building a single codebase on different platforms and CPUs.
+// Based on Platform.h from WebKit.
+// Provides support for building a single codebase on different platforms and CPUs.
+// Copyright (c) 2022 Ken Kocienda. All rights reserved.
 //
 /*
  * Copyright (C) 2006-2017 Apple Inc. All rights reserved.

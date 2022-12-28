@@ -1,7 +1,8 @@
 //
-//  SmallVector.cpp
+// SmallVector.cpp
 //
-//  Based on SmallVector.cpp from LLVM.
+// Based on SmallVector.cpp from LLVM.
+// Copyright (c) 2022 Ken Kocienda. All rights reserved.
 //
 
 /*

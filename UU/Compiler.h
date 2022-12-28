@@ -1,8 +1,9 @@
 //
-//  Compiler.h
+// Compiler.h
 //
-//  Based (substantially) on Compiler.h from WebKit.
-//  Support for building a single codebase with different compilers.
+// Based (substantially) on Compiler.h from WebKit.
+// Support for building a single codebase with different compilers.
+// Copyright (c) 2022 Ken Kocienda. All rights reserved.
 //
 /*
  * Copyright (C) 2011, 2012, 2014 Apple Inc. All rights reserved.

@@ -1,7 +1,8 @@
 //
-//  Assertions.cpp
+// Assertions.cpp
 //
-//  Based (substantially) on Assertions.cpp from WebKit.
+// Based (substantially) on Assertions.cpp from WebKit.
+// Copyright (c) 2022 Ken Kocienda. All rights reserved.
 //
 /*
  * Copyright (C) 2003-2019 Apple Inc.  All rights reserved.

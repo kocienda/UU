@@ -4,7 +4,6 @@
 // A class modeled on std::any.
 //
 // MIT License
-// 
 // Copyright (c) 2020-2022 Ken Kocienda
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
