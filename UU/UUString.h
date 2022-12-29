@@ -195,7 +195,6 @@ public:
         append((const Byte *)ptr, len);
     }
 
-
     BasicString &operator+=(const std::string &s) {
         append(s.data(), s.length());
         return *this;
@@ -301,6 +300,263 @@ public:
 
     friend bool operator>(const BasicString &a, const BasicString &b) {
         return !(a < b); 
+    }
+
+    class iterator : public std::random_access_iterator_tag {
+    public:
+        using iterator_topic = std::random_access_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+        using value_type = CharT;
+        using pointer = CharT *;
+        using reference = CharT &;
+        
+        constexpr iterator(const BasicString *str, size_t index = 0) : m_str(str), m_index(index) {}
+      
+        reference operator *() const { return *(m_str->data() + m_index); }
+        reference operator[](SizeType idx) { return *(m_str->data() + m_index + idx); }
+        reference operator[](SizeType idx) const { return *(m_str->data() + m_index + idx); }
+
+        iterator &operator+=(int offset) {
+            if (m_index + offset >= m_str->length()) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index += offset;
+            }
+            return *this;
+        }
+
+        iterator operator+(int offset) {
+            iterator it(*this);
+            return it += 1;
+        }
+
+        iterator &operator-=(int offset) {
+            if (m_index < offset || m_str->length() < offset) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index -= offset;
+            }
+            return *this;
+        }
+
+        iterator operator-(int offset) {
+            iterator it(*this);
+            return it -= 1;
+        }
+
+        iterator &operator++() {
+            if (m_index + 1 >= m_str->length()) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index++;
+            }
+            return *this;
+        }
+
+        iterator &operator--() {
+            if (m_index == 0 || m_str->length() == 0) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index--;
+            }
+            return *this;
+        }
+
+        difference_type operator-(const iterator &rhs) {
+            if (m_str != rhs.m_str) {
+                return 0;
+            }
+            difference_type a = m_index;
+            difference_type b = rhs.m_index;
+            return a - b;
+        }
+
+        friend bool operator==(const iterator &lhs, const iterator &rhs) {
+            return lhs.m_str == rhs.m_str && lhs.m_index == rhs.m_index;
+        }
+
+        friend bool operator!=(const iterator &lhs, const iterator &rhs) {
+            return !(lhs==rhs);
+        }
+
+        friend bool operator<(const iterator &lhs, const iterator &rhs) {
+            if (lhs.m_str == rhs.m_str) {
+                return lhs.m_index < rhs.m_index;
+            }
+            return false;
+        }
+
+        friend bool operator<=(const iterator &lhs, const iterator &rhs) {
+            return operator==(lhs, rhs) || operator<(lhs, rhs);
+        }
+
+        friend bool operator>(const iterator &lhs, const iterator &rhs) {
+            if (lhs.m_str == rhs.m_str) {
+                return lhs.m_index > rhs.m_index;
+            }
+            return false;
+        }
+
+        friend bool operator>=(const iterator &lhs, const iterator &rhs) {
+            return operator==(lhs, rhs) || operator>(lhs, rhs);
+        }
+
+    private:
+        const BasicString *m_str = nullptr;
+        SizeType m_index = 0;
+    };
+
+    class reverse_iterator : public std::random_access_iterator_tag {
+    public:
+        using iterator_topic = std::random_access_iterator_tag;
+        using difference_type = off_t;
+        using value_type = CharT;
+        using pointer = CharT *;
+        using reference = CharT &;
+        
+        constexpr reverse_iterator(const BasicString *str, size_t index = 0) : m_str(str), m_index(index) {}
+      
+        reference operator *() const { return *(m_str->data() + (m_str->length() - m_index - 1)); }
+        reference operator[](SizeType idx) { return *(m_str->data() + (m_str->length() + m_index - idx - 1)); }
+        reference operator[](SizeType idx) const { return *(m_str->data() + (m_str->length() + m_index - idx - 1)); }
+
+        reverse_iterator &operator+=(int offset) {
+            if (m_index + offset >= m_str->length()) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index += offset;
+            }
+            return *this;
+        }
+
+        reverse_iterator operator+(int offset) {
+            reverse_iterator it(*this);
+            return it += 1;
+        }
+
+        reverse_iterator &operator-=(int offset) {
+            if (m_index < offset || m_str->length() < offset) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index -= offset;
+            }
+            return *this;
+        }
+
+        reverse_iterator operator-(int offset) {
+            reverse_iterator it(*this);
+            return it -= 1;
+        }
+
+        reverse_iterator &operator++() {
+            if (m_index + 1 >= m_str->length()) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index++;
+            }
+            return *this;
+        }
+
+        reverse_iterator &operator--() {
+            if (m_index == 0 || m_str->length() == 0) {
+                m_str = nullptr;
+                m_index = 0;
+            }
+            else {
+                m_index--;
+            }
+            return *this;
+        }
+
+        difference_type operator-(const reverse_iterator &rhs) {
+            if (m_str != rhs.m_str) {
+                return 0;
+            }
+            difference_type a = m_index;
+            difference_type b = rhs.m_index;
+            return a - b;
+        }
+
+        friend bool operator==(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            return lhs.m_str == rhs.m_str && lhs.m_index == rhs.m_index;
+        }
+
+        friend bool operator!=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            return !(lhs==rhs);
+        }
+
+        friend bool operator<(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            if (lhs.m_str == rhs.m_str) {
+                return lhs.m_index < rhs.m_index;
+            }
+            return false;
+        }
+
+        friend bool operator<=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            return operator==(lhs, rhs) || operator<(lhs, rhs);
+        }
+
+        friend bool operator>(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            if (lhs.m_str == rhs.m_str) {
+                return lhs.m_index > rhs.m_index;
+            }
+            return false;
+        }
+
+        friend bool operator>=(const reverse_iterator &lhs, const reverse_iterator &rhs) {
+            return operator==(lhs, rhs) || operator>(lhs, rhs);
+        }
+
+    private:
+        const BasicString *m_str = nullptr;
+        SizeType m_index = 0;
+    };
+
+
+    constexpr iterator begin() const {
+        return iterator(this);
+    }
+
+    constexpr iterator end() const {
+        return iterator(nullptr);
+    }
+
+    constexpr iterator cbegin() const {
+        return iterator(this);
+    }
+
+    constexpr iterator cend() const {
+        return iterator(nullptr);
+    }
+
+    constexpr reverse_iterator rbegin() const {
+        return reverse_iterator(this);
+    }
+
+    constexpr reverse_iterator rend() const {
+        return reverse_iterator(nullptr);
+    }
+
+    constexpr reverse_iterator crbegin() const {
+        return reverse_iterator(this);
+    }
+
+    constexpr reverse_iterator crend() const {
+        return reverse_iterator(nullptr);
     }
 
 private:
