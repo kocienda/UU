@@ -2,7 +2,7 @@
 // string_like_test.cpp
 //
 
-#include "UU/StringLike.h"
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <vector>

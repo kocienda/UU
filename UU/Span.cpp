@@ -23,6 +23,7 @@
 // SOFTWARE.
 
 #include "Span.h"
+#include "DynamicByteBuffer.h"
 
 namespace UU {
 

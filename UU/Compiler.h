@@ -136,6 +136,12 @@
 
 /* ==== Compiler-independent macros for various compiler features, in alphabetical order ==== */
 
+/* ALIGN */
+
+#if !defined(ALIGN)
+#define ALIGN(N) __attribute__ ((aligned(N)))
+#endif
+
 /* ALLOW_UNUSED */
 
 #if !defined(ALLOW_UNUSED)

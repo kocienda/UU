@@ -30,6 +30,7 @@
 #include <unistd.h>
 
 #include <UU/Compiler.h>
+#include <UU/Types.h>
 
 #define UUMinT(_type, _x, _y) ({ \
     _type __x = (_x); \
@@ -146,6 +147,93 @@ size_t ceil_to_page_size(size_t length)
     size_t page_size = getpagesize();
     bool even = length % page_size == 0;
     return even ? length : ((length / page_size) + 1) * page_size;
+}
+
+}  // namespace UU
+
+// =========================================================================================================================================
+// number_of_digits cribbed from from Andrei Alexandrescu: https://youtu.be/vrfYLlR8X8k?t=3839
+
+namespace UU {
+
+UU_ALWAYS_INLINE
+UInt32 number_of_digits(UInt64 n)
+{
+    UInt32 digits = 1;
+    for (;;) {
+        if (LIKELY(n < 10)) {
+            return digits;
+        }
+        if (LIKELY(n < 100)) {
+            return digits + 1;
+        }
+        if (LIKELY(n < 1000)) {
+            return digits + 2;
+        }
+        if (LIKELY(n < 10000)) {
+            return digits + 3;
+        }
+        // Skip four orders of magnitude
+        digits += 4;
+        n /= 10000U;
+    }
+}
+
+}  // namespace UU
+
+
+// =========================================================================================================================================
+// integer_to_string cribbed from from PentiumPro200: https://stackoverflow.com/a/22082454
+// with updates and changes by me 
+
+namespace UU {
+
+// max size of a negative 64-bit int with a space for NUL at the end
+static constexpr size_t MaximumInteger64LengthAsString = 22;
+
+template <typename N>
+void integer_to_string(N n, char *c)
+{
+    static const char digit_pairs[201] = {
+        "00010203040506070809"
+        "10111213141516171819"
+        "20212223242526272829"
+        "30313233343536373839"
+        "40414243444546474849"
+        "50515253545556575859"
+        "60616263646566676869"
+        "70717273747576777879"
+        "80818283848586878889"
+        "90919293949596979899"
+    };
+
+    int sign = -(n < 0);
+    UInt64 val = (n ^ sign) - sign;
+    size_t size = number_of_digits(val);
+    size -= sign;
+    if (sign) {
+        *c = '-';
+    }
+    c += size - 1;
+    while (val >= 100) {
+        int pos = val % 100;
+        val /= 100;
+        *(short *)(c-1)= *(short *)(digit_pairs + 2 * pos); 
+        c -= 2;
+    }
+    while(val > 0) {
+        *c-- = '0' + (val % 10);
+        val /= 10;
+    }
+    c[size+1] = '\0';
+}
+
+template <typename N>
+std::string integer_to_string(N n)
+{
+    char buf[MaximumInteger64LengthAsString];
+    integer_to_string(n, buf);
+    return std::string(buf);
 }
 
 }  // namespace UU
