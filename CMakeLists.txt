@@ -17,7 +17,7 @@ set(CXX_WARNING_FLAGS "-Werror -Wno-trigraphs -Wno-missing-field-initializers -W
 -Winfinite-recursion -Wmove -Wcomma -Wstrict-prototypes -Wrange-loop-analysis -Wunguarded-availability -Wno-nullability-completeness \
 -fvisibility-inlines-hidden -fasm-blocks -fstrict-aliasing -fno-common")
 set(CMAKE_CXX_FLAGS "${CXX_VERSION_FLAGS} ${CXX_ARCH_FLAGS} ${CXX_WARNING_FLAGS}")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Os -DNDEBUG")
 
 IF(DEFINED ENV{UDIR})
@@ -49,12 +49,12 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Span.h
   ${CODE_DIR}/StackTrace.h
   ${CODE_DIR}/StaticByteBuffer.h
-  ${CODE_DIR}/String.h
   ${CODE_DIR}/StringLike.h
   ${CODE_DIR}/TextRef.h
   ${CODE_DIR}/Types.h
   ${CODE_DIR}/UTF8.h
   ${CODE_DIR}/UnixLike.h
+  ${CODE_DIR}/UUString.h
 )
 
 set(SOURCES
@@ -64,10 +64,10 @@ set(SOURCES
   ${CODE_DIR}/SmallVector.cpp
   ${CODE_DIR}/Span.cpp
   ${CODE_DIR}/StackTrace.cpp
-  ${CODE_DIR}/String.cpp
   ${CODE_DIR}/StringLike.cpp
   ${CODE_DIR}/TextRef.cpp
   ${CODE_DIR}/UnixLike.cpp
+  ${CODE_DIR}/UUString.cpp
 )
 
 # Add the library target
@@ -115,10 +115,10 @@ catch_discover_tests(${test_name})
 endfunction()
 
 UU_TEST(smoke_test)
-UU_TEST(dynamic_byte_buffer_test)
 UU_TEST(file_like_test)
 UU_TEST(math_like_test)
 UU_TEST(span_test)
+UU_TEST(string_test)
 UU_TEST(string_like_test)
 UU_TEST(textref_test)
 UU_TEST(unix_like_test)

@@ -22,19 +22,65 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "String.h"
+#include "Span.h"
+#include "UUString.h"
 
 namespace UU {
 
+template <> void String::append(const Span<int> &span)
+{
+    bool first = true;
+    for (const auto &r : span.ranges()) {
+        if (!first) {
+            append(",");
+        }
+        append_as_string(r.first());
+        if (r.first() != r.last()) {
+            append('.');
+            append('.');
+            append_as_string(r.last());
+        }
+        first = false;
+    }
+}
+
 template <> void String::append(const Span<size_t> &span)
 {
+    bool first = true;
+    for (const auto &r : span.ranges()) {
+        if (!first) {
+            append(",");
+        }
+        append_as_string(r.first());
+        if (r.first() != r.last()) {
+            append('.');
+            append('.');
+            append_as_string(r.last());
+        }
+        first = false;
+    }
+}
 
+template <> void String::append(const Span<Int64> &span)
+{
+    bool first = true;
+    for (const auto &r : span.ranges()) {
+        if (!first) {
+            append(",");
+        }
+        append_as_string(r.first());
+        if (r.first() != r.last()) {
+            append('.');
+            append('.');
+            append_as_string(r.last());
+        }
+        first = false;
+    }
 }
 
 template <> void String::append(const TextRef &)
 {
 
 }
-
 
 }  // namespace UU

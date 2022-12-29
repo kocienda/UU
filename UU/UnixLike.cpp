@@ -27,8 +27,8 @@
 #include <unistd.h>
 
 #include "Assertions.h"
-#include "String.h"
 #include "UnixLike.h"
+#include "UUString.h"
 
 namespace fs = std::filesystem;
 

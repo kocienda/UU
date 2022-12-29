@@ -33,6 +33,8 @@
 #include <cstddef>
 #include <cstring>
 #include <iostream>
+#include <string>
+#include <string_view>
 #include <utility>
 
 #include <stdlib.h>
@@ -42,14 +44,16 @@ namespace UU {
 template <typename T> class Span;
 class TextRef;
 
-template <SizeType S>
+static constexpr SizeType DefaultBasicStringSize = 256;
+
+template <typename CharT, class Traits = std::char_traits<CharT>, SizeType S = DefaultBasicStringSize>
 class BasicString
 {
 public:
     enum { InlineCapacity = S };
 
     static constexpr const SizeType npos = SizeTypeMax;
-    static constexpr Byte empty_value = 0;
+    static constexpr CharT empty_value = CharT();
 
     constexpr BasicString() {}
     
@@ -65,6 +69,18 @@ public:
         append((const Byte *)ptr, length);
     }
 
+    BasicString(const char *ptr) {
+        append((const Byte *)ptr, strlen(ptr));
+    }
+
+    BasicString(const std::string &str) {
+        append((const char *)str.data(), str.length());
+    }
+
+    BasicString(SizeType length, CharT c) {
+        append(c, length);
+    }
+
     BasicString(std::istream &in) {
         char buffer[1024];
         while (in.read(buffer, sizeof(buffer))) {
@@ -74,7 +90,7 @@ public:
     }
 
     BasicString(const BasicString &other) {
-        append(other.bytes(), other.length());
+        append(other.data(), other.length());
     }
 
     BasicString(BasicString &&other) {
@@ -82,11 +98,10 @@ public:
             m_ptr = other.m_ptr;
             m_length = other.length();
             m_capacity = other.capacity();
+            other.reset();
         }
         else {
-            m_length = other.length();
-            ensure_capacity(other.capacity());
-            copy_from(other.bytes(), other.length());
+            append(other.data(), other.length());
         }
     }
 
@@ -95,22 +110,19 @@ public:
             return *this;
         }
 
-        m_length = other.length();
-        ensure_capacity(other.capacity());
-        if (m_length > 0) {
-            copy_from(other.bytes(), other.length());
-        }
-
+        m_length = 0;
+        append(other.data(), other.length());
         return *this;
     }
 
     BasicString &operator=(const std::string &str) {
         m_length = 0;
-        append((const Byte *)str.c_str(), (SizeType)str.length());
+        append((const Byte *)str.data(), (SizeType)str.length());
         return *this;
     }
 
     BasicString &operator=(BasicString &&other) {
+        m_length = 0;
         if (other.using_allocated_buffer()) {
             if (using_allocated_buffer()) {
                 delete m_ptr;
@@ -118,11 +130,10 @@ public:
             m_ptr = other.m_ptr;
             m_length = other.length();
             m_capacity = other.capacity();
+            other.reset();
         }
         else {
-            m_length = other.length();
-            ensure_capacity(other.capacity());
-            copy_from(other.bytes(), other.length());
+            append(other.data(), other.length());
         }
         return *this;
     }
@@ -133,7 +144,7 @@ public:
         }
     }
 
-    Byte *data() const { return m_ptr; }
+    CharT *data() const { return m_ptr; }
     SizeType length() const { return m_length; }
 
     SizeType capacity() const { return m_capacity; }
@@ -142,11 +153,23 @@ public:
     void append(const Byte *bytes, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
-            memcpy(m_ptr + m_length, bytes, length);
+            for (int idx = 0; idx < length; idx++) {
+                m_ptr[m_length + idx] = bytes[idx];
+            }
             m_length += length;
         }
     }
     
+    void append(const char *bytes, SizeType length) {
+        if (LIKELY(length > 0)) {
+            ensure_capacity(m_length + length);
+            for (int idx = 0; idx < length; idx++) {
+                m_ptr[m_length + idx] = bytes[idx];
+            }
+            m_length += length;
+        }
+    }
+
     void append(Byte byte) {
         ensure_capacity(m_length + 1);
         m_ptr[m_length] = byte;
@@ -156,6 +179,11 @@ public:
     void append(const std::string &str) {
         append((const Byte *)str.data(), (SizeType)str.length());
     }
+
+    void append(const Span<int> &);
+    void append(const Span<SizeType> &);
+    void append(const Span<Int64> &);
+    void append(const TextRef &);
 
     template <typename N>
     void append_as_string(N val) {
@@ -167,8 +195,6 @@ public:
         append((const Byte *)ptr, len);
     }
 
-    void append(const Span<SizeType> &);
-    void append(const TextRef &);
 
     BasicString &operator+=(const std::string &s) {
         append(s.c_str(), s.length());
@@ -188,21 +214,33 @@ public:
     void append(Byte b, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
-            memset(m_ptr, b, length);
+            for (int idx = 0; idx < length; idx++) {
+                m_ptr[m_length + idx] = b;
+            }
+            m_length += length;
+        }
+    }
+
+    void append(CharT c, SizeType length) {
+        if (LIKELY(length > 0)) {
+            ensure_capacity(m_length + length);
+            for (int idx = 0; idx < length; idx++) {
+                m_ptr[m_length + idx] = c;
+            }
             m_length += length;
         }
     }
 
     template <bool B = true> bool is_empty() const { return (m_length == 0) == B; }
 
-    bool using_inline_buffer() const { return m_ptr == const_cast<Byte *>(m_buf); }
+    bool using_inline_buffer() const { return m_ptr == const_cast<CharT *>(m_buf); }
     bool using_allocated_buffer() const { return !(using_inline_buffer()); }
 
     void clear() {
         m_length = 0;
     }
     
-    Byte at(SizeType index) {
+    CharT at(SizeType index) {
         if (LIKELY(m_length > index)) {
             return m_ptr[index];
         }
@@ -211,7 +249,7 @@ public:
         }
     }
     
-    const Byte &at(SizeType index) const {
+    const CharT &at(SizeType index) const {
         if (m_length > index) {
             return m_ptr[index];
         }
@@ -220,7 +258,7 @@ public:
         }
     }
     
-    const Byte &operator[](SizeType index) const {
+    const CharT &operator[](SizeType index) const {
         return m_ptr[index];
     }
     
@@ -228,8 +266,12 @@ public:
         return m_ptr[index];
     }
 
-    operator std::string () {
-         return std::string((char *)data(), length());
+    operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
+        return std::basic_string(data(), length());
+    }
+
+    operator std::basic_string_view<CharT, std::char_traits<CharT>>() const noexcept {
+        return std::basic_string_view(data(), length());
     }
 
     friend bool operator==(const BasicString &a, const BasicString &b) {
@@ -239,14 +281,30 @@ public:
         if (a.length() == 0) {
             return true;
         }
-        return memcmp(a.bytes(), b.bytes(), a.length()) == 0;
+        return Traits::compare(a.data(), b.data(), a.length()) == 0;
     }
 
     friend bool operator!=(const BasicString &a, const BasicString &b) {
         return !(a == b);
     }
 
+    friend bool operator<(const BasicString &a, const BasicString &b) {
+        SizeType len = std::min(a.length(), b.length());
+        int cmp = Traits::compare(a.data(), b.data(), len);
+        return cmp != 0 ? cmp : (a.length() < b.length());
+    }
+
+    friend bool operator>(const BasicString &a, const BasicString &b) {
+        return !(a < b); 
+    }
+
 private:
+    void reset() {
+        m_ptr = m_buf;
+        m_length = 0;
+        m_capacity = InlineCapacity;
+    }
+
     void ensure_capacity(SizeType new_capacity) {
         if (new_capacity <= InlineCapacity) {
             m_capacity = InlineCapacity;
@@ -261,28 +319,44 @@ private:
             m_capacity *= 2;
         }
 
-        SizeType amt = m_capacity * sizeof(Byte);
-        if (m_ptr != static_cast<Byte *>(m_buf)) {
-            m_ptr = static_cast<Byte *>(realloc(m_ptr, amt));
+        SizeType amt = m_capacity * sizeof(CharT);
+        if (m_ptr != static_cast<CharT *>(m_buf)) {
+            m_ptr = static_cast<CharT *>(realloc(m_ptr, amt));
         }
         else {
-            m_ptr = static_cast<Byte *>(malloc(amt));
-            copy_from(m_buf, InlineCapacity);
+            m_ptr = static_cast<CharT *>(malloc(amt));
+            Traits::copy(m_ptr, m_buf, InlineCapacity);
         }
     }
 
-    void copy_from(const Byte *src, SizeType length) {
-        memcpy(m_ptr, src, length);
-    }
-
-    Byte m_buf[InlineCapacity];
-    Byte *m_ptr = m_buf;
+    CharT m_buf[InlineCapacity];
+    CharT *m_ptr = m_buf;
     SizeType m_length = 0;
     SizeType m_capacity = InlineCapacity;
 };
 
-using String = BasicString<256>;
+template <typename CharT, class Traits, SizeType S>
+std::ostream &operator<<(std::ostream &os, const BasicString<CharT, Traits, S> &str)
+{
+    os.write(str.data(), str.length());
+    return os;
+}
+
+using String = BasicString<char, std::char_traits<char>, DefaultBasicStringSize>;
 
 }  // namespace UU
+
+
+namespace std
+{
+    template <typename CharT, UU::SizeType S>
+    struct less<UU::BasicString<CharT, std::char_traits<CharT>, S>>
+    {
+        using StringT = UU::BasicString<CharT, std::char_traits<CharT>, S>;
+        bool operator()(const StringT &lhs, const StringT &rhs) const {
+            return lhs < rhs;
+        }
+    };
+}
 
 #endif  // UU_STRING_H

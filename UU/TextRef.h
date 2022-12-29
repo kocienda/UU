@@ -25,12 +25,11 @@
 #ifndef UU_TEXT_REF_H
 #define UU_TEXT_REF_H
 
-#include "String.h"
 #include <filesystem>
 #include <string>
 #include <vector>
 
-#include <UU/String.h>
+#include <UU/UUString.h>
 #include <UU/Span.h>
 #include <UU/Types.h>
 
@@ -89,7 +88,7 @@ public:
     const UU::Span<size_t> &span() const { return m_span; }
     void add_span(const UU::Span<size_t> &span) { m_span.add(span); }
     void simplify_span() { m_span.simplify(); }
-    const std::string &message() const { return m_message; }
+    const String &message() const { return m_message; }
     void set_message(const std::string &message) { m_message = message; }
 
     std::string to_string(int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE, 
@@ -106,8 +105,7 @@ private:
     std::filesystem::path m_filename;
     size_t m_line;
     UU::Span<size_t> m_span;
-    std::string m_message;
-    String m_buf;
+    String m_message;
 };
 
 std::ostream &operator<<(std::ostream &os, const TextRef &ref);

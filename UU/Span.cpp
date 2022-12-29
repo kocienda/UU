@@ -23,7 +23,7 @@
 // SOFTWARE.
 
 #include "Span.h"
-#include "String.h"
+#include "UUString.h"
 
 namespace UU {
 
