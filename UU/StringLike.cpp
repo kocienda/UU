@@ -24,6 +24,7 @@
 
 #include <limits>
 
+#include "Compiler.h"
 #include "StringLike.h"
 #include "UTF8.h"
 
@@ -96,6 +97,5 @@ std::string_view string_view_for_line(const std::string_view &str, SizeType line
     std::vector<SizeType> line_end_offsets = find_line_end_offsets(str);
     return string_view_for_line(str, line_end_offsets, line);
 }
-
 
 }  // namespace UU

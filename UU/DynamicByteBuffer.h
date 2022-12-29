@@ -28,9 +28,12 @@
 #include <UU/Assertions.h>
 #include <UU/ByteReader.h>
 #include <UU/ByteWriter.h>
+#include <UU/MathLike.h>
+#include <UU/Span.h>
 #include <UU/Types.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <utility>
@@ -153,6 +156,18 @@ public:
         m_ptr[m_size] = byte;
         m_size++;
     }
+
+    template <typename N>
+    void write_as_string(N val) {
+        char buf[MaximumInteger64LengthAsString];
+        char *ptr = buf;
+        integer_to_string(val, ptr);
+        size_t len = strlen(ptr);
+        ensure_capacity(m_size + len);
+        write((const Byte *)ptr, len);
+    }
+
+    template <typename T> void write(const Span<T> &span);
 
     BasicDynamicByteBuffer &operator+=(const std::string &s) {
         write(s.c_str(), s.length());

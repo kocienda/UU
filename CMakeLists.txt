@@ -59,6 +59,7 @@ set(PUBLIC_HEADERS
 
 set(SOURCES
   ${CODE_DIR}/Assertions.cpp
+  ${CODE_DIR}/DynamicByteBuffer.cpp
   ${CODE_DIR}/FileLike.cpp
   ${CODE_DIR}/MappedFile.cpp
   ${CODE_DIR}/SmallVector.cpp
@@ -114,7 +115,9 @@ catch_discover_tests(${test_name})
 endfunction()
 
 UU_TEST(smoke_test)
+UU_TEST(dynamic_byte_buffer_test)
 UU_TEST(file_like_test)
+UU_TEST(math_like_test)
 UU_TEST(span_test)
 UU_TEST(string_like_test)
 UU_TEST(textref_test)

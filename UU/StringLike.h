@@ -32,6 +32,7 @@
 #include <string_view>
 
 #include <UU/Compiler.h>
+#include <UU/MathLike.h>
 #include <UU/Types.h>
 
 namespace UU {
@@ -103,6 +104,7 @@ template <bool B = true> bool contains_gremlins(const std::string_view &str) {
     return B == b;
 }
 template <bool B = true> bool contains_gremlins(const std::string &str) { return (contains_gremlins(std::string_view(str))) == B; }
+
 
 }  // namespace UU
 

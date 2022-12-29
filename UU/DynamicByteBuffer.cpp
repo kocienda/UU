@@ -1,5 +1,5 @@
 //
-// UU.h
+// DynamicByteBuffer.cpp
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,32 +22,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_H
-#define UU_H
+#include "DynamicByteBuffer.h"
 
-static constexpr int UU_MAJOR_VERSION = 0;
-static constexpr int UU_MINOR_VERSION = 1;
-static constexpr int UU_FIXES_VERSION = 0;
+namespace UU {
 
-#include <UU/Assertions.h>
 
-#include <UU/AcquireReleaseGuard.h>
-#include <UU/Any.h>
-#include <UU/CloseGuard.h>
-#include <UU/Compiler.h>
-#include <UU/DynamicByteBuffer.h>
-#include <UU/FileLike.h>
-#include <UU/MappedFile.h>
-#include <UU/MathLike.h>
-#include <UU/Platform.h>
-#include <UU/Range.h>
-#include <UU/SmallVector.h>
-#include <UU/Span.h>
-#include <UU/StackTrace.h>
-#include <UU/StringLike.h>
-#include <UU/TextRef.h>
-#include <UU/Types.h>
-#include <UU/UTF8.h>
-#include <UU/UnixLike.h>
-
-#endif // UU_H
+}  // namespace UU
