@@ -39,7 +39,6 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/ByteWriter.h
   ${CODE_DIR}/CloseGuard.h
   ${CODE_DIR}/Compiler.h
-  ${CODE_DIR}/DynamicByteBuffer.h
   ${CODE_DIR}/FileLike.h
   ${CODE_DIR}/MappedFile.h
   ${CODE_DIR}/MathLike.h
@@ -50,6 +49,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Span.h
   ${CODE_DIR}/StackTrace.h
   ${CODE_DIR}/StaticByteBuffer.h
+  ${CODE_DIR}/String.h
   ${CODE_DIR}/StringLike.h
   ${CODE_DIR}/TextRef.h
   ${CODE_DIR}/Types.h
@@ -59,12 +59,12 @@ set(PUBLIC_HEADERS
 
 set(SOURCES
   ${CODE_DIR}/Assertions.cpp
-  ${CODE_DIR}/DynamicByteBuffer.cpp
   ${CODE_DIR}/FileLike.cpp
   ${CODE_DIR}/MappedFile.cpp
   ${CODE_DIR}/SmallVector.cpp
   ${CODE_DIR}/Span.cpp
   ${CODE_DIR}/StackTrace.cpp
+  ${CODE_DIR}/String.cpp
   ${CODE_DIR}/StringLike.cpp
   ${CODE_DIR}/TextRef.cpp
   ${CODE_DIR}/UnixLike.cpp

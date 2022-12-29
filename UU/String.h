@@ -1,5 +1,5 @@
 //
-// DynamicByteBuffer.h
+// String.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,12 +22,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_DYNAMIC_BYTE_BUFFER_H
-#define UU_DYNAMIC_BYTE_BUFFER_H
+#ifndef UU_STRING_H
+#define UU_STRING_H
 
 #include <UU/Assertions.h>
-#include <UU/ByteReader.h>
-#include <UU/ByteWriter.h>
 #include <UU/MathLike.h>
 #include <UU/Types.h>
 
@@ -45,165 +43,167 @@ template <typename T> class Span;
 class TextRef;
 
 template <SizeType S>
-class BasicDynamicByteBuffer : public ByteWriter, public ByteReader
+class BasicString
 {
 public:
     enum { InlineCapacity = S };
 
-    static constexpr const SizeType nidx = -1;
+    static constexpr const SizeType npos = SizeTypeMax;
     static constexpr Byte empty_value = 0;
 
-    constexpr BasicDynamicByteBuffer() {}
+    constexpr BasicString() {}
     
-    explicit BasicDynamicByteBuffer(SizeType capacity) {
+    explicit BasicString(SizeType capacity) {
         ensure_capacity(capacity);
     }
     
-    BasicDynamicByteBuffer(const Byte *bytes, SizeType size) {
-        write(bytes, size);
+    BasicString(const Byte *bytes, SizeType length) {
+        append(bytes, length);
     }
     
-    BasicDynamicByteBuffer(const char *ptr, SizeType size) {
-        write((const Byte *)ptr, size);
+    BasicString(const char *ptr, SizeType length) {
+        append((const Byte *)ptr, length);
     }
 
-    BasicDynamicByteBuffer(std::istream &in) {
+    BasicString(std::istream &in) {
         char buffer[1024];
         while (in.read(buffer, sizeof(buffer))) {
-            write((const Byte *)buffer, sizeof(buffer));
+            append((const Byte *)buffer, sizeof(buffer));
         }
-        write((const Byte *)buffer, (SizeType)in.gcount());
+        append((const Byte *)buffer, (SizeType)in.gcount());
     }
 
-    BasicDynamicByteBuffer(const BasicDynamicByteBuffer &other) {
-        write(other.bytes(), other.size());
+    BasicString(const BasicString &other) {
+        append(other.bytes(), other.length());
     }
 
-    BasicDynamicByteBuffer(BasicDynamicByteBuffer &&other) {
+    BasicString(BasicString &&other) {
         if (other.using_allocated_buffer()) {
             m_ptr = other.m_ptr;
-            m_size = other.size();
+            m_length = other.length();
             m_capacity = other.capacity();
         }
         else {
-            m_size = other.size();
+            m_length = other.length();
             ensure_capacity(other.capacity());
-            copy_from(other.bytes(), other.size());
+            copy_from(other.bytes(), other.length());
         }
     }
 
-    BasicDynamicByteBuffer &operator=(const BasicDynamicByteBuffer &other) {
+    BasicString &operator=(const BasicString &other) {
         if (this == &other) {
             return *this;
         }
 
-        m_size = other.size();
+        m_length = other.length();
         ensure_capacity(other.capacity());
-        if (m_size > 0) {
-            copy_from(other.bytes(), other.size());
+        if (m_length > 0) {
+            copy_from(other.bytes(), other.length());
         }
 
         return *this;
     }
 
-    BasicDynamicByteBuffer &operator=(const std::string &str) {
-        m_size = 0;
-        write((const Byte *)str.c_str(), (SizeType)str.length());
+    BasicString &operator=(const std::string &str) {
+        m_length = 0;
+        append((const Byte *)str.c_str(), (SizeType)str.length());
         return *this;
     }
 
-    BasicDynamicByteBuffer &operator=(BasicDynamicByteBuffer &&other) {
+    BasicString &operator=(BasicString &&other) {
         if (other.using_allocated_buffer()) {
             if (using_allocated_buffer()) {
                 delete m_ptr;
             }
             m_ptr = other.m_ptr;
-            m_size = other.size();
+            m_length = other.length();
             m_capacity = other.capacity();
         }
         else {
-            m_size = other.size();
+            m_length = other.length();
             ensure_capacity(other.capacity());
-            copy_from(other.bytes(), other.size());
+            copy_from(other.bytes(), other.length());
         }
         return *this;
     }
 
-    ~BasicDynamicByteBuffer() {
+    ~BasicString() {
         if (using_allocated_buffer()) {
             delete m_ptr;
         }
     }
 
-    Byte *bytes() const override { return m_ptr; }
-    SizeType size() const override { return m_size; }
+    Byte *data() const { return m_ptr; }
+    SizeType length() const { return m_length; }
+
     SizeType capacity() const { return m_capacity; }
+    void reserve(SizeType length) { ensure_capacity(length); }
 
-    void reserve(SizeType size) { ensure_capacity(size); }
-
-    void write(const std::string &str) override {
-        write((const Byte *)str.c_str(), (SizeType)str.length());
-    }
-
-    void write(const Byte *bytes, SizeType size) override {
-        if (LIKELY(size > 0)) {
-            ensure_capacity(m_size + size);
-            memcpy(m_ptr + m_size, bytes, size);
-            m_size += size;
+    void append(const Byte *bytes, SizeType length) {
+        if (LIKELY(length > 0)) {
+            ensure_capacity(m_length + length);
+            memcpy(m_ptr + m_length, bytes, length);
+            m_length += length;
         }
     }
     
-    void write(Byte byte) override {
-        ensure_capacity(m_size + 1);
-        m_ptr[m_size] = byte;
-        m_size++;
+    void append(Byte byte) {
+        ensure_capacity(m_length + 1);
+        m_ptr[m_length] = byte;
+        m_length++;
+    }
+
+    void append(const std::string &str) {
+        append((const Byte *)str.data(), (SizeType)str.length());
     }
 
     template <typename N>
-    void write_as_string(N val) {
+    void append_as_string(N val) {
         char buf[MaximumInteger64LengthAsString];
         char *ptr = buf;
         integer_to_string(val, ptr);
-        size_t len = strlen(ptr);
-        ensure_capacity(m_size + len);
-        write((const Byte *)ptr, len);
+        SizeType len = strlen(ptr);
+        ensure_capacity(m_length + len);
+        append((const Byte *)ptr, len);
     }
 
-    void write(const Span<size_t> &);
-    void write(const TextRef &);
+    void append(const Span<SizeType> &);
+    void append(const TextRef &);
 
-    BasicDynamicByteBuffer &operator+=(const std::string &s) {
-        write(s.c_str(), s.length());
+    BasicString &operator+=(const std::string &s) {
+        append(s.c_str(), s.length());
         return *this;
     }
 
-    BasicDynamicByteBuffer &operator+=(const char *s) {
-        write(s, strlen(s));
+    BasicString &operator+=(const char *s) {
+        append(s, strlen(s));
         return *this;
     }
 
-    BasicDynamicByteBuffer &operator+=(Byte b) {
-        write(b);
+    BasicString &operator+=(Byte b) {
+        append(b);
         return *this;
     }
 
-    bool empty() const { return m_size == 0; }
-    bool not_empty() const { return !(empty()); }
+    void append(Byte b, SizeType length) {
+        if (LIKELY(length > 0)) {
+            ensure_capacity(m_length + length);
+            memset(m_ptr, b, length);
+            m_length += length;
+        }
+    }
 
-    bool using_inline_buffer() const { return m_ptr == const_cast<Byte *>(m_buffer); }
+    template <bool B = true> bool is_empty() const { return (m_length == 0) == B; }
+
+    bool using_inline_buffer() const { return m_ptr == const_cast<Byte *>(m_buf); }
     bool using_allocated_buffer() const { return !(using_inline_buffer()); }
 
     void clear() {
-        if (!m_ptr) {
-            return;
-        }
-        
-        fill(empty_value, m_size);
-        m_size = 0;
+        m_length = 0;
     }
     
     Byte at(SizeType index) {
-        if (LIKELY(m_size > index)) {
+        if (LIKELY(m_length > index)) {
             return m_ptr[index];
         }
         else {
@@ -212,7 +212,7 @@ public:
     }
     
     const Byte &at(SizeType index) const {
-        if (m_size > index) {
+        if (m_length > index) {
             return m_ptr[index];
         }
         else {
@@ -229,20 +229,20 @@ public:
     }
 
     operator std::string () {
-         return std::string((char *)bytes(), size());
+         return std::string((char *)data(), length());
     }
 
-    friend bool operator==(const BasicDynamicByteBuffer &a, const BasicDynamicByteBuffer &b) {
-        if (a.size() != b.size()) {
+    friend bool operator==(const BasicString &a, const BasicString &b) {
+        if (a.length() != b.length()) {
             return false;
         }
-        if (a.size() == 0) {
+        if (a.length() == 0) {
             return true;
         }
-        return memcmp(a.bytes(), b.bytes(), a.size()) == 0;
+        return memcmp(a.bytes(), b.bytes(), a.length()) == 0;
     }
 
-    friend bool operator!=(const BasicDynamicByteBuffer &a, const BasicDynamicByteBuffer &b) {
+    friend bool operator!=(const BasicString &a, const BasicString &b) {
         return !(a == b);
     }
 
@@ -262,35 +262,27 @@ private:
         }
 
         SizeType amt = m_capacity * sizeof(Byte);
-        if (m_ptr != static_cast<Byte *>(m_buffer)) {
+        if (m_ptr != static_cast<Byte *>(m_buf)) {
             m_ptr = static_cast<Byte *>(realloc(m_ptr, amt));
-            fill(m_size, m_capacity - m_size);
         }
         else {
             m_ptr = static_cast<Byte *>(malloc(amt));
-            copy_from(m_buffer, InlineCapacity);
-            fill(InlineCapacity, m_capacity - InlineCapacity);
+            copy_from(m_buf, InlineCapacity);
         }
     }
 
-    void copy_from(const Byte *src, SizeType size) {
-        memcpy(m_ptr, src, size);
+    void copy_from(const Byte *src, SizeType length) {
+        memcpy(m_ptr, src, length);
     }
 
-    void fill(SizeType index, SizeType size) {
-        for (SizeType i = index; i < index + size; i++) {
-            m_ptr[i] = empty_value;
-        }
-    }
-
-    Byte m_buffer[InlineCapacity];
-    Byte *m_ptr = m_buffer;
-    SizeType m_size = 0;
+    Byte m_buf[InlineCapacity];
+    Byte *m_ptr = m_buf;
+    SizeType m_length = 0;
     SizeType m_capacity = InlineCapacity;
 };
 
-using DynamicByteBuffer = BasicDynamicByteBuffer<256>;
+using String = BasicString<256>;
 
 }  // namespace UU
 
-#endif  // UU_DYNAMIC_BYTE_BUFFER_H
+#endif  // UU_STRING_H

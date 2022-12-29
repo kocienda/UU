@@ -25,12 +25,12 @@
 #ifndef UU_TEXT_REF_H
 #define UU_TEXT_REF_H
 
-#include "DynamicByteBuffer.h"
+#include "String.h"
 #include <filesystem>
 #include <string>
 #include <vector>
 
-#include <UU/DynamicByteBuffer.h>
+#include <UU/String.h>
 #include <UU/Span.h>
 #include <UU/Types.h>
 
@@ -107,7 +107,7 @@ private:
     size_t m_line;
     UU::Span<size_t> m_span;
     std::string m_message;
-    DynamicByteBuffer m_buf;
+    String m_buf;
 };
 
 std::ostream &operator<<(std::ostream &os, const TextRef &ref);

@@ -1,5 +1,5 @@
 //
-// DynamicByteBuffer.cpp
+// String.cpp
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,16 +22,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "DynamicByteBuffer.h"
+#include "String.h"
 
 namespace UU {
 
-template <> void DynamicByteBuffer::write(const Span<size_t> &span)
+template <> void String::append(const Span<size_t> &span)
 {
 
 }
 
-template <> void DynamicByteBuffer::write(const TextRef &)
+template <> void String::append(const TextRef &)
 {
 
 }

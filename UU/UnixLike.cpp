@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 #include "Assertions.h"
-#include "DynamicByteBuffer.h"
+#include "String.h"
 #include "UnixLike.h"
 
 namespace fs = std::filesystem;
@@ -60,7 +60,7 @@ std::string shell_escaped_string(const std::string &str)
         result = str;
     }
     else {
-        DynamicByteBuffer buf;
+        String buf;
         buf.reserve(str.size());
         for (size_t idx = 0; idx < str.size(); idx++) {
             if (str[idx] == ' ' || str[idx] == '\'') {

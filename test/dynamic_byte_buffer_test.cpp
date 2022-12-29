@@ -12,7 +12,7 @@
 using namespace UU;
 
 TEST_CASE( "write smoke test 1", "[dynamic_byte_buffer]" ) {
-    DynamicByteBuffer buf;
+    String buf;
     buf.write("hello");
     buf.write('-');
     buf.write_as_string(1234567890123456789);
@@ -21,7 +21,7 @@ TEST_CASE( "write smoke test 1", "[dynamic_byte_buffer]" ) {
 }
 
 TEST_CASE( "write span test 1", "[dynamic_byte_buffer]" ) {
-    DynamicByteBuffer buf;
+    String buf;
     Span<int> span;
     span.add(1,3);
     span.add(5,7);
@@ -32,7 +32,7 @@ TEST_CASE( "write span test 1", "[dynamic_byte_buffer]" ) {
 }
 
 TEST_CASE( "write sstream test 1", "[dynamic_byte_buffer]" ) {
-    DynamicByteBuffer buf;
+    String buf;
     Span<int> span;
     span.add(1,3);
     span.add(5,7);
