@@ -91,7 +91,7 @@ public:
     const String &message() const { return m_message; }
     void set_message(const std::string &message) { m_message = message; }
 
-    std::string to_string(int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE, 
+    String to_string(int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE,
         const std::filesystem::path &reference_path = std::filesystem::path(""), int highlight_color = 0) const;
 
     template <bool B = true> bool has_index() const { return (m_index != Invalid) == B; }

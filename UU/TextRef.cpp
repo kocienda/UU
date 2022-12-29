@@ -135,13 +135,16 @@ TextRef TextRef::from_string(const std::string &str)
 //     }
 // }
 
-std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
+String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
 {
-    std::stringstream ss;
+    String output;
+    output.reserve(m_filename.string().length() + m_message.length() + 32); // estimate
 
     if (has_index() && (flags & TextRef::Index)) {
-        ss << index() << ") ";
+        output.append_as_string(index());
+        output += ") ";
     }
+
     if (has_filename() && (flags & TextRef::Filename)) {
         std::string path = filename();
         if (filename_format == FilenameFormat::ABSOLUTE) {
@@ -152,36 +155,35 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
             fs::path absolute_filename_path = fs::absolute(filename());
             path = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
         }
-        ss << shell_escaped_string(path.c_str());
+        output += shell_escaped_string(path.c_str());
     }
     if (has_line() && (flags & TextRef::Line)) {
-        if (ss.tellp()) {
-            ss << ":";
+        if (output.length()) {
+            output += ':';
         }
-        ss << line();
+        output.append_as_string(line());
     }
     if (has_span()) {
         if ((flags & TextRef::Column) && (flags & TextRef::Span) == 0) {
-            if (ss.tellp()) {
-                ss << ":";
+            if (output.length()) {
+                output += ':';
             }
-            ss << column();
+            output.append_as_string(column());
         }
         else if (flags & TextRef::Span) {
-            if (ss.tellp()) {
-                ss << ":";
+            if (output.length()) {
+                output += ':';
             }
-            ss << span();
+            output.append(span());
         }
     }
     if (has_message() && (flags & TextRef::Message)) {
-        if (ss.tellp()) {
-            ss << ":";
+        if (output.length()) {
+            output += ':';
         }
         std::string_view msg(message());
         if (highlight_color == 0 || !has_span()) {
-            ss << msg;
-            // zap_gremlins(ss, msg);
+            output += msg;
         }
         else {
             const auto &spn = span();
@@ -192,101 +194,25 @@ std::string TextRef::to_string(int flags, FilenameFormat filename_format, const 
                 if (first - 1 > idx) {
                     std::string_view chunk = msg.substr(idx, first - 1 - idx);
                     // zap_gremlins(ss, chunk);
-                    ss << chunk;
+                    output += chunk;
                 }
-                ss << "\033[" << highlight_color << "m";
-                ss << msg.substr(first - 1, last - first);
-                ss << "\033[0m";
+                output += "\033[";
+                output.append_as_string(highlight_color);
+                output += 'm';
+                output += msg.substr(first - 1, last - first);
+                output += "\033[0m";
                 idx = last - 1;
             }
             if (spn.last() - 1 < msg.length()) {
                 std::string_view chunk = msg.substr(spn.last() - 1);
+                output += chunk;
                 // zap_gremlins(ss, chunk);
-                ss << chunk;
             }
         }
     }
 
-    return ss.str();
+    return output;
 }
-
-
-// std::string TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
-// {
-//     std::string output;
-//     output.reserve(m_filename.string().length() + m_message.length() + 32); // estimate
-
-//     if (has_index() && (flags & TextRef::Index)) {
-//         output += std::to_string(index());
-//         output += ") ";
-//     }
-
-//     if (has_filename() && (flags & TextRef::Filename)) {
-//         std::string path = filename();
-//         if (filename_format == FilenameFormat::ABSOLUTE) {
-//             path = fs::absolute(filename());
-//         }
-//         else if (!reference_path.empty()) {
-//             fs::path absolute_reference_path = fs::absolute(reference_path);
-//             fs::path absolute_filename_path = fs::absolute(filename());
-//             path = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
-//         }
-//         output += shell_escaped_string(path.c_str());
-//     }
-//     if (has_line() && (flags & TextRef::Line)) {
-//         if (output.length()) {
-//             output += ':';
-//         }
-//         output += std::to_string(line());
-//     }
-//     if (has_span()) {
-//         if ((flags & TextRef::Column) && (flags & TextRef::Span) == 0) {
-//             if (output.length()) {
-//                 output += ':';
-//             }
-//             output += std::to_string(column());
-//         }
-//         else if (flags & TextRef::Span) {
-//             if (output.length()) {
-//                 output += ':';
-//             }
-//             output += "span";
-//         }
-//     }
-//     if (has_message() && (flags & TextRef::Message)) {
-//         if (output.length()) {
-//             output += ':';
-//         }
-//         std::string_view msg(message());
-//         if (highlight_color == 0 || !has_span()) {
-//             output += msg;
-//         }
-//         else {
-//             const auto &spn = span();
-//             size_t idx = 0;
-//             for (const auto &range : spn.ranges()) {
-//                 const auto first = range.first();
-//                 const auto last = range.last();
-//                 if (first - 1 > idx) {
-//                     std::string_view chunk = msg.substr(idx, first - 1 - idx);
-//                     // zap_gremlins(ss, chunk);
-//                     output += chunk;
-//                 }
-//                 ss << "\033[" << highlight_color << "m";
-//                 ss << msg.substr(first - 1, last - first);
-//                 ss << "\033[0m";
-//                 idx = last - 1;
-//             }
-//             if (spn.last() - 1 < msg.length()) {
-//                 std::string_view chunk = msg.substr(spn.last() - 1);
-//                 output += chunk;
-//                 // zap_gremlins(ss, chunk);
-//             }
-//         }
-//     }
-
-//     return output;
-// }
 
 std::ostream &operator<<(std::ostream &os, const TextRef &ref)
 {

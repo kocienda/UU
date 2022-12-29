@@ -197,7 +197,12 @@ public:
 
 
     BasicString &operator+=(const std::string &s) {
-        append(s.c_str(), s.length());
+        append(s.data(), s.length());
+        return *this;
+    }
+
+    BasicString &operator+=(const std::string_view &s) {
+        append(s.data(), s.length());
         return *this;
     }
 
