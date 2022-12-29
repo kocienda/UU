@@ -96,6 +96,9 @@ install(EXPORT UUConfig DESTINATION lib/cmake/UU)
 # Set the export target for the library
 export(TARGETS UU FILE UUConfig.cmake)
 
+
+IF(DEFINED ENV{UU_UNIT_TEST})
+
 # Unit tests
 include(CTest)
 enable_testing()
@@ -117,9 +120,7 @@ UU_TEST(string_like_test)
 UU_TEST(textref_test)
 UU_TEST(unix_like_test)
 
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-include(CPack)
+ENDIF()
 
 # To use:
 # find_package(UU REQUIRED)
