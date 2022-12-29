@@ -29,7 +29,6 @@
 #include <UU/ByteReader.h>
 #include <UU/ByteWriter.h>
 #include <UU/MathLike.h>
-#include <UU/Span.h>
 #include <UU/Types.h>
 
 #include <algorithm>
@@ -41,6 +40,9 @@
 #include <stdlib.h>
 
 namespace UU {
+
+template <typename T> class Span;
+class TextRef;
 
 template <SizeType S>
 class BasicDynamicByteBuffer : public ByteWriter, public ByteReader
@@ -167,7 +169,8 @@ public:
         write((const Byte *)ptr, len);
     }
 
-    template <typename T> void write(const Span<T> &span);
+    void write(const Span<size_t> &);
+    void write(const TextRef &);
 
     BasicDynamicByteBuffer &operator+=(const std::string &s) {
         write(s.c_str(), s.length());

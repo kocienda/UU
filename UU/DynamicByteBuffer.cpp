@@ -26,5 +26,15 @@
 
 namespace UU {
 
+template <> void DynamicByteBuffer::write(const Span<size_t> &span)
+{
+
+}
+
+template <> void DynamicByteBuffer::write(const TextRef &)
+{
+
+}
+
 
 }  // namespace UU
