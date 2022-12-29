@@ -18,6 +18,6 @@ If you want to compile and use this code yourself, I regret to say that you're o
 1. Get the UU project source code from `https://github.com/kocienda/UU`.
 2. Compile and install it with: `cmake -S . -B build; cmake --build build --target install`
 
-You many also wish to look at the source code, just for fun, and if you do, I hope you enjoy.
+You may also wish to look at the source code, just for fun, and if you do, I hope you enjoy.
 
 — Ken
