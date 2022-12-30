@@ -108,6 +108,10 @@
 
 #endif /* COMPILER(GCC) */
 
+#if defined(__linux__)
+#define __nodiscard__ 
+#endif
+
 #ifndef __nodiscard__
 #define __nodiscard__ [[nodiscard]]
 #endif

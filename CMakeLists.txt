@@ -7,7 +7,6 @@ cmake_minimum_required(VERSION 3.0.0)
 project(UU VERSION 0.1.0)
 
 set(CXX_VERSION_FLAGS "-std=c++17")
-set(CXX_ARCH_FLAGS "-arch arm64")
 set(CXX_WARNING_FLAGS "-Werror -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror=return-type -Wdocumentation \
 -Wunreachable-code -Wno-non-virtual-dtor -Wno-overloaded-virtual -Wno-exit-time-destructors -Wno-missing-braces -Wparentheses -Wswitch \
 -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized \
