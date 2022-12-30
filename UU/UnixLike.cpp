@@ -23,7 +23,9 @@
 // SOFTWARE.
 
 #include <sys/types.h>
-#include <sys/sysctl.h>
+#if !defined(__linux__)
+#	include <sys/sysctl.h>
+#endif
 #include <unistd.h>
 
 #include "Assertions.h"
@@ -75,6 +77,7 @@ std::string shell_escaped_string(const std::string &str)
 
 int get_sysctl_logicalcpu()
 {
+#if !defined(__linux__)
     int num = 0;
     size_t len = sizeof(num);
     int rc = sysctlbyname("hw.logicalcpu", &num, &len, NULL, 0);
@@ -83,6 +86,16 @@ int get_sysctl_logicalcpu()
         return 0;
     }
     return num;
+#else
+    FILE* f = fopen("/sys/devices/system/cpu/online", "rb");
+    if (!f)
+        return 0;
+    int lo,hi;
+    const int num = fscanf(f, "%d-%d", &lo, &hi);
+    if (num !=2)
+        return 0;
+    return (hi - lo) + 1;
+#endif
 }
 
 int get_good_concurrency_count()
