@@ -413,11 +413,28 @@ TEST_CASE("String insert test: const_iterator pos, CharT ch", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 12);
 }
 
+// TEST_CASE("String insert test: const_iterator pos, InputIt first, InputIt last", "[string]" ) {
+//     std::string sstr1("0123456789");
+//     std::string sstr2("abcdefghij");
+//     String ustr1("0123456789");
+//     String ustr2("abcdefghij");
 
+//     sstr1.insert(sstr1.begin(), sstr2.begin(), sstr2.end());
+//     ustr1.insert(ustr1.begin(), ustr2.begin(), ustr2.end());
+//     REQUIRE(sstr1 == "0123abcdefghij456789");
+//     REQUIRE(ustr1 == "0123abcdefghij456789");
+//     REQUIRE(strlen(sstr1.c_str()) == 20);
+//     REQUIRE(strlen(ustr1.c_str()) == 11);
+// }
 
-
-
-
-
-
+TEST_CASE("BasicString<Char32> override", "[string]" ) {
+    BasicString<char32_t> ustr1("");
+    ustr1.append("abc", 3);
+    ustr1.append(U"abc", 3);
+    BasicString<char32_t> ustr2(U"abcabc");
+    bool t = ustr1 == ustr2;
+    REQUIRE(t);
+    REQUIRE(std::string(ustr1) == std::string(ustr2));
+    REQUIRE(strcmp(ustr1.c_str(), ustr2.c_str()) == 0);
+}
 

@@ -36,6 +36,7 @@
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include <stdlib.h>
@@ -44,16 +45,46 @@
 
 namespace UU {
 
+// forward declarations ===========================================================================
+
 template <typename T> class Span;
 class TextRef;
 
-static constexpr SizeType DefaultBasicStringSize = 256;
+// constants ======================================================================================
 
-template <typename CharT>
-using IsNotByteSized_ = std::bool_constant<sizeof(CharT) != sizeof(char)>;
-template <typename CharT> constexpr bool IsNotByteSized = IsNotByteSized_<CharT>::value;
+static constexpr SizeType BasicStringDefaultSize = 256;
 
-template <typename CharT, class Traits = std::char_traits<CharT>, SizeType S = DefaultBasicStringSize>
+// template metaprogramming =======================================================================
+
+template <typename T>
+using IsByteSized_ = std::bool_constant<sizeof(T) == sizeof(char)>;
+template <typename T> constexpr bool IsByteSized = IsByteSized_<T>::value;
+
+
+template <typename T>
+struct HasIteratorCategory
+{
+private:
+    template <class U> static std::false_type test(...);
+    template <class U> static std::true_type test(typename U::iterator_category* = nullptr);
+public:
+    static const bool value = decltype(test<T>(nullptr))::value;
+};
+
+template <typename T, typename U, bool = HasIteratorCategory<std::iterator_traits<T>>::value>
+struct HasIteratorCategoryConvertibleTo : 
+    std::is_convertible<typename std::iterator_traits<T>::iterator_category, U>
+{};
+
+template <typename T>
+struct IsInputIteratorCategory_ : 
+    public HasIteratorCategoryConvertibleTo<T, std::input_iterator_tag> {};
+
+template <typename T> constexpr bool IsInputIteratorCategory = IsInputIteratorCategory_<T>::value;
+
+// BasicString class ==============================================================================
+
+template <typename CharT, SizeType S = BasicStringDefaultSize, class Traits = std::char_traits<CharT>>
 class BasicString
 {
 private:
@@ -163,7 +194,6 @@ public:
 
     constexpr CharT *data() const { return m_ptr; }
     constexpr SizeType length() const { return m_length; }
-    constexpr const CharT *c_str() const noexcept { return data(); }
     constexpr SizeType capacity() const { return m_capacity; }
     constexpr const CharT &operator[](SizeType index) const { return m_ptr[index]; }
     constexpr CharT &operator[](SizeType index) { return m_ptr[index]; }
@@ -171,6 +201,12 @@ public:
     constexpr CharT& front() const { return m_ptr[0]; }
     constexpr CharT& back() { return m_ptr[m_length - 1]; }
     constexpr CharT& back() const { return m_ptr[m_length - 1]; }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr const char *c_str() const noexcept { return reinterpret_cast<const char *>(data()); }
+
+    template <class CharX = CharT, std::enable_if_t<IsByteSized<CharX>, int> = 0>
+    constexpr const char *c_str() const noexcept { return data(); }
 
     template <bool B = true> constexpr bool is_empty() const { return (m_length == 0) == B; }
     
@@ -200,7 +236,6 @@ public:
     // appending ==================================================================================
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
 
-    template <class CharX = CharT, std::enable_if_t<IsNotByteSized<CharX>> = 0>
     void append(const char *ptr, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
@@ -212,6 +247,7 @@ public:
         null_terminate();
     }
     
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     void append(const CharT *ptr, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
@@ -327,6 +363,11 @@ public:
         return iterator(pos);
     }
 
+    template <typename InputIt, std::enable_if_t<IsInputIteratorCategory<InputIt>, int> = 0>
+    iterator insert(const_iterator pos, InputIt first, InputIt last) {
+        return nullptr;
+    }
+
     // operators ==================================================================================
 
     BasicString &operator=(const BasicString &other) {
@@ -414,8 +455,13 @@ public:
         return operator==(a, b) || operator>(a, b); 
     }
 
-    constexpr operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
+    operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
         return std::basic_string(data(), length());
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    operator std::string() const noexcept {
+        return std::basic_string(c_str(), length());
     }
 
     constexpr operator BasicStringView() const noexcept {
@@ -505,14 +551,14 @@ private:
     SizeType m_capacity = InlineCapacity;
 };
 
-template <typename CharT, class Traits, SizeType S>
-std::ostream &operator<<(std::ostream &os, const BasicString<CharT, Traits, S> &str)
+template <typename CharT, SizeType S, class Traits>
+std::ostream &operator<<(std::ostream &os, const BasicString<CharT, S, Traits> &str)
 {
     os.write(str.data(), str.length());
     return os;
 }
 
-using String = BasicString<char, std::char_traits<char>, DefaultBasicStringSize>;
+using String = BasicString<char, BasicStringDefaultSize>;
 
 }  // namespace UU
 
@@ -520,9 +566,9 @@ using String = BasicString<char, std::char_traits<char>, DefaultBasicStringSize>
 namespace std
 {
     template <typename CharT, UU::SizeType S>
-    struct less<UU::BasicString<CharT, std::char_traits<CharT>, S>>
+    struct less<UU::BasicString<CharT, S, std::char_traits<CharT>>>
     {
-        using StringT = UU::BasicString<CharT, std::char_traits<CharT>, S>;
+        using StringT = UU::BasicString<CharT, S, std::char_traits<CharT>>;
         bool operator()(const StringT &lhs, const StringT &rhs) const {
             return lhs < rhs;
         }
