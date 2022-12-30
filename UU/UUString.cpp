@@ -78,9 +78,4 @@ template <> void String::append(const Span<Int64> &span)
     }
 }
 
-template <> void String::append(const TextRef &)
-{
-
-}
-
 }  // namespace UU
