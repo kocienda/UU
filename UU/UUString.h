@@ -170,14 +170,24 @@ public:
         }
     }
 
-    void append(Byte byte) {
+    void append(CharT byte) {
         ensure_capacity(m_length + 1);
         m_ptr[m_length] = byte;
         m_length++;
     }
 
+    void append(CharT c, SizeType length) {
+        if (LIKELY(length > 0)) {
+            ensure_capacity(m_length + length);
+            for (int idx = 0; idx < length; idx++) {
+                m_ptr[m_length + idx] = c;
+            }
+            m_length += length;
+        }
+    }
+
     void append(const std::string &str) {
-        append((const Byte *)str.data(), (SizeType)str.length());
+        append(str.data(), str.length());
     }
 
     void append(const Span<int> &);
@@ -215,36 +225,26 @@ public:
         return *this;
     }
 
-    void append(Byte b, SizeType length) {
-        if (LIKELY(length > 0)) {
-            ensure_capacity(m_length + length);
-            for (int idx = 0; idx < length; idx++) {
-                m_ptr[m_length + idx] = b;
-            }
-            m_length += length;
+    constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
+        m_length = index;
+        ensure_capacity(m_length + count);
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[m_length + idx] = c;
         }
+        m_length += count;
+        return *this;
     }
 
-    void append(CharT c, SizeType length) {
-        if (LIKELY(length > 0)) {
-            ensure_capacity(m_length + length);
-            for (int idx = 0; idx < length; idx++) {
-                m_ptr[m_length + idx] = c;
-            }
-            m_length += length;
-        }
-    }
+    template <bool B = true> constexpr bool is_empty() const { return (m_length == 0) == B; }
 
-    template <bool B = true> bool is_empty() const { return (m_length == 0) == B; }
+    constexpr bool using_inline_buffer() const { return m_ptr == const_cast<CharT *>(m_buf); }
+    constexpr bool using_allocated_buffer() const { return !(using_inline_buffer()); }
 
-    bool using_inline_buffer() const { return m_ptr == const_cast<CharT *>(m_buf); }
-    bool using_allocated_buffer() const { return !(using_inline_buffer()); }
-
-    void clear() {
+    constexpr void clear() {
         m_length = 0;
     }
     
-    CharT at(SizeType index) {
+    constexpr CharT at(SizeType index) {
         if (LIKELY(m_length > index)) {
             return m_ptr[index];
         }
@@ -253,7 +253,7 @@ public:
         }
     }
     
-    const CharT &at(SizeType index) const {
+    constexpr const CharT &at(SizeType index) const {
         if (m_length > index) {
             return m_ptr[index];
         }
@@ -262,23 +262,39 @@ public:
         }
     }
     
-    const CharT &operator[](SizeType index) const {
+    constexpr const CharT &operator[](SizeType index) const {
         return m_ptr[index];
     }
     
-    Byte &operator[](SizeType index) {
+    constexpr CharT &operator[](SizeType index) {
         return m_ptr[index];
     }
 
-    operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
+    constexpr CharT& front() {
+        return m_ptr[0];
+    }
+
+    constexpr CharT& front() const {
+        return m_ptr[0];
+    }
+
+    constexpr CharT& back() {
+        return m_ptr[m_length - 1];
+    }
+
+    constexpr CharT& back() const {
+        return m_ptr[m_length - 1];
+    }
+
+    constexpr operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
         return std::basic_string(data(), length());
     }
 
-    operator std::basic_string_view<CharT, std::char_traits<CharT>>() const noexcept {
+    constexpr operator std::basic_string_view<CharT, std::char_traits<CharT>>() const noexcept {
         return std::basic_string_view(data(), length());
     }
 
-    friend bool operator==(const BasicString &a, const BasicString &b) {
+    friend constexpr bool operator==(const BasicString &a, const BasicString &b) {
         if (a.length() != b.length()) {
             return false;
         }
@@ -288,18 +304,26 @@ public:
         return Traits::compare(a.data(), b.data(), a.length()) == 0;
     }
 
-    friend bool operator!=(const BasicString &a, const BasicString &b) {
+    friend constexpr bool operator!=(const BasicString &a, const BasicString &b) {
         return !(a == b);
     }
 
-    friend bool operator<(const BasicString &a, const BasicString &b) {
+    friend constexpr bool operator<(const BasicString &a, const BasicString &b) {
         SizeType len = std::min(a.length(), b.length());
         int cmp = Traits::compare(a.data(), b.data(), len);
         return cmp != 0 ? cmp : (a.length() < b.length());
     }
 
-    friend bool operator>(const BasicString &a, const BasicString &b) {
+    friend constexpr bool operator<=(const BasicString &a, const BasicString &b) {
+        return operator==(a, b) || operator<(a, b); 
+    }
+
+    friend constexpr bool operator>(const BasicString &a, const BasicString &b) {
         return !(a < b); 
+    }
+
+    friend constexpr bool operator>=(const BasicString &a, const BasicString &b) {
+        return operator==(a, b) || operator>(a, b); 
     }
 
     class iterator : public std::random_access_iterator_tag {

@@ -287,3 +287,9 @@ TEST_CASE("String reverse_iterator test comparators", "[string]" ) {
     REQUIRE(it1 + 1 > it2);
     REQUIRE(it2 - 1 != it1);
 }
+
+TEST_CASE("String insert test", "[string]" ) {
+    String str1("0123456789");
+    str1.insert(5, 3, 'a');
+    REQUIRE(str1 == "01234aaa");
+}
