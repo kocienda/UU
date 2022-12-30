@@ -355,16 +355,16 @@ TEST_CASE("std::string insert test: const_iterator pos, CharT ch", "[string]" ) 
     REQUIRE(strlen(str1.c_str()) == 12);
 }
 
-// TEST_CASE("String insert test: const_iterator pos, CharT ch", "[string]" ) {
-//     String str1("0123456789");
-//     str1.insert(str1.begin(), 'a');
-//     REQUIRE(str1 == "a0123456789");
-//     REQUIRE(strlen(str1.c_str()) == 11);
+TEST_CASE("String insert test: const_iterator pos, CharT ch", "[string]" ) {
+    String str1("0123456789");
+    str1.insert(str1.begin(), 'a');
+    REQUIRE(str1 == "a0123456789");
+    REQUIRE(strlen(str1.c_str()) == 11);
 
-//     str1.insert(str1.begin() + 3, 'b');
-//     REQUIRE(str1 == "a01b23456789");
-//     REQUIRE(strlen(str1.c_str()) == 12);
-// }
+    str1.insert(str1.begin() + 3, 'b');
+    REQUIRE(str1 == "a01b23456789");
+    REQUIRE(strlen(str1.c_str()) == 12);
+}
 
 
 

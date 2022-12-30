@@ -42,6 +42,7 @@ template <> void String::append(const Span<int> &span)
         }
         first = false;
     }
+    UU_STRING_ASSERT_NULL_TERMINATED;
 }
 
 template <> void String::append(const Span<size_t> &span)
@@ -59,6 +60,7 @@ template <> void String::append(const Span<size_t> &span)
         }
         first = false;
     }
+    UU_STRING_ASSERT_NULL_TERMINATED;
 }
 
 template <> void String::append(const Span<Int64> &span)
@@ -76,6 +78,7 @@ template <> void String::append(const Span<Int64> &span)
         }
         first = false;
     }
+    UU_STRING_ASSERT_NULL_TERMINATED;
 }
 
 }  // namespace UU

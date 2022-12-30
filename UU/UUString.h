@@ -40,6 +40,8 @@
 
 #include <stdlib.h>
 
+#define UU_STRING_THROWS_EXCEPTIONS 0
+
 namespace UU {
 
 template <typename T> class Span;
@@ -47,10 +49,21 @@ class TextRef;
 
 static constexpr SizeType DefaultBasicStringSize = 256;
 
+template <typename CharT>
+using IsNotByteSized_ = std::bool_constant<sizeof(CharT) != sizeof(char)>;
+template <typename CharT> constexpr bool IsNotByteSized = IsNotByteSized_<CharT>::value;
+
 template <typename CharT, class Traits = std::char_traits<CharT>, SizeType S = DefaultBasicStringSize>
 class BasicString
 {
 private:
+    // internal helpers ===========================================================================
+
+#define UU_STRING_ASSERT_NULL_TERMINATED \
+    do { \
+        ASSERT_WITH_MESSAGE(m_ptr[m_length] == '\0', "string not null terminated"); \
+    } while (0)
+
     UU_ALWAYS_INLINE constexpr void null_terminate() {
         ensure_capacity(m_length + 1);
         m_ptr[m_length] = '\0';
@@ -64,20 +77,34 @@ private:
         return !(using_inline_buffer()); 
     }
 
-public:
-    enum { InlineCapacity = S };
+    UU_ALWAYS_INLINE void return_empty_or_throw_out_of_range(SizeType pos) const { 
+#if UU_STRING_THROWS_EXCEPTIONS
+        BasicString<char, std::char_traits<char>, 64> msg("String access out of range: ");
+        msg.append_as_string(pos);
+        throw std::out_of_range(msg);
+#else
+        return empty_value;
+#endif
+    }
 
+public:
+    // constants ==================================================================================
+
+    static constexpr SizeType InlineCapacity = S;
     static constexpr const SizeType npos = SizeTypeMax;
     static constexpr CharT empty_value = CharT();
 
-    using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
+    // usings =====================================================================================
 
+    using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
     using iterator = CharT *;
     using const_iterator = const CharT *;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    constexpr BasicString() { m_ptr[0] = '\0'; }
+    // constructors ===============================================================================
+
+    constexpr BasicString() { null_terminate(); }
     
     explicit BasicString(SizeType capacity) {
         ensure_capacity(capacity);
@@ -105,7 +132,7 @@ public:
         while (in.read(buffer, sizeof(buffer))) {
             append((const Byte *)buffer, sizeof(buffer));
         }
-        append((const Byte *)buffer, (SizeType)in.gcount());
+        append(buffer, in.gcount());
     }
 
     BasicString(const BasicString &other) {
@@ -124,38 +151,7 @@ public:
         }
     }
 
-    BasicString &operator=(const BasicString &other) {
-        if (this == &other) {
-            return *this;
-        }
-
-        m_length = 0;
-        append(other.data(), other.length());
-        return *this;
-    }
-
-    BasicString &operator=(const std::string &str) {
-        m_length = 0;
-        append((const Byte *)str.data(), (SizeType)str.length());
-        return *this;
-    }
-
-    BasicString &operator=(BasicString &&other) {
-        m_length = 0;
-        if (other.using_allocated_buffer()) {
-            if (using_allocated_buffer()) {
-                delete m_ptr;
-            }
-            m_ptr = other.m_ptr;
-            m_length = other.length();
-            m_capacity = other.capacity();
-            other.reset();
-        }
-        else {
-            append(other.data(), other.length());
-        }
-        return *this;
-    }
+    // destructor =================================================================================
 
     ~BasicString() {
         if (using_allocated_buffer()) {
@@ -163,18 +159,53 @@ public:
         }
     }
 
-    CharT *data() const { return m_ptr; }
-    SizeType length() const { return m_length; }
+    // accessors ==================================================================================
+
+    constexpr CharT *data() const { return m_ptr; }
+    constexpr SizeType length() const { return m_length; }
     constexpr const CharT *c_str() const noexcept { return data(); }
+    constexpr SizeType capacity() const { return m_capacity; }
+    constexpr const CharT &operator[](SizeType index) const { return m_ptr[index]; }
+    constexpr CharT &operator[](SizeType index) { return m_ptr[index]; }
+    constexpr CharT& front() { return m_ptr[0]; }
+    constexpr CharT& front() const { return m_ptr[0]; }
+    constexpr CharT& back() { return m_ptr[m_length - 1]; }
+    constexpr CharT& back() const { return m_ptr[m_length - 1]; }
 
-    SizeType capacity() const { return m_capacity; }
+    template <bool B = true> constexpr bool is_empty() const { return (m_length == 0) == B; }
+    
+    constexpr CharT at(SizeType pos) {
+        if (LIKELY(m_length > pos)) {
+            return m_ptr[pos];
+        }
+        else {
+            return empty_value;
+        }
+    }
+    
+    constexpr const CharT &at(SizeType pos) const {
+        if (m_length > pos) {
+            return m_ptr[pos];
+        }
+        else {
+            return return_empty_or_throw_out_of_range(pos);
+        }
+    }
+    
+    // resizing ===================================================================================
+
     void reserve(SizeType length) { ensure_capacity(length); }
+    constexpr void clear() { m_length = 0; }
 
-    void append(const Byte *bytes, SizeType length) {
+    // appending ==================================================================================
+    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
+
+    template <class CharX = CharT, std::enable_if_t<IsNotByteSized<CharX>> = 0>
+    void append(const char *ptr, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
             for (int idx = 0; idx < length; idx++) {
-                m_ptr[m_length + idx] = bytes[idx];
+                m_ptr[m_length + idx] = ptr[idx];
             }
             m_length += length;
         }
@@ -184,9 +215,7 @@ public:
     void append(const CharT *ptr, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
-            for (int idx = 0; idx < length; idx++) {
-                m_ptr[m_length + idx] = ptr[idx];
-            }
+            Traits::copy(m_ptr + m_length, ptr, length);
             m_length += length;
         }
         null_terminate();
@@ -212,7 +241,7 @@ public:
 
     void append(const std::string &str) {
         append(str.data(), str.length());
-        null_terminate();
+        UU_STRING_ASSERT_NULL_TERMINATED;
     }
 
     void append(const Span<int> &);
@@ -227,7 +256,90 @@ public:
         integer_to_string(val, ptr);
         SizeType len = strlen(ptr);
         ensure_capacity(m_length + len);
-        append((const Byte *)ptr, len);
+        append(ptr, len);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    // inserting ==================================================================================
+    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
+
+    constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
+        ASSERT(index <= m_length);
+        m_length = index;
+        append(count, c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &insert(SizeType index, const CharT *s) {
+        ASSERT(index <= m_length);
+        m_length = index;
+        append(s, Traits::length(s));
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &insert(SizeType index, const CharT *s, SizeType count) {
+        ASSERT(index <= m_length);
+        ASSERT(Traits::length(s) >= count);
+        m_length = index;
+        append(s, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &insert(SizeType index, const BasicString &str, SizeType index_str, SizeType count = npos) {
+        ASSERT(index <= m_length);
+        m_length = index;
+        auto string_view = str.substrview(index_str, count);
+        append(string_view.data(), string_view.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr iterator insert(const_iterator pos, CharT ch) {
+        ensure_capacity(m_length + 1);
+        iterator dst = const_cast<iterator>(pos);
+        Traits::move(dst + 1, pos, end() - pos);
+        m_ptr[pos - begin()] = ch;
+        m_length++;
+        null_terminate();
+        return iterator(pos);
+    }
+
+    // operators ==================================================================================
+
+    BasicString &operator=(const BasicString &other) {
+        if (this == &other) {
+            return *this;
+        }
+
+        m_length = 0;
+        append(other.data(), other.length());
+        return *this;
+    }
+
+    BasicString &operator=(const std::string &str) {
+        m_length = 0;
+        append(str.data(), str.length());
+        return *this;
+    }
+
+    BasicString &operator=(BasicString &&other) {
+        m_length = 0;
+        if (other.using_allocated_buffer()) {
+            if (using_allocated_buffer()) {
+                delete m_ptr;
+            }
+            m_ptr = other.m_ptr;
+            m_length = other.length();
+            m_capacity = other.capacity();
+            other.reset();
+        }
+        else {
+            append(other.data(), other.length());
+        }
+        return *this;
     }
 
     BasicString &operator+=(const std::string &s) {
@@ -248,111 +360,6 @@ public:
     BasicString &operator+=(Byte b) {
         append(b);
         return *this;
-    }
-
-    constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
-        ASSERT(index <= m_length);
-        m_length = index;
-        append(count, c);
-        return *this;
-    }
-
-    constexpr BasicString &insert(SizeType index, const CharT *s) {
-        ASSERT(index <= m_length);
-        m_length = index;
-        append(s, Traits::length(s));
-        return *this;
-    }
-
-    constexpr BasicString &insert(SizeType index, const CharT *s, SizeType count) {
-        ASSERT(index <= m_length);
-        ASSERT(Traits::length(s) >= count);
-        m_length = index;
-        append(s, count);
-        return *this;
-    }
-
-    constexpr BasicString &insert(SizeType index, const BasicString &str, SizeType index_str, SizeType count = npos) {
-        ASSERT(index <= m_length);
-        m_length = index;
-        auto string_view = str.substrview(index_str, count);
-        append(string_view.data(), string_view.length());
-        return *this;
-    }
-
-    constexpr iterator insert(const_iterator pos, CharT ch) {
-        ensure_capacity(m_length + 1);
-        // iterator dst = pos + 1;
-        // Traits::move(*dst, *pos, end() - pos);
-        // m_length++;
-        // null_terminate();
-        return iterator(pos);
-    }
-
-    template <bool B = true> constexpr bool is_empty() const { return (m_length == 0) == B; }
-
-    constexpr void clear() {
-        m_length = 0;
-    }
-    
-    constexpr CharT at(SizeType index) {
-        if (LIKELY(m_length > index)) {
-            return m_ptr[index];
-        }
-        else {
-            return empty_value;
-        }
-    }
-    
-    constexpr const CharT &at(SizeType index) const {
-        if (m_length > index) {
-            return m_ptr[index];
-        }
-        else {
-            return empty_value;
-        }
-    }
-    
-    constexpr const CharT &operator[](SizeType index) const {
-        return m_ptr[index];
-    }
-    
-    constexpr CharT &operator[](SizeType index) {
-        return m_ptr[index];
-    }
-
-    constexpr CharT& front() {
-        return m_ptr[0];
-    }
-
-    constexpr CharT& front() const {
-        return m_ptr[0];
-    }
-
-    constexpr CharT& back() {
-        return m_ptr[m_length - 1];
-    }
-
-    constexpr CharT& back() const {
-        return m_ptr[m_length - 1];
-    }
-
-    constexpr BasicString substr(SizeType pos = 0, SizeType count = npos) const {
-        ASSERT(pos < m_length);
-        return BasicString(data(), pos, count);
-    }
-
-    BasicStringView substrview(SizeType pos = 0, SizeType count = npos) const noexcept {
-        ASSERT(pos < m_length);
-        return BasicStringView(data() + pos, count);
-    }
-
-    constexpr operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
-        return std::basic_string(data(), length());
-    }
-
-    constexpr operator BasicStringView() const noexcept {
-        return BasicStringView(data(), length());
     }
 
     friend constexpr bool operator==(const BasicString &a, const BasicString &b) {
@@ -386,6 +393,28 @@ public:
     friend constexpr bool operator>=(const BasicString &a, const BasicString &b) {
         return operator==(a, b) || operator>(a, b); 
     }
+
+    constexpr operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
+        return std::basic_string(data(), length());
+    }
+
+    constexpr operator BasicStringView() const noexcept {
+        return BasicStringView(data(), length());
+    }
+
+    // substrings =================================================================================
+
+    constexpr BasicString substr(SizeType pos = 0, SizeType count = npos) const {
+        ASSERT(pos < m_length);
+        return BasicString(data(), pos, count);
+    }
+
+    BasicStringView substrview(SizeType pos = 0, SizeType count = npos) const noexcept {
+        ASSERT(pos < m_length);
+        return BasicStringView(data() + pos, count);
+    }
+
+    // iterators ==================================================================================
 
     constexpr iterator begin() const {
         return m_ptr;
