@@ -125,7 +125,7 @@ public:
         m_length = 0;
         if (other.using_allocated_buffer()) {
             if (using_allocated_buffer()) {
-                delete m_ptr;
+                free(m_ptr);
             }
             m_ptr = other.m_ptr;
             m_length = other.length();
@@ -140,7 +140,7 @@ public:
 
     ~BasicString() {
         if (using_allocated_buffer()) {
-            delete m_ptr;
+            free(m_ptr);
         }
     }
 
