@@ -2,6 +2,7 @@
 // string_test.cpp
 //
 
+#include "UU/UUString.h"
 #include <string>
 #include <sstream>
 
@@ -297,73 +298,119 @@ TEST_CASE("String reverse_iterator test comparators", "[string]" ) {
 }
 
 TEST_CASE("String insert test: SizeType index, SizeType count, CharT c", "[string]" ) {
-    String str1("0123456789");
+    std::string sstr("0123456789");
+    String ustr("0123456789");
     
-    str1.insert(5, 3, 'a');
-    REQUIRE(str1 == "01234aaa");
-    REQUIRE(strlen(str1.c_str()) == 8);
+    sstr.insert(5, 3, 'a');
+    ustr.insert(5, 3, 'a');
+    REQUIRE(sstr == "01234aaa56789");
+    REQUIRE(ustr == "01234aaa56789");
+    REQUIRE(strlen(sstr.c_str()) == 13);
+    REQUIRE(strlen(ustr.c_str()) == 13);
 
-    str1.insert(str1.length(), 3, 'a');
-    REQUIRE(str1 == "01234aaaaaa");
-    REQUIRE(strlen(str1.c_str()) == 11);
+    sstr.insert(sstr.length(), 3, 'a');
+    ustr.insert(ustr.length(), 3, 'a');
+    REQUIRE(sstr == "01234aaa56789aaa");
+    REQUIRE(ustr == "01234aaa56789aaa");
+    REQUIRE(strlen(sstr.c_str()) == 16);
+    REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
 TEST_CASE("String insert test: SizeType index, const CharT *s", "[string]" ) {
-    String str1("0123456789");
+    std::string sstr("0123456789");
+    String ustr("0123456789");
     
-    str1.insert(5, "aaa");
-    REQUIRE(str1 == "01234aaa");
-    REQUIRE(strlen(str1.c_str()) == 8);
+    sstr.insert(5, "aaa");
+    ustr.insert(5, "aaa");
+    REQUIRE(sstr == "01234aaa56789");
+    REQUIRE(ustr == "01234aaa56789");
+    REQUIRE(strlen(sstr.c_str()) == 13);
+    REQUIRE(strlen(ustr.c_str()) == 13);
 
-    str1.insert(str1.length(), "aaa");
-    REQUIRE(str1 == "01234aaaaaa");
-    REQUIRE(strlen(str1.c_str()) == 11);
+    sstr.insert(sstr.length(), "aaa");
+    ustr.insert(ustr.length(), "aaa");
+    REQUIRE(sstr == "01234aaa56789aaa");
+    REQUIRE(ustr == "01234aaa56789aaa");
+    REQUIRE(strlen(sstr.c_str()) == 16);
+    REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
 TEST_CASE("String insert test: SizeType index, const CharT *s, SizeType count", "[string]" ) {
-    String str1("0123456789");
+    std::string sstr("0123456789");
+    String ustr("0123456789");
     
-    str1.insert(5, "abcdef", 3);
-    REQUIRE(str1 == "01234abc");
-    REQUIRE(strlen(str1.c_str()) == 8);
+    sstr.insert(5, "abcdef", 3);
+    ustr.insert(5, "abcdef", 3);
+    REQUIRE(sstr == "01234abc56789");
+    REQUIRE(ustr == "01234abc56789");
+    REQUIRE(strlen(sstr.c_str()) == 13);
+    REQUIRE(strlen(ustr.c_str()) == 13);
 
-    str1.insert(str1.length(), "abcdef", 3);
-    REQUIRE(str1 == "01234abcabc");
-    REQUIRE(strlen(str1.c_str()) == 11);
+    sstr.insert(sstr.length(), "abcdef", 3);
+    ustr.insert(ustr.length(), "abcdef", 3);
+    REQUIRE(sstr == "01234abc56789abc");
+    REQUIRE(ustr == "01234abc56789abc");
+    REQUIRE(strlen(sstr.c_str()) == 16);
+    REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
 TEST_CASE("String insert test: SizeType index, const BasicString &str, SizeType index_str, SizeType count", "[string]" ) {
-    String str1("0123456789");
-    String str2("abcdefghij");
-    str1.insert(5, str2, 3, 3);
-    REQUIRE(str1 == "01234def");
-    REQUIRE(strlen(str1.c_str()) == 8);
+    std::string sstr1("0123456789");
+    std::string sstr2("abcdefghij");
+    String ustr1("0123456789");
+    String ustr2("abcdefghij");
+    
+    sstr1.insert(5, sstr2, 3, 3);
+    ustr1.insert(5, ustr2, 3, 3);
+    REQUIRE(sstr1 == "01234def56789");
+    REQUIRE(ustr1 == "01234def56789");
+    REQUIRE(strlen(sstr1.c_str()) == 13);
+    REQUIRE(strlen(ustr1.c_str()) == 13);
 
-    str1.insert(str1.length(), str2, 3, 3);
-    REQUIRE(str1 == "01234defdef");
-    REQUIRE(strlen(str1.c_str()) == 11);
+    sstr1.insert(sstr1.length(), sstr2, 3, std::string::npos);
+    ustr1.insert(ustr1.length(), sstr2, 3, String::npos);
+    REQUIRE(sstr1 == "01234def56789defghij");
+    REQUIRE(ustr1 == "01234def56789defghij");
+    REQUIRE(strlen(sstr1.c_str()) == 20);
+    REQUIRE(strlen(ustr1.c_str()) == 20);
 }
 
 TEST_CASE("std::string insert test: const_iterator pos, CharT ch", "[string]" ) {
-    std::string str1("0123456789");
-    str1.insert(str1.begin(), 'a');
-    REQUIRE(str1 == "a0123456789");
-    REQUIRE(strlen(str1.c_str()) == 11);
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+    
+    sstr.insert(sstr.begin(), 'a');
+    ustr.insert(ustr.begin(), 'a');
+    REQUIRE(sstr == "a0123456789");
+    REQUIRE(ustr == "a0123456789");
+    REQUIRE(strlen(sstr.c_str()) == 11);
+    REQUIRE(strlen(ustr.c_str()) == 11);
 
-    str1.insert(str1.begin() + 3, 'b');
-    REQUIRE(str1 == "a01b23456789");
-    REQUIRE(strlen(str1.c_str()) == 12);
+    sstr.insert(sstr.begin() + 3, 'b');
+    ustr.insert(ustr.begin() + 3, 'b');
+    REQUIRE(sstr == "a01b23456789");
+    REQUIRE(ustr == "a01b23456789");
+    REQUIRE(strlen(sstr.c_str()) == 12);
+    REQUIRE(strlen(ustr.c_str()) == 12);
 }
 
 TEST_CASE("String insert test: const_iterator pos, CharT ch", "[string]" ) {
-    String str1("0123456789");
-    str1.insert(str1.begin(), 'a');
-    REQUIRE(str1 == "a0123456789");
-    REQUIRE(strlen(str1.c_str()) == 11);
+    std::string sstr("0123456789");
+    String ustr("0123456789");
 
-    str1.insert(str1.begin() + 3, 'b');
-    REQUIRE(str1 == "a01b23456789");
-    REQUIRE(strlen(str1.c_str()) == 12);
+    sstr.insert(sstr.begin(), 'a');
+    ustr.insert(ustr.begin(), 'a');
+    REQUIRE(sstr == "a0123456789");
+    REQUIRE(ustr == "a0123456789");
+    REQUIRE(strlen(sstr.c_str()) == 11);
+    REQUIRE(strlen(ustr.c_str()) == 11);
+
+    sstr.insert(sstr.begin() + 3, 'b');
+    ustr.insert(ustr.begin() + 3, 'b');
+    REQUIRE(sstr == "a01b23456789");
+    REQUIRE(ustr == "a01b23456789");
+    REQUIRE(strlen(sstr.c_str()) == 12);
+    REQUIRE(strlen(ustr.c_str()) == 12);
 }
 
 

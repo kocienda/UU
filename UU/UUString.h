@@ -174,21 +174,21 @@ public:
 
     template <bool B = true> constexpr bool is_empty() const { return (m_length == 0) == B; }
     
-    constexpr CharT at(SizeType pos) {
-        if (LIKELY(m_length > pos)) {
-            return m_ptr[pos];
+    constexpr CharT at(SizeType index) {
+        if (LIKELY(m_length > index)) {
+            return m_ptr[index];
         }
         else {
             return empty_value;
         }
     }
     
-    constexpr const CharT &at(SizeType pos) const {
-        if (m_length > pos) {
-            return m_ptr[pos];
+    constexpr const CharT &at(SizeType index) const {
+        if (m_length > index) {
+            return m_ptr[index];
         }
         else {
-            return return_empty_or_throw_out_of_range(pos);
+            return return_empty_or_throw_out_of_range(index);
         }
     }
     
@@ -264,45 +264,65 @@ public:
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
 
     constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
-        ASSERT(index <= m_length);
-        m_length = index;
-        append(count, c);
-        UU_STRING_ASSERT_NULL_TERMINATED;
+        ensure_capacity(m_length + count);
+        const_iterator pos = cbegin() + index;
+        iterator dst = iterator(pos) + count;
+        Traits::move(dst, pos, end() - pos);
+        ptrdiff_t diff = pos - begin();
+        for (int idx = 0; idx < count; idx++) {
+            m_ptr[diff + idx] = c;
+        }
+        m_length += count;
+        null_terminate();
         return *this;
     }
 
     constexpr BasicString &insert(SizeType index, const CharT *s) {
-        ASSERT(index <= m_length);
-        m_length = index;
-        append(s, Traits::length(s));
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
+        return insert(index, s, strlen(s));
     }
 
     constexpr BasicString &insert(SizeType index, const CharT *s, SizeType count) {
-        ASSERT(index <= m_length);
-        ASSERT(Traits::length(s) >= count);
-        m_length = index;
-        append(s, count);
-        UU_STRING_ASSERT_NULL_TERMINATED;
+        ensure_capacity(m_length + count);
+        iterator pos = begin() + index;
+        iterator dst = pos + count;
+        Traits::move(dst, pos, end() - pos);
+        Traits::copy(pos, s, count);
+        m_length += count;
+        null_terminate();
         return *this;
     }
 
     constexpr BasicString &insert(SizeType index, const BasicString &str, SizeType index_str, SizeType count = npos) {
-        ASSERT(index <= m_length);
-        m_length = index;
-        auto string_view = str.substrview(index_str, count);
-        append(string_view.data(), string_view.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
+        SizeType ecount = std::min(count, str.length() - index_str);
+        ensure_capacity(m_length + ecount);
+        iterator pos = begin() + index;
+        iterator dst = pos + ecount;
+        Traits::move(dst, pos, end() - pos);
+        Traits::copy(pos, str.begin() + index_str, ecount);
+        m_length += ecount;
+        null_terminate();
         return *this;
     }
 
     constexpr iterator insert(const_iterator pos, CharT ch) {
         ensure_capacity(m_length + 1);
-        iterator dst = const_cast<iterator>(pos);
+        iterator dst = iterator(pos);
         Traits::move(dst + 1, pos, end() - pos);
         m_ptr[pos - begin()] = ch;
         m_length++;
+        null_terminate();
+        return iterator(pos);
+    }
+
+    constexpr iterator insert(const_iterator pos, SizeType count, CharT ch) {
+        ensure_capacity(m_length + count);
+        iterator dst = iterator(pos);
+        Traits::move(dst + count, pos, end() - pos);
+        ptrdiff_t diff = pos - begin();
+        for (int idx = 0; idx < count; idx++) {
+            m_ptr[diff + idx] = ch;
+        }
+        m_length += count;
         null_terminate();
         return iterator(pos);
     }
