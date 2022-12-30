@@ -49,16 +49,31 @@ static constexpr SizeType DefaultBasicStringSize = 256;
 template <typename CharT, class Traits = std::char_traits<CharT>, SizeType S = DefaultBasicStringSize>
 class BasicString
 {
+private:
+    UU_ALWAYS_INLINE constexpr void null_terminate() {
+        ensure_capacity(m_length + 1);
+        m_ptr[m_length] = '\0';
+    }
+
+    UU_ALWAYS_INLINE constexpr bool using_inline_buffer() const { 
+        return m_ptr == const_cast<CharT *>(m_buf); 
+    }
+
+    UU_ALWAYS_INLINE constexpr bool using_allocated_buffer() const { 
+        return !(using_inline_buffer()); 
+    }
+
 public:
     enum { InlineCapacity = S };
 
     static constexpr const SizeType npos = SizeTypeMax;
     static constexpr CharT empty_value = CharT();
 
-    constexpr BasicString() {}
+    constexpr BasicString() { m_ptr[0] = '\0'; }
     
     explicit BasicString(SizeType capacity) {
         ensure_capacity(capacity);
+        null_terminate();
     }
     
     BasicString(const Byte *bytes, SizeType length) {
@@ -77,8 +92,8 @@ public:
         append((const char *)str.data(), str.length());
     }
 
-    BasicString(SizeType length, CharT c) {
-        append(c, length);
+    BasicString(SizeType count, CharT c) {
+        append(count, c);
     }
 
     BasicString(std::istream &in) {
@@ -146,6 +161,7 @@ public:
 
     CharT *data() const { return m_ptr; }
     SizeType length() const { return m_length; }
+    constexpr const CharT* c_str() const noexcept { return data(); }
 
     SizeType capacity() const { return m_capacity; }
     void reserve(SizeType length) { ensure_capacity(length); }
@@ -158,6 +174,7 @@ public:
             }
             m_length += length;
         }
+        null_terminate();
     }
     
     void append(const char *bytes, SizeType length) {
@@ -168,26 +185,30 @@ public:
             }
             m_length += length;
         }
+        null_terminate();
     }
 
     void append(CharT byte) {
         ensure_capacity(m_length + 1);
         m_ptr[m_length] = byte;
         m_length++;
+        null_terminate();
     }
 
-    void append(CharT c, SizeType length) {
-        if (LIKELY(length > 0)) {
-            ensure_capacity(m_length + length);
-            for (int idx = 0; idx < length; idx++) {
+    void append(SizeType count, CharT c) {
+        if (LIKELY(count > 0)) {
+            ensure_capacity(m_length + count);
+            for (int idx = 0; idx < count; idx++) {
                 m_ptr[m_length + idx] = c;
             }
-            m_length += length;
+            m_length += count;
         }
+        null_terminate();
     }
 
     void append(const std::string &str) {
         append(str.data(), str.length());
+        null_terminate();
     }
 
     void append(const Span<int> &);
@@ -227,18 +248,11 @@ public:
 
     constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
         m_length = index;
-        ensure_capacity(m_length + count);
-        for (SizeType idx = 0; idx < count; idx++) {
-            m_ptr[m_length + idx] = c;
-        }
-        m_length += count;
+        append(count, c);
         return *this;
     }
 
     template <bool B = true> constexpr bool is_empty() const { return (m_length == 0) == B; }
-
-    constexpr bool using_inline_buffer() const { return m_ptr == const_cast<CharT *>(m_buf); }
-    constexpr bool using_allocated_buffer() const { return !(using_inline_buffer()); }
 
     constexpr void clear() {
         m_length = 0;
