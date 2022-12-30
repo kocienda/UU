@@ -30,6 +30,7 @@
 #include <locale>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <UU/Compiler.h>
 #include <UU/MathLike.h>
