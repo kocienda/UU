@@ -397,6 +397,20 @@ TEST_CASE("String insert test: SizeType index, const CharT *s, SizeType count", 
     REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
+TEST_CASE("String insert test: SizeType index, const BasicString &str", "[string]" ) {
+    std::string sstr1("0123456789");
+    std::string sstr2("abcdefghij");
+    String ustr1("0123456789");
+    String ustr2("abcdefghij");
+    
+    sstr1.insert(5, sstr2);
+    ustr1.insert(5, ustr2);
+    REQUIRE(sstr1 == "01234abcdefghij56789");
+    REQUIRE(ustr1 == "01234abcdefghij56789");
+    REQUIRE(strlen(sstr1.c_str()) == 20);
+    REQUIRE(strlen(ustr1.c_str()) == 20);
+}
+
 TEST_CASE("String insert test: SizeType index, const BasicString &str, SizeType index_str, SizeType count", "[string]" ) {
     std::string sstr1("0123456789");
     std::string sstr2("abcdefghij");

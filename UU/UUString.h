@@ -396,6 +396,12 @@ public:
         return *this;
     }
 
+    constexpr BasicString &insert(SizeType index, const BasicString& str) {
+        insert(index, str, 0, str.length()); 
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;      
+    }
+
     constexpr BasicString &insert(SizeType index, const BasicString &str, SizeType index_str, SizeType count = npos) {
         SizeType ecount = std::min(count, str.length() - index_str);
         ensure_capacity(m_length + ecount);
