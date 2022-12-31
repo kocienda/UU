@@ -105,6 +105,17 @@ constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, Traits> &&
 template <typename CharT, SizeType S = BasicStringDefaultSize, class Traits = std::char_traits<CharT>>
 class BasicString
 {
+public:
+    // public guts inspection =====================================================================
+
+    template <bool B = true> constexpr bool is_using_inline_buffer() const { 
+        return (m_ptr == const_cast<CharT *>(m_buf)) == B; 
+    }
+
+    template <bool B = true> constexpr bool is_using_allocated_buffer() const { 
+        return (!(is_using_inline_buffer())) == B; 
+    }
+
 private:
     // internal helpers ===========================================================================
 
@@ -130,14 +141,6 @@ private:
         }
         
         grow(new_capacity);
-    }
-
-    UU_ALWAYS_INLINE constexpr bool using_inline_buffer() const { 
-        return m_ptr == const_cast<CharT *>(m_buf); 
-    }
-
-    UU_ALWAYS_INLINE constexpr bool using_allocated_buffer() const { 
-        return !(using_inline_buffer()); 
     }
 
     UU_ALWAYS_INLINE void return_empty_or_throw_out_of_range(SizeType pos) const { 
@@ -227,7 +230,7 @@ public:
     }
 
     BasicString(BasicString &&other) {
-        if (other.using_allocated_buffer()) {
+        if (other.is_using_allocated_buffer()) {
             m_ptr = other.m_ptr;
             m_length = other.length();
             m_capacity = other.capacity();
@@ -241,7 +244,7 @@ public:
     // destructor =================================================================================
 
     ~BasicString() {
-        if (using_allocated_buffer()) {
+        if (is_using_allocated_buffer()) {
             delete m_ptr;
         }
     }
@@ -541,8 +544,8 @@ public:
 
     BasicString &operator=(BasicString &&other) {
         m_length = 0;
-        if (other.using_allocated_buffer()) {
-            if (using_allocated_buffer()) {
+        if (other.is_using_allocated_buffer()) {
+            if (is_using_allocated_buffer()) {
                 delete m_ptr;
             }
             m_ptr = other.m_ptr;
@@ -667,6 +670,82 @@ public:
         return reverse_iterator(begin());
     }
 
+    // swap ==================================================================================
+
+    constexpr void swap(BasicString &other) noexcept {
+        // four cases
+        if (is_using_inline_buffer() && other.is_using_inline_buffer()) {
+            // m_buf
+            CharT tmp_buf[InlineCapacity];
+            Traits::copy(tmp_buf, m_buf, InlineCapacity);
+            Traits::copy(m_buf, other.m_buf, InlineCapacity);
+            Traits::copy(other.m_buf, tmp_buf, InlineCapacity);
+
+            // m_ptr
+            // no-op
+
+            // m_length
+            SizeType tmp_length = length();
+            m_length = other.length();
+            other.m_length = tmp_length;
+
+            // m_capacity
+            // no-op
+        }
+        else if (is_using_inline_buffer() && other.is_using_allocated_buffer()) {
+            // m_buf and m_ptr
+            CharT *tmp_ptr = other.m_ptr;
+            Traits::copy(other.m_buf, m_buf, InlineCapacity);
+            other.m_ptr = other.m_buf;
+            m_ptr = tmp_ptr;
+
+            // m_length
+            SizeType tmp_length = length();
+            m_length = other.length();
+            other.m_length = tmp_length;
+
+            // m_capacity
+            SizeType tmp_capacity = capacity();
+            m_capacity = other.capacity();
+            other.m_capacity = tmp_capacity;
+        }
+        else if (is_using_allocated_buffer() && other.is_using_inline_buffer()) {
+            // m_buf and m_ptr
+            CharT *tmp_ptr = m_ptr;
+            Traits::copy(m_buf, other.m_buf, InlineCapacity);
+            m_ptr = m_buf;
+            other.m_ptr = tmp_ptr;
+
+            // m_length
+            SizeType tmp_length = length();
+            m_length = other.length();
+            other.m_length = tmp_length;
+
+            // m_capacity
+            SizeType tmp_capacity = capacity();
+            m_capacity = other.capacity();
+            other.m_capacity = tmp_capacity;
+        }
+        else {
+            ASSERT(is_using_allocated_buffer());
+            ASSERT(other.is_using_allocated_buffer());
+            // m_buf and m_ptr
+            CharT *tmp_ptr = m_ptr;
+            m_ptr = other.m_ptr;
+            other.m_ptr = tmp_ptr;
+
+            // m_length
+            SizeType tmp_length = length();
+            m_length = other.length();
+            other.m_length = tmp_length;
+
+            // m_capacity
+            SizeType tmp_capacity = capacity();
+            m_capacity = other.capacity();
+            other.m_capacity = tmp_capacity;
+        }
+    }
+
 private:
     void reset() {
         m_ptr = m_buf;
@@ -708,6 +787,12 @@ using String = BasicString<char, BasicStringDefaultSize>;
 
 namespace std
 {
+    // Implement std::swap in terms of BasicString swap
+    template <typename CharT, UU::SizeType S>
+    UU_ALWAYS_INLINE void swap(UU::BasicString<CharT, S, std::char_traits<CharT>> &lhs, UU::BasicString<CharT, S, std::char_traits<CharT>> &rhs) {
+        lhs.swap(rhs);
+    }
+    
     template <typename CharT, UU::SizeType S>
     struct less<UU::BasicString<CharT, S, std::char_traits<CharT>>>
     {

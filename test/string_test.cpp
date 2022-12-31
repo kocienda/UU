@@ -35,6 +35,8 @@ TEST_CASE("BasicString<Char32> override", "[string]" ) {
     REQUIRE(strcmp(ustr1.c_str(), ustr2.c_str()) == 0);
 }
 
+// assigning ======================================================================================
+
 // appending ======================================================================================
 
 TEST_CASE("String::append(SizeType count, CharT c)", "[string]" ) {
@@ -668,6 +670,131 @@ TEST_CASE("String convert to std::string with operator std::basic_string", "[str
     REQUIRE(dat == "hello there");
 }
 
+// swapping =======================================================================================
 
+TEST_CASE("String::swap 1", "[string]" ) {
+    String str1("12345");
+    String str2("abcde");
+    REQUIRE(str1.is_using_inline_buffer());
+    REQUIRE(str2.is_using_inline_buffer());
+    std::swap(str1, str2);
+    REQUIRE(str1.is_using_inline_buffer());
+    REQUIRE(str2.is_using_inline_buffer());
+    REQUIRE(str1 == "abcde");
+    REQUIRE(str2 == "12345");
+}
 
+TEST_CASE("String::swap 2", "[string]" ) {
+    static const char *small_str = "abcde";
+    static const char *big_str = 
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef";
 
+    String str1(big_str);
+    String str2(small_str);
+    REQUIRE(str1.is_using_allocated_buffer());
+    REQUIRE(str2.is_using_inline_buffer());
+    std::swap(str1, str2);
+    REQUIRE(str1.is_using_inline_buffer());
+    REQUIRE(str2.is_using_allocated_buffer());
+    REQUIRE(str1 == small_str);
+    REQUIRE(str2 == big_str);
+}
+
+TEST_CASE("String::swap 3", "[string]" ) {
+    static const char *small_str = "abcde";
+    static const char *big_str = 
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef";
+
+    String str1(small_str);
+    String str2(big_str);
+    REQUIRE(str1.is_using_inline_buffer());
+    REQUIRE(str2.is_using_allocated_buffer());
+    std::swap(str1, str2);
+    REQUIRE(str1.is_using_allocated_buffer());
+    REQUIRE(str2.is_using_inline_buffer());
+    REQUIRE(str1 == big_str);
+    REQUIRE(str2 == small_str);
+}
+
+TEST_CASE("String::swap 4", "[string]" ) {
+    static const char *big_str1 = 
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef";
+
+    static const char *big_str2 = 
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "1234567890abcdef"
+        "xxx";
+
+    String str1(big_str1);
+    String str2(big_str2);
+    REQUIRE(str1.is_using_allocated_buffer());
+    REQUIRE(str2.is_using_allocated_buffer());
+    std::swap(str1, str2);
+    REQUIRE(str1.is_using_allocated_buffer());
+    REQUIRE(str2.is_using_allocated_buffer());
+    REQUIRE(str1 == big_str2);
+    REQUIRE(str2 == big_str1);
+}
