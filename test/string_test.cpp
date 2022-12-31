@@ -37,6 +37,142 @@ TEST_CASE("BasicString<Char32> override", "[string]" ) {
 
 // assigning ======================================================================================
 
+TEST_CASE("String::assign(SizeType count, CharT c)", "[string]" ) {
+    std::string sstr("hello");
+    String ustr("hello");
+
+    sstr.assign(5, 'a');
+    ustr.assign(5, 'a');
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "aaaaa");
+    REQUIRE(ustr == "aaaaa");
+    REQUIRE(strlen(sstr.c_str()) == 5);
+    REQUIRE(strlen(ustr.c_str()) == 5);
+}
+
+TEST_CASE("String::assign(const String &str)", "[string]" ) {
+    std::string sstr1("hello ");
+    std::string sstr2("world!");
+    String ustr1("hello ");
+    String ustr2("world!");
+
+    sstr1.assign(sstr2);
+    ustr1.assign(ustr2);
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == "world!");
+    REQUIRE(ustr1 == "world!");
+    REQUIRE(strlen(sstr1.c_str()) == 6);
+    REQUIRE(strlen(ustr1.c_str()) == 6);
+}
+
+TEST_CASE("String::assign(BasicString &&str)", "[string]" ) {
+    std::string sstr1("1234567890");
+    String ustr1("1234567890");
+
+    sstr1.assign("abcdefghij");
+    ustr1.assign("abcdefghij");
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(strlen(sstr1.c_str()) == 10);
+    REQUIRE(strlen(ustr1.c_str()) == 10);
+}
+
+TEST_CASE("String::assign(const CharT *ptr, SizeType length)", "[string]" ) {
+    const char *cstr("world!");
+    std::string sstr("hello ");
+    String ustr("hello ");
+
+    sstr.assign(cstr, strlen(cstr));
+    ustr.assign(cstr, strlen(cstr));
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "world!");
+    REQUIRE(ustr == "world!");
+    REQUIRE(strlen(sstr.c_str()) == 6);
+    REQUIRE(strlen(ustr.c_str()) == 6);
+}
+
+TEST_CASE("String::assign(const CharT *ptr)", "[string]" ) {
+    const char *cstr("world!");
+    std::string sstr("hello ");
+    String ustr("hello ");
+
+    sstr.assign(cstr);
+    ustr.assign(cstr);
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "world!");
+    REQUIRE(ustr == "world!");
+    REQUIRE(strlen(sstr.c_str()) == 6);
+    REQUIRE(strlen(ustr.c_str()) == 6);
+}
+
+TEST_CASE("String::assign(InputIt first, InputIt last)", "[string]" ) {
+    std::string sstr1("0123456789");
+    std::string sstr2("abcdefghij");
+    String ustr1("0123456789");
+    String ustr2("abcdefghij");
+
+    sstr1.assign(sstr2.begin() + 3, sstr2.end());
+    ustr1.assign(ustr2.begin() + 3, ustr2.end());
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == "defghij");
+    REQUIRE(ustr1 == "defghij");
+    REQUIRE(strlen(sstr1.c_str()) == 7);
+    REQUIRE(strlen(ustr1.c_str()) == 7);
+}
+
+TEST_CASE("String::assign(std::initializer_list<CharT> ilist)", "[string]" ) {
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    sstr.assign({ 'a', 'b', 'c' });
+    ustr.assign({ 'a', 'b', 'c' });
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "abc");
+    REQUIRE(ustr == "abc");
+    REQUIRE(strlen(sstr.c_str()) == 3);
+    REQUIRE(strlen(ustr.c_str()) == 3);
+}
+
+TEST_CASE("String::assign(const StringViewLikeT &t)", "[string]" ) {
+    std::string_view vstr("abc");
+    std::string_view vstr_view(vstr);
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    sstr.assign(vstr_view);
+    ustr.assign(vstr_view);
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "abc");
+    REQUIRE(ustr == "abc");
+    REQUIRE(strlen(sstr.c_str()) == 3);
+    REQUIRE(strlen(ustr.c_str()) == 3);
+}
+
+TEST_CASE("String::assign(const StringViewLikeT &t, SizeType pos, SizeType count)", "[string]" ) {
+    std::string_view vstr("abcdefghij");
+    std::string_view vstr_view(vstr);
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    sstr.assign(vstr_view, 3, 4);
+    ustr.assign(vstr_view, 3, 4);
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "defg");
+    REQUIRE(ustr == "defg");
+    REQUIRE(strlen(sstr.c_str()) == 4);
+    REQUIRE(strlen(ustr.c_str()) == 4);
+}
+
 // appending ======================================================================================
 
 TEST_CASE("String::append(SizeType count, CharT c)", "[string]" ) {
@@ -98,6 +234,22 @@ TEST_CASE("BasicString<char32_t>::append(const std::string &str)", "[string]" ) 
     REQUIRE(ustr1 == sstr1);
     REQUIRE(ustr1 == U"hello world!");
     REQUIRE(ustr1.length() == 12);
+}
+
+TEST_CASE("String::append(const BasicString &str, SizeType pos, SizeType count)", "[string]" ) {
+    std::string sstr1("0123456789");
+    std::string sstr2("abcdefghij");
+    String ustr1("0123456789");
+    String ustr2("abcdefghij");
+
+    sstr1.append(sstr2, 5);
+    ustr1.append(ustr2, 5);
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == "0123456789fghij");
+    REQUIRE(ustr1 == "0123456789fghij");
+    REQUIRE(strlen(sstr1.c_str()) == 15);
+    REQUIRE(strlen(ustr1.c_str()) == 15);
 }
 
 TEST_CASE("String::append(const CharT *ptr, SizeType length)", "[string]" ) {

@@ -182,7 +182,7 @@ public:
     }
 
     BasicString(const BasicString &other, SizeType pos, SizeType count = npos) {
-        
+        assign(other, pos, std::min(count, other.length() - pos));
     }
 
     BasicString(const char *ptr, SizeType length) {
@@ -291,6 +291,108 @@ public:
 
     void reserve(SizeType length) { ensure_capacity(length); }
     constexpr void clear() { m_length = 0; }
+
+    // assigning ==================================================================================
+    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
+
+    constexpr BasicString &assign(SizeType count, CharT c) {
+        m_length = 0;
+        append(count, c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const BasicString &str) {
+        m_length = 0;
+        append(str);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &assign(const std::string &str) {
+        m_length = 0;
+        append(str.data(), str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const BasicString &str, SizeType pos, SizeType count = npos) {
+        m_length = 0;
+        append(str, pos, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(BasicString &&str) noexcept {
+        if (str.is_using_allocated_buffer()) {
+            m_ptr = str.m_ptr;
+            m_length = str.length();
+            m_capacity = str.capacity();
+        }
+        else {
+            assign(str.data(), str.length());
+        }
+        str.reset();
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &assign(const char *ptr, SizeType length) {
+        m_length = 0;
+        append(ptr, length);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const CharT *ptr, SizeType length) {
+        m_length = 0;
+        append(ptr, length);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const CharT *ptr) {
+        m_length = 0;
+        append(ptr);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
+    constexpr BasicString &assign(InputIt first, InputIt last) {
+        m_length = 0;
+        append(first, last);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(std::initializer_list<CharT> ilist) {
+        m_length = 0;
+        append(ilist);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &assign(const StringViewLikeT &t) {
+        m_length = 0;
+        append(t);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &assign(const StringViewLikeT &t, SizeType pos, SizeType count = npos) {
+        m_length = 0;
+        append(t, pos, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
 
     // appending ==================================================================================
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
@@ -551,11 +653,11 @@ public:
             m_ptr = other.m_ptr;
             m_length = other.length();
             m_capacity = other.capacity();
-            other.reset();
         }
         else {
             append(other.data(), other.length());
         }
+        other.reset();
         return *this;
     }
 
@@ -627,13 +729,11 @@ public:
     // substrings =================================================================================
 
     constexpr BasicString substr(SizeType pos = 0, SizeType count = npos) const {
-        ASSERT(pos < m_length);
-        return BasicString(data(), pos, count);
+        return BasicString(data(), pos, std::min(count, length() - pos));
     }
 
     BasicStringView substrview(SizeType pos = 0, SizeType count = npos) const noexcept {
-        ASSERT(pos < m_length);
-        return BasicStringView(data() + pos, count);
+        return BasicStringView(data() + pos, std::min(count, length() - pos));
     }
 
     // iterators ==================================================================================
