@@ -553,8 +553,8 @@ public:
 
     constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
         ensure_capacity(m_length + count);
-        const_iterator pos = cbegin() + index;
-        iterator dst = iterator(pos) + count;
+        iterator pos = begin() + index;
+        iterator dst = pos + count;
         Traits::move(dst, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
         for (int idx = 0; idx < count; idx++) {
@@ -798,32 +798,48 @@ public:
 
     // iterators ==================================================================================
 
-    constexpr iterator begin() const {
+    constexpr iterator begin() {
         return m_ptr;
     }
 
-    constexpr iterator end() const {
-        return m_ptr + m_length;
+    constexpr const_iterator begin() const {
+        return m_ptr;
     }
 
     constexpr const_iterator cbegin() const {
         return m_ptr;
     }
 
+    constexpr iterator end() {
+        return m_ptr + m_length;
+    }
+
+    constexpr const_iterator end() const {
+        return m_ptr + m_length;
+    }
+
     constexpr const_iterator cend() const {
         return m_ptr + m_length;
     }
 
-    constexpr reverse_iterator rbegin() const {
+    constexpr reverse_iterator rbegin() {
         return reverse_iterator(end());
     }
 
-    constexpr reverse_iterator rend() const {
-        return reverse_iterator(begin());
+    constexpr const_reverse_iterator rbegin() const {
+        return reverse_iterator(end());
     }
 
     constexpr const_reverse_iterator crbegin() const {
         return reverse_iterator(end());
+    }
+
+    constexpr reverse_iterator rend() {
+        return reverse_iterator(begin());
+    }
+
+    constexpr const_reverse_iterator rend() const {
+        return reverse_iterator(begin());
     }
 
     constexpr const_reverse_iterator crend() const {
