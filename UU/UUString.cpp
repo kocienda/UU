@@ -24,6 +24,7 @@
 
 #include "Span.h"
 #include "UUString.h"
+#include <string>
 
 namespace UU {
 

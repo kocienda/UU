@@ -157,7 +157,7 @@ public:
     static constexpr const SizeType npos = SizeTypeMax;
     static constexpr CharT empty_value = CharT();
 
-    // usings =====================================================================================
+    // using ======================================================================================
 
     using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
     using iterator = CharT *;
@@ -165,7 +165,7 @@ public:
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    // constructors ===============================================================================
+    // constructing ===============================================================================
 
     constexpr BasicString() { null_terminate(); }
     
@@ -174,6 +174,14 @@ public:
         null_terminate();
     }
     
+    BasicString(SizeType count, CharT c) {
+        append(count, c);
+    }
+
+    BasicString(const BasicString &other, SizeType pos, SizeType count = npos) {
+        
+    }
+
     BasicString(const char *ptr, SizeType length) {
         append(ptr, length);
     }
@@ -182,12 +190,13 @@ public:
         append(ptr, Traits::length(ptr));
     }
 
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     BasicString(const std::string &str) {
         append(str.data(), str.length());
     }
 
-    BasicString(SizeType count, CharT c) {
-        append(count, c);
+    BasicString(const std::basic_string<CharT> &str) {
+        append(str.data(), str.length());
     }
 
     BasicString(std::istream &in) {
@@ -283,59 +292,75 @@ public:
     // appending ==================================================================================
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
 
-    BasicString &append(const char *ptr, SizeType length) {
-        if (LIKELY(length > 0)) {
-            ensure_capacity(m_length + length);
-            for (int idx = 0; idx < length; idx++) {
-                m_ptr[m_length + idx] = ptr[idx];
-            }
-            m_length += length;
+    constexpr BasicString &append(SizeType count, CharT c) {
+        ensure_capacity(m_length + count);
+        for (int idx = 0; idx < count; idx++) {
+            m_ptr[m_length + idx] = c;
         }
-        null_terminate();
-        return *this;
-    }
-    
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    BasicString &append(const CharT *ptr, SizeType length) {
-        if (LIKELY(length > 0)) {
-            ensure_capacity(m_length + length);
-            Traits::copy(m_ptr + m_length, ptr, length);
-            m_length += length;
-        }
+        m_length += count;
         null_terminate();
         return *this;
     }
 
-    BasicString &append(CharT byte) {
-        ensure_capacity(m_length + 1);
-        m_ptr[m_length] = byte;
-        m_length++;
-        null_terminate();
-        return *this;
-    }
-
-    BasicString &append(SizeType count, CharT c) {
-        if (LIKELY(count > 0)) {
-            ensure_capacity(m_length + count);
-            for (int idx = 0; idx < count; idx++) {
-                m_ptr[m_length + idx] = c;
-            }
-            m_length += count;
-        }
-        null_terminate();
-        return *this;
-    }
-
-    BasicString &append(const std::string &str) {
+    constexpr BasicString &append(const BasicString &str) {
         append(str.data(), str.length());
         UU_STRING_ASSERT_NULL_TERMINATED;
         return *this;
     }
 
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(const std::string &str) {
+        append(str.data(), str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &append(const BasicString &str, SizeType pos, SizeType count = npos) {
+        insert(length(), str, pos, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(const char *ptr, SizeType length) {
+        ensure_capacity(m_length + length);
+        for (int idx = 0; idx < length; idx++) {
+            m_ptr[m_length + idx] = ptr[idx];
+        }
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+    
+    constexpr BasicString &append(const CharT *ptr, SizeType length) {
+        ensure_capacity(m_length + length);
+        Traits::copy(m_ptr + m_length, ptr, length);
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &append(const CharT *ptr) {
+        SizeType length = Traits::length(ptr);
+        ensure_capacity(m_length + length);
+        Traits::copy(m_ptr + m_length, ptr, length);
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+
     template <typename InputIt, typename MaybeT = InputIt, 
         std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
-    BasicString &append(InputIt first, InputIt last) {
-        insert(end(), first, last);
+    constexpr BasicString &append(InputIt first, InputIt last) {
+        BasicString str(first, last);
+        append(str.data(), str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &append(std::initializer_list<CharT> ilist) {
+        BasicString str(ilist);
+        append(str.data(), str.length());
         UU_STRING_ASSERT_NULL_TERMINATED;
         return *this;
     }
@@ -344,6 +369,31 @@ public:
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr BasicString &append(const StringViewLikeT &t) {
         append(t.data(), t.length());
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &append(const StringViewLikeT &t, SizeType pos, SizeType count = npos) {
+        BasicStringView v(t.substr(pos, count));
+        append(v.data(), v.length());
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(char c) {
+        ensure_capacity(m_length + 1);
+        m_ptr[m_length] = c;
+        m_length++;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &append(CharT c) {
+        ensure_capacity(m_length + 1);
+        m_ptr[m_length] = c;
+        m_length++;
+        null_terminate();
         return *this;
     }
 
@@ -465,8 +515,7 @@ public:
 
     template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t, 
-        SizeType index_str, SizeType count = npos) {
+    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count = npos) {
         insert(index, t.data(), index_str, count);
         UU_STRING_ASSERT_NULL_TERMINATED;
         return *this;
@@ -559,13 +608,13 @@ public:
         return operator==(a, b) || operator>(a, b); 
     }
 
-    operator std::basic_string<CharT, std::char_traits<CharT>>() const noexcept {
-        return std::basic_string(data(), length());
-    }
-
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     operator std::string() const noexcept {
-        return std::basic_string(c_str(), length());
+        return std::string(data(), length());
+    }
+
+    operator std::basic_string<CharT>() const noexcept {
+        return std::basic_string<CharT>(data(), length());
     }
 
     constexpr operator BasicStringView() const noexcept {
@@ -646,7 +695,7 @@ private:
 };
 
 template <typename CharT, SizeType S, class Traits>
-std::ostream &operator<<(std::ostream &os, const BasicString<CharT, S, Traits> &str)
+std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const BasicString<CharT, S, Traits> &str)
 {
     os.write(str.data(), str.length());
     return os;
