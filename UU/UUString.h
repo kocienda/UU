@@ -84,7 +84,23 @@ struct IsInputIteratorCategory_ :
 
 template <typename T> constexpr bool IsInputIteratorCategory = IsInputIteratorCategory_<T>::value;
 
-// BasicString class ==============================================================================
+template <typename T, typename CharT, typename Traits>
+using IsConvertibleToStringView_ = std::is_convertible<T, std::basic_string_view<CharT, Traits>>;
+template <typename T, typename CharT, typename Traits> 
+    constexpr bool IsConvertibleToStringView = IsConvertibleToStringView_<T, CharT, Traits>::value;
+
+template <typename T, typename CharT>
+using IsConvertibleToConstCharTStar_ = std::is_convertible<T, const CharT *>;
+template <typename T, typename CharT> 
+    constexpr bool IsConvertibleToConstCharTStar = IsConvertibleToConstCharTStar_<T, CharT>::value;
+
+template <typename T, typename CharT, typename Traits>
+constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, Traits> && 
+    !IsConvertibleToConstCharTStar<T, CharT>;
+
+// ================================================================================================
+// BasicString class
+//
 
 template <typename CharT, SizeType S = BasicStringDefaultSize, class Traits = std::char_traits<CharT>>
 class BasicString
@@ -182,7 +198,8 @@ public:
         append(buffer, in.gcount());
     }
 
-    template <typename InputIt, std::enable_if_t<IsInputIteratorCategory<InputIt>, int> = 0>
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     BasicString(InputIt first, InputIt last) {
         for (auto it = first; it != last; ++it) {
             ensure_capacity(m_length + 1);
@@ -315,9 +332,18 @@ public:
         return *this;
     }
 
-    template <typename InputIt, std::enable_if_t<IsInputIteratorCategory<InputIt>, int> = 0>
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     BasicString &append(InputIt first, InputIt last) {
         insert(end(), first, last);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &append(const StringViewLikeT &t) {
+        append(t.data(), t.length());
         return *this;
     }
 
@@ -405,13 +431,39 @@ public:
         return iterator(pos);
     }
 
-    template <typename InputIt, std::enable_if_t<IsInputIteratorCategory<InputIt>, int> = 0>
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     iterator insert(const_iterator pos, InputIt first, InputIt last) {
         BasicString str(first, last);
         ptrdiff_t diff = pos - begin();
         insert(diff, str, 0, str.length());
         UU_STRING_ASSERT_NULL_TERMINATED;
         return iterator(pos);
+    }
+
+    constexpr iterator insert(const_iterator pos, std::initializer_list<CharT> ilist) {
+        BasicString str(ilist);
+        ptrdiff_t diff = pos - begin();
+        insert(diff, str, 0, str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return iterator(pos);
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t) {
+        insert(index, t.data(), t.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t, 
+        SizeType index_str, SizeType count = npos) {
+        insert(index, t.data(), index_str, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
     }
 
     // operators ==================================================================================

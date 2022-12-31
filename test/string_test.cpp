@@ -24,6 +24,17 @@ TEST_CASE("String ctor test: BasicString(SizeType length, CharT c)", "[string]" 
     REQUIRE(strlen(str.c_str()) == 16);
 }
 
+TEST_CASE("BasicString<Char32> override", "[string]" ) {
+    BasicString<char32_t> ustr1("");
+    ustr1.append("abc", 3);
+    ustr1.append(U"abc", 3);
+    BasicString<char32_t> ustr2(U"abcabc");
+    bool t = ustr1 == ustr2;
+    REQUIRE(t);
+    REQUIRE(std::string(ustr1) == std::string(ustr2));
+    REQUIRE(strcmp(ustr1.c_str(), ustr2.c_str()) == 0);
+}
+
 TEST_CASE("String append smoke test 1", "[string]" ) {
     String str;
     str.append("hello");
@@ -41,6 +52,34 @@ TEST_CASE("String append span test 1", "[string]" ) {
     str.append(span);
     std::string s = str;
     REQUIRE(s == "1..3,5..7,11");
+}
+
+TEST_CASE("String append test 1: constexpr BasicString &insert(const StringViewLikeT &t)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    std::string sstr2 = "abc";
+
+    sstr1.append(sstr2);
+    ustr1.append(sstr2);
+    REQUIRE(sstr1 == "0123456789abc");
+    REQUIRE(ustr1 == "0123456789abc");
+    REQUIRE(strlen(sstr1.c_str()) == 13);
+    REQUIRE(strlen(ustr1.c_str()) == 13);
+}
+
+TEST_CASE("String append test 2: constexpr BasicString &append(const StringViewLikeT &t)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    String sstr2 = "abc";
+
+    sstr1.append(sstr2);
+    ustr1.append(sstr2);
+    REQUIRE(sstr1 == "0123456789abc");
+    REQUIRE(ustr1 == "0123456789abc");
+    REQUIRE(strlen(sstr1.c_str()) == 13);
+    REQUIRE(strlen(ustr1.c_str()) == 13);
 }
 
 TEST_CASE("String convert to std::string with operator std::basic_string", "[string]" ) {
@@ -431,14 +470,70 @@ TEST_CASE("String insert test: const_iterator pos, InputIt first, InputIt last",
     REQUIRE(strlen(ustr1.c_str()) == 20);
 }
 
-TEST_CASE("BasicString<Char32> override", "[string]" ) {
-    BasicString<char32_t> ustr1("");
-    ustr1.append("abc", 3);
-    ustr1.append(U"abc", 3);
-    BasicString<char32_t> ustr2(U"abcabc");
-    bool t = ustr1 == ustr2;
-    REQUIRE(t);
-    REQUIRE(std::string(ustr1) == std::string(ustr2));
-    REQUIRE(strcmp(ustr1.c_str(), ustr2.c_str()) == 0);
+TEST_CASE("String insert test: const_iterator pos, std::initializer_list<CharT> ilist", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    sstr1.insert(sstr1.begin() + 5, { 'a', 'b', 'c' });
+    ustr1.insert(ustr1.begin() + 5, { 'a', 'b', 'c' });
+    REQUIRE(sstr1 == "01234abc56789");
+    REQUIRE(ustr1 == "01234abc56789");
+    REQUIRE(strlen(sstr1.c_str()) == 13);
+    REQUIRE(strlen(ustr1.c_str()) == 13);
 }
 
+TEST_CASE("String insert test 1: constexpr BasicString &insert(SizeType index, const StringViewLikeT &t)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    std::string sstr2 = "abc";
+
+    sstr1.insert(5, sstr2);
+    ustr1.insert(5, sstr2);
+    REQUIRE(sstr1 == "01234abc56789");
+    REQUIRE(ustr1 == "01234abc56789");
+    REQUIRE(strlen(sstr1.c_str()) == 13);
+    REQUIRE(strlen(ustr1.c_str()) == 13);
+}
+
+TEST_CASE("String insert test 2: constexpr BasicString &insert(SizeType index, const StringViewLikeT &t)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    String sstr2 = "abc";
+
+    sstr1.insert(5, sstr2);
+    ustr1.insert(5, sstr2);
+    REQUIRE(sstr1 == "01234abc56789");
+    REQUIRE(ustr1 == "01234abc56789");
+    REQUIRE(strlen(sstr1.c_str()) == 13);
+    REQUIRE(strlen(ustr1.c_str()) == 13);
+}
+
+TEST_CASE("String insert test 1: SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    std::string sstr2 = "abc";
+
+    sstr1.insert(5, sstr2);
+    ustr1.insert(5, sstr2);
+    REQUIRE(sstr1 == "01234abc56789");
+    REQUIRE(ustr1 == "01234abc56789");
+    REQUIRE(strlen(sstr1.c_str()) == 13);
+    REQUIRE(strlen(ustr1.c_str()) == 13);
+}
+
+TEST_CASE("String insert test 2: SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    String sstr2 = "abcdefghij";
+
+    sstr1.insert(5, sstr2, 3, 4);
+    ustr1.insert(5, sstr2, 3, 4);
+    REQUIRE(sstr1 == "01234defg56789");
+    REQUIRE(ustr1 == "01234defg56789");
+    REQUIRE(strlen(sstr1.c_str()) == 14);
+    REQUIRE(strlen(ustr1.c_str()) == 14);
+}
