@@ -25,6 +25,7 @@
 #ifndef UU_MATH_LIKE_H
 #define UU_MATH_LIKE_H
 
+#include <cstdlib>
 #include <math.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -189,7 +190,7 @@ UInt32 number_of_digits(UInt64 n)
 namespace UU {
 
 // max size of a negative 64-bit int with a space for NUL at the end
-static constexpr size_t MaximumInteger64LengthAsString = 22;
+static constexpr size_t MaximumInteger64LengthAsString = 21;
 
 template <typename N>
 void integer_to_string(N n, char *c)
@@ -218,20 +219,20 @@ void integer_to_string(N n, char *c)
     while (val >= 100) {
         int pos = val % 100;
         val /= 100;
-        *(short *)(c-1)= *(short *)(digit_pairs + 2 * pos); 
+        *(short *)(c-1) = *(short *)(digit_pairs + 2 * pos); 
         c -= 2;
     }
-    while(val > 0) {
+    while (val > 0) {
         *c-- = '0' + (val % 10);
         val /= 10;
     }
-    c[size+1] = '\0';
 }
 
 template <typename N>
 std::string integer_to_string(N n)
 {
     char buf[MaximumInteger64LengthAsString];
+    memset(buf, 0, MaximumInteger64LengthAsString);
     integer_to_string(n, buf);
     return std::string(buf);
 }

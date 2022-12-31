@@ -173,6 +173,83 @@ TEST_CASE("String::assign(const StringViewLikeT &t, SizeType pos, SizeType count
     REQUIRE(strlen(ustr.c_str()) == 4);
 }
 
+// operator= ======================================================================================
+
+TEST_CASE("String::operator=(const String &other)", "[string]" ) {
+    std::string sstr1("hello ");
+    std::string sstr2("world!");
+    String ustr1("hello ");
+    String ustr2("world!");
+
+    sstr1 = sstr2;
+    ustr1 = ustr2;
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == "world!");
+    REQUIRE(ustr1 == "world!");
+    REQUIRE(strlen(sstr1.c_str()) == 6);
+    REQUIRE(strlen(ustr1.c_str()) == 6);
+}
+
+TEST_CASE("String::operator=(BasicString &&str)", "[string]" ) {
+    std::string sstr1("1234567890");
+    String ustr1("1234567890");
+
+    sstr1 = std::string("abcdefghij");
+    ustr1 = String("abcdefghij");
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(strlen(sstr1.c_str()) == 10);
+    REQUIRE(strlen(ustr1.c_str()) == 10);
+}
+
+TEST_CASE("String::operator=(const CharT *ptr)", "[string]" ) {
+    const char *cstr("world!");
+    std::string sstr("hello ");
+    String ustr("hello ");
+
+    sstr = cstr;
+    ustr = cstr;
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "world!");
+    REQUIRE(ustr == "world!");
+    REQUIRE(strlen(sstr.c_str()) == 6);
+    REQUIRE(strlen(ustr.c_str()) == 6);
+}
+
+TEST_CASE("String::operator=(std::initializer_list<CharT> ilist)", "[string]" ) {
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    sstr = { 'a', 'b', 'c' };
+    ustr = { 'a', 'b', 'c' };
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "abc");
+    REQUIRE(ustr == "abc");
+    REQUIRE(strlen(sstr.c_str()) == 3);
+    REQUIRE(strlen(ustr.c_str()) == 3);
+}
+
+TEST_CASE("String::operator=(const StringViewLikeT &t)", "[string]" ) {
+    std::string_view vstr("abc");
+    std::string_view vstr_view(vstr);
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    sstr = vstr_view;
+    ustr = vstr_view;
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "abc");
+    REQUIRE(ustr == "abc");
+    REQUIRE(strlen(sstr.c_str()) == 3);
+    REQUIRE(strlen(ustr.c_str()) == 3);
+}
+
 // appending ======================================================================================
 
 TEST_CASE("String::append(SizeType count, CharT c)", "[string]" ) {
@@ -376,9 +453,122 @@ TEST_CASE("String::append(const Span &)", "[string]" ) {
     span.add(5,7);
     span.add(11);
     str.append(span);
-    std::string s = str;
-    REQUIRE(s == "1..3,5..7,11");
+    REQUIRE(str == "1..3,5..7,11");
 }
+
+// operator+= =====================================================================================
+
+TEST_CASE("String::operator+=(const String &str)", "[string]" ) {
+    std::string sstr1("hello ");
+    std::string sstr2("world!");
+    String ustr1("hello ");
+    String ustr2("world!");
+
+    sstr1 += sstr2;
+    ustr1 += ustr2;
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == "hello world!");
+    REQUIRE(ustr1 == "hello world!");
+    REQUIRE(strlen(sstr1.c_str()) == 12);
+    REQUIRE(strlen(ustr1.c_str()) == 12);
+}
+
+TEST_CASE("BasicString<char32_t>::operator+=(const BasicString<char32_t> &str)", "[string]" ) {
+    std::basic_string<char32_t> sstr1(U"hello ");
+    std::basic_string<char32_t> sstr2(U"world!");
+    BasicString<char32_t> ustr1(U"hello ");
+    BasicString<char32_t> ustr2(U"world!");
+
+    sstr1 += sstr2;
+    ustr1 += ustr2;
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(sstr1 == U"hello world!");
+    REQUIRE(ustr1 == U"hello world!");
+    REQUIRE(sstr1.length() == 12);
+    REQUIRE(ustr1.length() == 12);
+}
+
+TEST_CASE("BasicString<char32_t>::operator+=(const std::string &str)", "[string]" ) {
+    std::basic_string<char32_t> sstr1(U"hello world!");
+    BasicString<char32_t> ustr1(U"hello ");
+    std::string sstr2("world!");
+
+    ustr1 += sstr2;
+
+    REQUIRE(ustr1 == sstr1);
+    REQUIRE(ustr1 == U"hello world!");
+    REQUIRE(ustr1.length() == 12);
+}
+
+TEST_CASE("String::operator+=(const CharT *ptr)", "[string]" ) {
+    const char *cstr("world!");
+    std::string sstr("hello ");
+    String ustr("hello ");
+
+    sstr += cstr;
+    ustr += cstr;
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "hello world!");
+    REQUIRE(ustr == "hello world!");
+    REQUIRE(strlen(sstr.c_str()) == 12);
+    REQUIRE(strlen(ustr.c_str()) == 12);
+}
+
+TEST_CASE("String::operator+=(std::initializer_list<CharT> ilist)", "[string]" ) {
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    sstr += { 'a', 'b', 'c' };
+    ustr += { 'a', 'b', 'c' };
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "0123456789abc");
+    REQUIRE(ustr == "0123456789abc");
+    REQUIRE(strlen(sstr.c_str()) == 13);
+    REQUIRE(strlen(ustr.c_str()) == 13);
+}
+
+TEST_CASE("String::operator+=(const StringViewLikeT &t)", "[string]" ) {
+    std::string_view vstr("abc");
+    std::string_view vstr_view(vstr);
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    sstr += vstr_view;
+    ustr += vstr_view;
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "0123456789abc");
+    REQUIRE(ustr == "0123456789abc");
+    REQUIRE(strlen(sstr.c_str()) == 13);
+    REQUIRE(strlen(ustr.c_str()) == 13);
+}
+
+TEST_CASE("String::operator+=(CharT c)", "[string]" ) {
+    std::string sstr("0123456789a");
+    String ustr("0123456789");
+
+    ustr += 'a';
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "0123456789a");
+    REQUIRE(ustr == "0123456789a");
+    REQUIRE(strlen(sstr.c_str()) == 11);
+    REQUIRE(strlen(ustr.c_str()) == 11);
+}
+
+// TEST_CASE("String::append(const Span &)", "[string]" ) {
+//     String str;
+//     Span<int> span;
+//     span.add(1,3);
+//     span.add(5,7);
+//     span.add(11);
+//     str.append(span);
+//     REQUIRE(str == "1..3,5..7,11");
+// }
 
 // inserting ======================================================================================
 

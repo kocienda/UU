@@ -124,6 +124,8 @@ private:
         ASSERT_WITH_MESSAGE(m_ptr[m_length] == '\0', "string not null terminated"); \
     } while (0)
 
+    UU_ALWAYS_INLINE CharT *ptr() const { return m_ptr; }
+
     UU_ALWAYS_INLINE constexpr void null_terminate() {
         ensure_capacity(m_length + 1);
         m_ptr[m_length] = '\0';
@@ -151,6 +153,14 @@ private:
 #else
         return empty_value;
 #endif
+    }
+
+    template <bool B = true> constexpr bool is_same_string(const BasicString &other) const { 
+        return (ptr() == other.ptr()) == B; 
+    }
+
+    template <bool B = true> constexpr bool are_same_strings(const BasicString &a, const BasicString &b) const { 
+        return a.is_same_string<B>(b); 
     }
 
 public:
@@ -245,7 +255,7 @@ public:
 
     ~BasicString() {
         if (is_using_allocated_buffer()) {
-            delete m_ptr;
+            free(m_ptr);
         }
     }
 
@@ -254,8 +264,6 @@ public:
     constexpr CharT *data() const { return m_ptr; }
     constexpr SizeType length() const { return m_length; }
     constexpr SizeType capacity() const { return m_capacity; }
-    constexpr const CharT &operator[](SizeType index) const { return m_ptr[index]; }
-    constexpr CharT &operator[](SizeType index) { return m_ptr[index]; }
     constexpr CharT& front() { return m_ptr[0]; }
     constexpr CharT& front() const { return m_ptr[0]; }
     constexpr CharT& back() { return m_ptr[m_length - 1]; }
@@ -274,12 +282,12 @@ public:
             return m_ptr[index];
         }
         else {
-            return empty_value;
+            return return_empty_or_throw_out_of_range(index);
         }
     }
     
     constexpr const CharT &at(SizeType index) const {
-        if (m_length > index) {
+        if (LIKELY(m_length > index)) {
             return m_ptr[index];
         }
         else {
@@ -338,13 +346,13 @@ public:
         return *this;
     }
 
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &assign(const char *ptr, SizeType length) {
-        m_length = 0;
-        append(ptr, length);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
+    // template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    // constexpr BasicString &assign(const char *ptr, SizeType length) {
+    //     m_length = 0;
+    //     append(ptr, length);
+    //     UU_STRING_ASSERT_NULL_TERMINATED;
+    //     return *this;
+    // }
 
     constexpr BasicString &assign(const CharT *ptr, SizeType length) {
         m_length = 0;
@@ -354,6 +362,14 @@ public:
     }
 
     constexpr BasicString &assign(const CharT *ptr) {
+        m_length = 0;
+        append(ptr);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &assign(const char *ptr) {
         m_length = 0;
         append(ptr);
         UU_STRING_ASSERT_NULL_TERMINATED;
@@ -445,6 +461,18 @@ public:
         return *this;
     }
 
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(const char *ptr) {
+        SizeType length = strlen(ptr);
+        ensure_capacity(m_length + length);
+        for (int idx = 0; idx < length; idx++) {
+            m_ptr[idx + length] = ptr[idx];
+        }
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+
     constexpr BasicString &append(const CharT *ptr) {
         SizeType length = Traits::length(ptr);
         ensure_capacity(m_length + length);
@@ -510,6 +538,7 @@ public:
     template <typename N>
     BasicString &append_as_string(N val) {
         char buf[MaximumInteger64LengthAsString];
+        memset(buf, 0, MaximumInteger64LengthAsString);
         char *ptr = buf;
         integer_to_string(val, ptr);
         SizeType len = strlen(ptr);
@@ -626,60 +655,89 @@ public:
         return *this;
     }
 
-    // operators ==================================================================================
+    // operator[] =================================================================================
 
-    BasicString &operator=(const BasicString &other) {
-        if (this == &other) {
+    constexpr CharT operator[](SizeType index) {
+        return m_ptr[index];
+    }
+    
+    constexpr const CharT &operator[](SizeType index) const {
+        return m_ptr[index];
+    }
+
+    // operator= ==================================================================================
+
+    constexpr BasicString &operator=(const BasicString &other) {
+        if (is_same_string(other)) {
             return *this;
         }
-
-        m_length = 0;
-        append(other.data(), other.length());
-        return *this;
+        return assign(other);
     }
 
-    BasicString &operator=(const std::string &str) {
-        m_length = 0;
-        append(str.data(), str.length());
-        return *this;
-    }
-
-    BasicString &operator=(BasicString &&other) {
+    constexpr BasicString &operator=(BasicString &&other) noexcept {
         m_length = 0;
         if (other.is_using_allocated_buffer()) {
             if (is_using_allocated_buffer()) {
-                delete m_ptr;
+                free(m_ptr);
             }
             m_ptr = other.m_ptr;
             m_length = other.length();
             m_capacity = other.capacity();
         }
         else {
-            append(other.data(), other.length());
+            assign(other.data(), other.length());
         }
         other.reset();
         return *this;
     }
 
-    BasicString &operator+=(const std::string &s) {
-        append(s.data(), s.length());
-        return *this;
+    constexpr BasicString &operator=(const CharT *s) {
+        return assign(s);
     }
 
-    BasicString &operator+=(const std::string_view &s) {
-        append(s.data(), s.length());
-        return *this;
+    constexpr BasicString &operator=(CharT c) {
+        return assign(c);
     }
 
-    BasicString &operator+=(const char *s) {
-        append(s, strlen(s));
-        return *this;
+    constexpr BasicString &operator=(std::initializer_list<CharT> ilist) {
+        return assign(ilist);
     }
 
-    BasicString &operator+=(Byte b) {
-        append(b);
-        return *this;
+    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &operator=(const StringViewLikeT &t) {
+        return assign(t);
     }
+
+    // operator+= =================================================================================
+
+    constexpr BasicString &operator+=(const BasicString &other) {
+        return append(other.data(), other.length());
+    }
+
+    constexpr BasicString &operator+=(BasicString &&other) noexcept {
+        return append(other.data(), other.length());
+    }
+
+    constexpr BasicString &operator+=(const CharT *s) {
+        return append(s);
+    }
+
+    constexpr BasicString &operator+=(CharT c) {
+        return append(c);
+    }
+
+    constexpr BasicString &operator+=(std::initializer_list<CharT> ilist) {
+        return append(ilist);
+    }
+
+    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &operator+=(const StringViewLikeT &t) {
+        return append(t);
+    }
+
+    // comparison operators =======================================================================
 
     friend constexpr bool operator==(const BasicString &a, const BasicString &b) {
         if (a.length() != b.length()) {
@@ -717,6 +775,8 @@ public:
     operator std::string() const noexcept {
         return std::string(data(), length());
     }
+
+    // conversion operators =======================================================================
 
     operator std::basic_string<CharT>() const noexcept {
         return std::basic_string<CharT>(data(), length());
