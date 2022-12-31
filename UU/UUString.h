@@ -25,6 +25,7 @@
 #ifndef UU_STRING_H
 #define UU_STRING_H
 
+#include "Assertions.h"
 #include <UU/Assertions.h>
 #include <UU/MathLike.h>
 #include <UU/Types.h>
@@ -32,6 +33,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <initializer_list>
 #include <iostream>
 #include <iterator>
 #include <string>
@@ -100,6 +102,20 @@ private:
         m_ptr[m_length] = '\0';
     }
 
+    UU_ALWAYS_INLINE 
+    void ensure_capacity(SizeType new_capacity) {
+        if (new_capacity <= InlineCapacity) {
+            m_capacity = InlineCapacity;
+            return;
+        }
+    
+        if (new_capacity <= m_capacity) {
+            return;
+        }
+        
+        grow(new_capacity);
+    }
+
     UU_ALWAYS_INLINE constexpr bool using_inline_buffer() const { 
         return m_ptr == const_cast<CharT *>(m_buf); 
     }
@@ -164,6 +180,20 @@ public:
             append((const Byte *)buffer, sizeof(buffer));
         }
         append(buffer, in.gcount());
+    }
+
+    template <typename InputIt, std::enable_if_t<IsInputIteratorCategory<InputIt>, int> = 0>
+    BasicString(InputIt first, InputIt last) {
+        for (auto it = first; it != last; ++it) {
+            ensure_capacity(m_length + 1);
+            m_ptr[m_length] = *it;
+            m_length++;
+        }
+        null_terminate();
+    }
+
+    BasicString(std::initializer_list<CharT> ilist) {
+        insert(end(), ilist.begin(), ilist.end());
     }
 
     BasicString(const BasicString &other) {
@@ -236,7 +266,7 @@ public:
     // appending ==================================================================================
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
 
-    void append(const char *ptr, SizeType length) {
+    BasicString &append(const char *ptr, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
             for (int idx = 0; idx < length; idx++) {
@@ -245,26 +275,29 @@ public:
             m_length += length;
         }
         null_terminate();
+        return *this;
     }
     
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    void append(const CharT *ptr, SizeType length) {
+    BasicString &append(const CharT *ptr, SizeType length) {
         if (LIKELY(length > 0)) {
             ensure_capacity(m_length + length);
             Traits::copy(m_ptr + m_length, ptr, length);
             m_length += length;
         }
         null_terminate();
+        return *this;
     }
 
-    void append(CharT byte) {
+    BasicString &append(CharT byte) {
         ensure_capacity(m_length + 1);
         m_ptr[m_length] = byte;
         m_length++;
         null_terminate();
+        return *this;
     }
 
-    void append(SizeType count, CharT c) {
+    BasicString &append(SizeType count, CharT c) {
         if (LIKELY(count > 0)) {
             ensure_capacity(m_length + count);
             for (int idx = 0; idx < count; idx++) {
@@ -273,20 +306,28 @@ public:
             m_length += count;
         }
         null_terminate();
+        return *this;
     }
 
-    void append(const std::string &str) {
+    BasicString &append(const std::string &str) {
         append(str.data(), str.length());
         UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
     }
 
-    void append(const Span<int> &);
-    void append(const Span<SizeType> &);
-    void append(const Span<Int64> &);
-    void append(const TextRef &);
+    template <typename InputIt, std::enable_if_t<IsInputIteratorCategory<InputIt>, int> = 0>
+    BasicString &append(InputIt first, InputIt last) {
+        insert(end(), first, last);
+        return *this;
+    }
+
+    BasicString &append(const Span<int> &);
+    BasicString &append(const Span<SizeType> &);
+    BasicString &append(const Span<Int64> &);
+    BasicString &append(const TextRef &);
 
     template <typename N>
-    void append_as_string(N val) {
+    BasicString &append_as_string(N val) {
         char buf[MaximumInteger64LengthAsString];
         char *ptr = buf;
         integer_to_string(val, ptr);
@@ -294,6 +335,7 @@ public:
         ensure_capacity(m_length + len);
         append(ptr, len);
         UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
     }
 
     // inserting ==================================================================================
@@ -365,7 +407,11 @@ public:
 
     template <typename InputIt, std::enable_if_t<IsInputIteratorCategory<InputIt>, int> = 0>
     iterator insert(const_iterator pos, InputIt first, InputIt last) {
-        return nullptr;
+        BasicString str(first, last);
+        ptrdiff_t diff = pos - begin();
+        insert(diff, str, 0, str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return iterator(pos);
     }
 
     // operators ==================================================================================
@@ -521,20 +567,10 @@ private:
         m_capacity = InlineCapacity;
     }
 
-    void ensure_capacity(SizeType new_capacity) {
-        if (new_capacity <= InlineCapacity) {
-            m_capacity = InlineCapacity;
-            return;
-        }
-    
-        if (new_capacity <= m_capacity) {
-            return;
-        }
-    
+    void grow(SizeType new_capacity) {
         while (m_capacity < new_capacity) {
             m_capacity *= 2;
         }
-
         SizeType amt = m_capacity * sizeof(CharT);
         if (m_ptr != static_cast<CharT *>(m_buf)) {
             m_ptr = static_cast<CharT *>(realloc(m_ptr, amt));

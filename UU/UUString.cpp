@@ -27,7 +27,7 @@
 
 namespace UU {
 
-template <> void String::append(const Span<int> &span)
+template <> String & String::append(const Span<int> &span)
 {
     bool first = true;
     for (const auto &r : span.ranges()) {
@@ -43,9 +43,10 @@ template <> void String::append(const Span<int> &span)
         first = false;
     }
     UU_STRING_ASSERT_NULL_TERMINATED;
+    return *this;
 }
 
-template <> void String::append(const Span<size_t> &span)
+template <> String & String::append(const Span<size_t> &span)
 {
     bool first = true;
     for (const auto &r : span.ranges()) {
@@ -61,9 +62,10 @@ template <> void String::append(const Span<size_t> &span)
         first = false;
     }
     UU_STRING_ASSERT_NULL_TERMINATED;
+    return *this;
 }
 
-template <> void String::append(const Span<Int64> &span)
+template <> String & String::append(const Span<Int64> &span)
 {
     bool first = true;
     for (const auto &r : span.ranges()) {
@@ -79,6 +81,7 @@ template <> void String::append(const Span<Int64> &span)
         first = false;
     }
     UU_STRING_ASSERT_NULL_TERMINATED;
+    return *this;
 }
 
 }  // namespace UU

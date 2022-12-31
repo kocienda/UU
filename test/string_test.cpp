@@ -12,11 +12,22 @@
 
 using namespace UU;
 
+TEST_CASE("String ctor test: std::initializer_list", "[string]" ) {
+    String ustr{ 'a', 'b', 'c' };
+    REQUIRE(ustr == "abc");
+}
+
+TEST_CASE("String ctor test: BasicString(SizeType length, CharT c)", "[string]" ) {
+    String str(16, 'g');
+    String exp = "gggggggggggggggg";
+    REQUIRE(str == exp);
+    REQUIRE(strlen(str.c_str()) == 16);
+}
+
 TEST_CASE("String append smoke test 1", "[string]" ) {
     String str;
     str.append("hello");
-    str.append('-');
-    str.append_as_string(1234567890123456789);
+    str.append('-').append_as_string(1234567890123456789);
     std::string s = str;
     REQUIRE(s == "hello-1234567890123456789");
 }
@@ -30,13 +41,6 @@ TEST_CASE("String append span test 1", "[string]" ) {
     str.append(span);
     std::string s = str;
     REQUIRE(s == "1..3,5..7,11");
-}
-
-TEST_CASE("String BasicString(SizeType length, CharT c) constructor test", "[string]" ) {
-    String str(16, 'g');
-    String exp = "gggggggggggggggg";
-    REQUIRE(str == exp);
-    REQUIRE(strlen(str.c_str()) == 16);
 }
 
 TEST_CASE("String convert to std::string with operator std::basic_string", "[string]" ) {
@@ -413,19 +417,19 @@ TEST_CASE("String insert test: const_iterator pos, CharT ch", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 12);
 }
 
-// TEST_CASE("String insert test: const_iterator pos, InputIt first, InputIt last", "[string]" ) {
-//     std::string sstr1("0123456789");
-//     std::string sstr2("abcdefghij");
-//     String ustr1("0123456789");
-//     String ustr2("abcdefghij");
+TEST_CASE("String insert test: const_iterator pos, InputIt first, InputIt last", "[string]" ) {
+    std::string sstr1("0123456789");
+    std::string sstr2("abcdefghij");
+    String ustr1("0123456789");
+    String ustr2("abcdefghij");
 
-//     sstr1.insert(sstr1.begin(), sstr2.begin(), sstr2.end());
-//     ustr1.insert(ustr1.begin(), ustr2.begin(), ustr2.end());
-//     REQUIRE(sstr1 == "0123abcdefghij456789");
-//     REQUIRE(ustr1 == "0123abcdefghij456789");
-//     REQUIRE(strlen(sstr1.c_str()) == 20);
-//     REQUIRE(strlen(ustr1.c_str()) == 11);
-// }
+    sstr1.insert(sstr1.begin() + 5, sstr2.begin(), sstr2.end());
+    ustr1.insert(ustr1.begin() + 5, ustr2.begin(), ustr2.end());
+    REQUIRE(sstr1 == "01234abcdefghij56789");
+    REQUIRE(ustr1 == "01234abcdefghij56789");
+    REQUIRE(strlen(sstr1.c_str()) == 20);
+    REQUIRE(strlen(ustr1.c_str()) == 20);
+}
 
 TEST_CASE("BasicString<Char32> override", "[string]" ) {
     BasicString<char32_t> ustr1("");
