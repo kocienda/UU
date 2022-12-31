@@ -263,6 +263,8 @@ public:
 
     constexpr CharT *data() const { return m_ptr; }
     constexpr SizeType length() const { return m_length; }
+    constexpr SizeType size() const { return m_length; }
+    constexpr SizeType max_size() const noexcept { return std::distance(begin(), end()); }
     constexpr SizeType capacity() const { return m_capacity; }
     constexpr CharT& front() { return m_ptr[0]; }
     constexpr CharT& front() const { return m_ptr[0]; }
