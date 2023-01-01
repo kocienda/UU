@@ -195,10 +195,10 @@ private:
     }
 
 public:
-
     // using ======================================================================================
 
     using CharType = CharT;
+    using TraitsType = Traits;
     using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
     using iterator = CharT *;
     using const_iterator = const CharT *;
@@ -450,10 +450,59 @@ public:
             }
             return npos;
         }
-        const auto searcher = std::boyer_moore_searcher(t.begin(), t.end());
-        auto it = std::search(begin() + pos, end(), searcher);
-        return it != end() ? it - begin() : npos;
+        else {
+            const CharT a = t[0];
+            for (SizeType idx = pos; idx <= length() - t.length(); idx++) {
+                if (m_ptr[idx] == a && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                    return idx;
+                }
+            }
+            return npos;
+        }
     }
+
+    constexpr SizeType find_boyer_moore(const BasicString &str, SizeType pos = 0) const {
+        return find_boyer_moore(BasicStringView(str), pos);
+    }
+
+    constexpr SizeType find_boyer_moore(const CharT *s, SizeType pos, SizeType count) const {
+        return find_boyer_moore(BasicStringView(s, count), pos);
+    }
+
+    constexpr SizeType find_boyer_moore(const CharT *s, SizeType pos = 0) const {
+        return find_boyer_moore(BasicStringView(s, Traits::length(s)), pos);
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr SizeType find_boyer_moore(const StringViewLikeT &t, SizeType pos = 0) const {
+        if (t.length() == 0) {
+            return pos;
+        }
+        if (t.length() > length() || pos > length()) {
+            return npos;
+        }
+        else if (t.length() == 1) {
+            return find(t[0], pos);
+        }
+        else if (t.length() == 2) {
+            const CharT a = t[0];
+            const CharT b = t[1];
+            for (SizeType idx = pos; idx < length() - 1; idx++) {
+                if (m_ptr[idx] == a && m_ptr[idx + 1] == b) {
+                    return idx;
+                }
+            }
+            return npos;
+        }
+        else {
+            const auto searcher = std::boyer_moore_searcher(t.begin(), t.end());
+            auto it = std::search(begin() + pos, end(), searcher);
+            return it != end() ? it - begin() : npos;
+        }
+    }
+
+
 
     // copy =======================================================================================
 

@@ -600,6 +600,72 @@ TEST_CASE("String::find(CharT c, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find('a', 5) == String::npos);
 }
 
+TEST_CASE("String::find_boyer_moore(const String &s, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+    
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghij")) == 0);
+    REQUIRE(ustr1.find_boyer_moore(String("0123456789abcdefghij")) == 0);
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghij"), 5) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("0123456789abcdefghij"), 5) == String::npos);
+    REQUIRE(sstr1.find(std::string("abcdefghij")) == 10);
+    REQUIRE(ustr1.find_boyer_moore(String("abcdefghij")) == 10);
+    REQUIRE(sstr1.find(std::string("abcdefghij"), 3) == 10);
+    REQUIRE(ustr1.find_boyer_moore(String("abcdefghij"), 3) == 10);
+    REQUIRE(sstr1.find(std::string("789abcdef")) == 7);
+    REQUIRE(ustr1.find_boyer_moore(String("789abcdef")) == 7);
+    REQUIRE(sstr1.find(std::string("789abcdef"), 2) == 7);
+    REQUIRE(ustr1.find_boyer_moore(String("789abcdef"), 2) == 7);
+    REQUIRE(sstr1.find(std::string("01")) == 0);
+    REQUIRE(ustr1.find_boyer_moore(String("01")) == 0);
+    REQUIRE(sstr1.find(std::string("01"), 1) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("01"), 1) == String::npos);
+    REQUIRE(sstr1.find(std::string("12")) == 1);
+    REQUIRE(ustr1.find_boyer_moore(String("12")) == 1);
+    REQUIRE(sstr1.find(std::string("12"), 1) == 1);
+    REQUIRE(ustr1.find_boyer_moore(String("12"), 1) == 1);
+    REQUIRE(sstr1.find(std::string("12"), 2) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("12"), 2) == String::npos);
+    REQUIRE(sstr1.find(std::string("567")) == 5);
+    REQUIRE(ustr1.find_boyer_moore(String("567")) == 5);
+    REQUIRE(sstr1.find(std::string("567"), 2) == 5);
+    REQUIRE(ustr1.find_boyer_moore(String("567"), 2) == 5);
+    REQUIRE(sstr1.find(std::string("567"), 7) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("567"), 7) == String::npos);
+    REQUIRE(sstr1.find(std::string("0")) == 0);
+    REQUIRE(ustr1.find_boyer_moore(String("0")) == 0);
+    REQUIRE(sstr1.find(std::string("0"), 1) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("0"), 1) == String::npos);
+    REQUIRE(sstr1.find(std::string("ij")) == 18);
+    REQUIRE(ustr1.find_boyer_moore(String("ij")) == 18);
+    REQUIRE(sstr1.find(std::string("ij"), 10) == 18);
+    REQUIRE(ustr1.find_boyer_moore(String("ij"), 10) == 18);
+    REQUIRE(sstr1.find(std::string("ij"), 19) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("ij"), 19) == String::npos);
+    REQUIRE(sstr1.find(std::string("j")) == 19);
+    REQUIRE(ustr1.find_boyer_moore(String("j")) == 19);
+    REQUIRE(sstr1.find(std::string("j"), 5) == 19);
+    REQUIRE(ustr1.find_boyer_moore(String("j"), 5) == 19);
+    REQUIRE(sstr1.find(std::string("j"), 19) == 19);
+    REQUIRE(ustr1.find_boyer_moore(String("j"), 19) == 19);
+    REQUIRE(sstr1.find(std::string("j"), 20) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("j"), 20) == String::npos);
+    REQUIRE(sstr1.find(std::string("")) == 0);
+    REQUIRE(ustr1.find_boyer_moore(String("")) == 0);
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghijk")) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("0123456789abcdefghijk")) == String::npos);
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghijk"), 5) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("0123456789abcdefghijk"), 5) == String::npos);
+    REQUIRE(sstr1.find(std::string("012345a")) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("012345a")) == String::npos);
+    REQUIRE(sstr1.find(std::string("012345a"), 3) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("012345a"), 3) == String::npos);
+    REQUIRE(sstr1.find(std::string("k")) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("k")) == String::npos);
+    REQUIRE(sstr1.find(std::string("k"), 2) == String::npos);
+    REQUIRE(ustr1.find_boyer_moore(String("k"), 2) == String::npos);
+}
+
 // copy ==========================================================================================
 
 TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos = 0)", "[string]" ) {
