@@ -1,5 +1,5 @@
 //
-// String.h
+// UUString.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -306,7 +306,47 @@ public:
             return return_empty_or_throw_out_of_range(index);
         }
     }
-    
+
+    // finding and related ========================================================================
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr bool starts_with(const StringViewLikeT &t) const {
+        if (t.length() > length()) {
+            return false;
+        }
+        return Traits::compare(data(), t.data(), t.length()) == 0;
+    }
+
+    constexpr bool starts_with(CharT c) const noexcept {
+        return length() > 0 && m_ptr[0] == c;
+    }
+
+    constexpr bool starts_with(const CharT *s) const {
+        SizeType len = Traits::length(s);
+        return length() >= len && Traits::compare(data(), s, len) == 0;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr bool ends_with(const StringViewLikeT &t) const {
+        if (t.length() > length()) {
+            return false;
+        }
+        SizeType pos = length() - t.length();
+        return Traits::compare(data() + pos, t.data(), t.length()) == 0;
+    }
+
+    constexpr bool ends_with(CharT c) const noexcept {
+        return length() > 0 && m_ptr[length() - 1] == c;
+    }
+
+    constexpr bool ends_with(const CharT *s) const {
+        SizeType len = Traits::length(s);
+        SizeType pos = length() - len;
+        return length() >= len && Traits::compare(data() + pos, s, len) == 0;
+    }
+
     // resizing ===================================================================================
 
     void reserve(SizeType length) { ensure_capacity(length); }
@@ -397,13 +437,13 @@ public:
         return *this;
     }
 
-    // template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    // constexpr BasicString &assign(const char *ptr, SizeType length) {
-    //     m_length = 0;
-    //     append(ptr, length);
-    //     UU_STRING_ASSERT_NULL_TERMINATED;
-    //     return *this;
-    // }
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &assign(const char *ptr, SizeType length) {
+        m_length = 0;
+        append(ptr, length);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
 
     constexpr BasicString &assign(const CharT *ptr, SizeType length) {
         m_length = 0;

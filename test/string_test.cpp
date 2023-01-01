@@ -36,6 +36,88 @@ TEST_CASE("BasicString<Char32> override", "[string]" ) {
     REQUIRE(strcmp(ustr1.c_str(), ustr2.c_str()) == 0);
 }
 
+// finding and related ============================================================================
+
+TEST_CASE("String::starts_with(const StringViewLikeT &t)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    String str2("0123456789abcdefghij");
+    REQUIRE(str1.starts_with(str2));
+
+    str2 = "0123456789";
+    REQUIRE(str1.starts_with(str2));
+
+    str2 = "0";
+    REQUIRE(str1.starts_with(str2));
+
+    str2 = "";
+    REQUIRE(str1.starts_with(str2));
+
+    str2 = "0123456789abcdefghijk";
+    REQUIRE_FALSE(str1.starts_with(str2));
+
+    str2 = "abcdef";
+    REQUIRE_FALSE(str1.starts_with(str2));
+}
+
+TEST_CASE("String::starts_with(CharT c)", "[string]" ) {
+    String str1("0123456789");
+    
+    REQUIRE(str1.starts_with('0'));
+    REQUIRE_FALSE(str1.starts_with('1'));
+}
+
+TEST_CASE("String::starts_with(const CharT *s)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    REQUIRE(str1.starts_with("0123456789abcdefghij"));
+    REQUIRE(str1.starts_with("0123456789"));
+    REQUIRE(str1.starts_with("0"));
+    REQUIRE(str1.starts_with(""));
+    REQUIRE_FALSE(str1.starts_with("0123456789abcdefghijk"));
+    REQUIRE_FALSE(str1.starts_with("abcdef"));
+}
+
+TEST_CASE("String::ends_with(const StringViewLikeT &t)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    String str2("0123456789abcdefghij");
+    REQUIRE(str1.ends_with(str2));
+
+    str2 = "abcdefghij";
+    REQUIRE(str1.ends_with(str2));
+
+    str2 = "j";
+    REQUIRE(str1.ends_with(str2));
+
+    str2 = "";
+    REQUIRE(str1.ends_with(str2));
+
+    str2 = "0123456789abcdefghijk";
+    REQUIRE_FALSE(str1.ends_with(str2));
+
+    str2 = "012345";
+    REQUIRE_FALSE(str1.ends_with(str2));
+}
+
+TEST_CASE("String::ends_with(CharT c)", "[string]" ) {
+    String str1("0123456789");
+    
+    REQUIRE(str1.ends_with('9'));
+    REQUIRE_FALSE(str1.ends_with('1'));
+}
+
+TEST_CASE("String::ends_with(const CharT *s)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    REQUIRE(str1.ends_with("0123456789abcdefghij"));
+    REQUIRE(str1.ends_with("abcdefghij"));
+    REQUIRE(str1.ends_with("j"));
+    REQUIRE(str1.ends_with(""));
+    REQUIRE_FALSE(str1.ends_with("0123456789abcdefghijk"));
+    REQUIRE_FALSE(str1.ends_with("012345"));
+}
+
 // assigning ======================================================================================
 
 TEST_CASE("String::assign(SizeType count, CharT c)", "[string]" ) {
