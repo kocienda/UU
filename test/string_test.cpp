@@ -1421,6 +1421,61 @@ TEST_CASE("String::erase(const_iterator first, const_iterator last) check", "[st
     REQUIRE(ustr.length() == 8);
 }
 
+// substrings =====================================================================================
+
+TEST_CASE("String::substr(SizeType pos, SizeType count)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+
+    std::string sstr2 = sstr1.substr(0, 5);
+    String ustr2 = ustr1.substr(0, 5);
+    REQUIRE(sstr2 == "01234");
+    REQUIRE(ustr2 == "01234");
+    REQUIRE(sstr2.length() == 5);
+    REQUIRE(ustr2.length() == 5);
+
+    sstr2 = sstr1.substr();
+    ustr2 = ustr1.substr();
+    REQUIRE(sstr2 == "0123456789abcdefghij");
+    REQUIRE(ustr2 == "0123456789abcdefghij");
+    REQUIRE(sstr2.length() == 20);
+    REQUIRE(ustr2.length() == 20);
+
+    sstr2 = sstr1.substr(10);
+    ustr2 = ustr1.substr(10);
+    REQUIRE(sstr2 == "abcdefghij");
+    REQUIRE(ustr2 == "abcdefghij");
+    REQUIRE(sstr2.length() == 10);
+    REQUIRE(ustr2.length() == 10);
+}
+
+TEST_CASE("String::substrview(SizeType pos, SizeType count)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+
+    auto sstr2 = sstr1.substr(0, 5);
+    auto ustr2 = ustr1.substrview(0, 5);
+    REQUIRE(sstr2 == "01234");
+    REQUIRE(String(ustr2) == "01234");
+    REQUIRE(sstr2.length() == 5);
+    REQUIRE(ustr2.length() == 5);
+
+    sstr2 = sstr1.substr();
+    ustr2 = ustr1.substrview();
+    REQUIRE(sstr2 == "0123456789abcdefghij");
+    REQUIRE(String(ustr2) == "0123456789abcdefghij");
+    REQUIRE(sstr2.length() == 20);
+    REQUIRE(ustr2.length() == 20);
+
+    sstr2 = sstr1.substr(10);
+    ustr2 = ustr1.substrview(10);
+    REQUIRE(sstr2 == "abcdefghij");
+    REQUIRE(String(ustr2) == "abcdefghij");
+    REQUIRE(sstr2.length() == 10);
+    REQUIRE(ustr2.length() == 10);
+}
+
+
 // shrinking ======================================================================================
 
 TEST_CASE("String::shrink() 1", "[string]" ) {

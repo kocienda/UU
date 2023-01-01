@@ -166,6 +166,16 @@ private:
 #endif
     }
 
+    UU_ALWAYS_INLINE BasicString return_string_or_throw_out_of_range(SizeType pos) const { 
+#if UU_STRING_THROWS_EXCEPTIONS
+        BasicString<char, std::char_traits<char>, 64> msg("String access out of range: ");
+        msg.append_as_string(pos);
+        throw std::out_of_range(msg);
+#else
+        return BasicString();
+#endif
+    }
+
     UU_ALWAYS_INLINE SizeType return_zero_or_throw_out_of_range(SizeType pos) const { 
 #if UU_STRING_THROWS_EXCEPTIONS
         BasicString<char, std::char_traits<char>, 64> msg("String access out of range: ");
@@ -232,6 +242,10 @@ public:
     }
 
     BasicString(const std::basic_string<CharT> &str) {
+        append(str.data(), str.length());
+    }
+
+    BasicString(const std::basic_string_view<CharT> &str) {
         append(str.data(), str.length());
     }
 
@@ -997,10 +1011,16 @@ public:
     // substrings =================================================================================
 
     constexpr BasicString substr(SizeType pos = 0, SizeType count = npos) const {
+        if (UNLIKELY(pos > length())) {
+            return_string_or_throw_out_of_range(pos);
+        }
         return BasicString(data(), pos, std::min(count, length() - pos));
     }
 
-    BasicStringView substrview(SizeType pos = 0, SizeType count = npos) const noexcept {
+    constexpr BasicStringView substrview(SizeType pos = 0, SizeType count = npos) const noexcept {
+        if (UNLIKELY(pos > length())) {
+            return_string_or_throw_out_of_range(pos);
+        }
         return BasicStringView(data() + pos, std::min(count, length() - pos));
     }
 
