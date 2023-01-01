@@ -25,7 +25,6 @@
 #ifndef UU_STRING_H
 #define UU_STRING_H
 
-#include "Assertions.h"
 #include <UU/Assertions.h>
 #include <UU/MathLike.h>
 #include <UU/Types.h>
@@ -145,13 +144,23 @@ private:
         grow(new_capacity);
     }
 
-    UU_ALWAYS_INLINE void return_empty_or_throw_out_of_range(SizeType pos) const { 
+    UU_ALWAYS_INLINE CharT return_empty_or_throw_out_of_range(SizeType pos) const { 
 #if UU_STRING_THROWS_EXCEPTIONS
         BasicString<char, std::char_traits<char>, 64> msg("String access out of range: ");
         msg.append_as_string(pos);
         throw std::out_of_range(msg);
 #else
         return empty_value;
+#endif
+    }
+
+    UU_ALWAYS_INLINE BasicString &return_this_or_throw_out_of_range(SizeType pos) { 
+#if UU_STRING_THROWS_EXCEPTIONS
+        BasicString<char, std::char_traits<char>, 64> msg("String access out of range: ");
+        msg.append_as_string(pos);
+        throw std::out_of_range(msg);
+#else
+        return *this;
 #endif
     }
 
@@ -278,6 +287,7 @@ public:
     constexpr const char *c_str() const noexcept { return data(); }
 
     template <bool B = true> constexpr bool is_empty() const { return (m_length == 0) == B; }
+    constexpr bool empty() const { return is_empty(); }
     
     constexpr CharT at(SizeType index) {
         if (LIKELY(m_length > index)) {
@@ -300,7 +310,46 @@ public:
     // resizing ===================================================================================
 
     void reserve(SizeType length) { ensure_capacity(length); }
-    constexpr void clear() { m_length = 0; }
+    constexpr void clear() { resize(0); }
+
+    constexpr void resize(SizeType count) { 
+        m_length = count; 
+        null_terminate();
+    }
+
+    constexpr void resize(SizeType count, CharT c) {
+        resize(0);
+        append(count, c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr void shrink_to_fit() {
+        if (is_using_inline_buffer()) {
+            return;
+        }
+
+        if (length() < InlineCapacity) {
+            CharT *old_ptr = m_ptr;
+            m_ptr = m_buf;
+            Traits::copy(m_ptr, old_ptr, length());
+            free(old_ptr);
+            null_terminate();
+            ASSERT(is_using_inline_buffer());
+            return;
+        }
+
+        SizeType shrink_length = ceil_to_page_size(length());
+        if (shrink_length == ceil_to_page_size(capacity())) {
+            return;
+        }
+        CharT *old_ptr = m_ptr;
+        SizeType amt = shrink_length * sizeof(CharT);
+        m_ptr = static_cast<CharT *>(malloc(amt));
+        Traits::copy(m_ptr, old_ptr, length());
+        free(old_ptr);
+        null_terminate();
+        ASSERT(is_using_allocated_buffer());
+    }
 
     // assigning ==================================================================================
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
@@ -655,6 +704,49 @@ public:
         insert(index, t.data(), index_str, count);
         UU_STRING_ASSERT_NULL_TERMINATED;
         return *this;
+    }
+
+    // erasing ===================================================================================
+
+    constexpr BasicString &erase(SizeType index = 0, SizeType count = npos) {
+        if (UNLIKELY(index > length())) {
+            return_this_or_throw_out_of_range(index);
+        }
+        SizeType amt = std::min(count, length() - index);
+        SizeType rem = length() - amt;
+        Traits::move(m_ptr + index, m_ptr + index + amt, rem);
+        m_length -= amt;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr iterator erase(const_iterator pos) {
+        if (pos == end()) {
+            return end();
+        }
+        SizeType rem = end() - pos - 1;
+        ptrdiff_t diff = pos - begin();
+        Traits::move(begin() + diff, begin() + diff + 1, rem);
+        m_length -= 1;
+        null_terminate();
+        return begin() + diff;
+    }
+
+    constexpr iterator erase(const_iterator first, const_iterator last) {
+        if (first == end()) {
+            return end();
+        }
+        if (first >= last) {
+            last = end();
+        }
+        ptrdiff_t first_idx = first - begin();
+        ptrdiff_t last_idx = last - begin();
+        SizeType amt = last_idx - first_idx;
+        ptrdiff_t rem = length() - last_idx;
+        Traits::move(begin() + first_idx, begin() + last_idx, rem);
+        m_length -= amt;
+        null_terminate();
+        return iterator(first);
     }
 
     // operator[] =================================================================================

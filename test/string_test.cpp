@@ -3,6 +3,7 @@
 //
 
 #include "UU/UUString.h"
+#include <cstring>
 #include <string>
 #include <sstream>
 
@@ -559,16 +560,6 @@ TEST_CASE("String::operator+=(CharT c)", "[string]" ) {
     REQUIRE(strlen(sstr.c_str()) == 11);
     REQUIRE(strlen(ustr.c_str()) == 11);
 }
-
-// TEST_CASE("String::append(const Span &)", "[string]" ) {
-//     String str;
-//     Span<int> span;
-//     span.add(1,3);
-//     span.add(5,7);
-//     span.add(11);
-//     str.append(span);
-//     REQUIRE(str == "1..3,5..7,11");
-// }
 
 // inserting ======================================================================================
 
@@ -1139,4 +1130,125 @@ TEST_CASE("String::swap 4", "[string]" ) {
     REQUIRE(str2.is_using_allocated_buffer());
     REQUIRE(str1 == big_str2);
     REQUIRE(str2 == big_str1);
+}
+
+// erasing ======================================================================================
+
+TEST_CASE("String::erase(SizeType index, SizeType count)", "[string]" ) {
+    std::string sstr("0123456789abcdefghij");
+    String ustr("0123456789abcdefghij");
+
+    sstr.erase(0, 5);
+    ustr.erase(0, 5);
+    
+    REQUIRE(sstr == "56789abcdefghij");
+    REQUIRE(ustr == "56789abcdefghij");
+    REQUIRE(sstr.length() == 15);
+    REQUIRE(ustr.length() == 15);
+
+    sstr.erase(5, 5);
+    ustr.erase(5, 5);
+
+    REQUIRE(sstr == "56789fghij");
+    REQUIRE(ustr == "56789fghij");
+    REQUIRE(sstr.length() == 10);
+    REQUIRE(ustr.length() == 10);
+
+    sstr.erase(5);
+    ustr.erase(5);
+
+    REQUIRE(sstr == "56789");
+    REQUIRE(ustr == "56789");
+    REQUIRE(sstr.length() == 5);
+    REQUIRE(ustr.length() == 5);
+
+    sstr.erase();
+    ustr.erase();
+
+    REQUIRE(sstr == "");
+    REQUIRE(ustr == "");
+    REQUIRE(sstr.length() == 0);
+    REQUIRE(ustr.length() == 0);
+}
+
+TEST_CASE("String::erase(const_iterator pos)", "[string]" ) {
+    std::string sstr("0123456789abcdefghij");
+    String ustr("0123456789abcdefghij");
+
+    auto sit = sstr.erase(sstr.begin() + 5);
+    auto uit = ustr.erase(ustr.begin() + 5);
+    
+    REQUIRE(sstr == "012346789abcdefghij");
+    REQUIRE(ustr == "012346789abcdefghij");
+    REQUIRE(sstr.length() == 19);
+    REQUIRE(ustr.length() == 19);
+
+    sstr.erase(sit);
+    ustr.erase(uit);
+    
+    REQUIRE(sstr == "01234789abcdefghij");
+    REQUIRE(ustr == "01234789abcdefghij");
+    REQUIRE(sstr.length() == 18);
+    REQUIRE(ustr.length() == 18);
+}
+
+TEST_CASE("String::erase(const_iterator first, const_iterator last)", "[string]" ) {
+    std::string sstr("0123456789abcdefghij");
+    String ustr("0123456789abcdefghij");
+
+    auto sit = sstr.erase(sstr.begin() + 5, sstr.begin() + 8);
+    auto uit = ustr.erase(ustr.begin() + 5, ustr.begin() + 8);
+    
+    REQUIRE(sstr == "0123489abcdefghij");
+    REQUIRE(ustr == "0123489abcdefghij");
+    REQUIRE(sstr.length() == 17);
+    REQUIRE(ustr.length() == 17);
+
+    sstr.erase(sit, sstr.begin() + 8);
+    ustr.erase(uit, ustr.begin() + 8);
+    
+    REQUIRE(sstr == "01234bcdefghij");
+    REQUIRE(ustr == "01234bcdefghij");
+    REQUIRE(sstr.length() == 14);
+    REQUIRE(ustr.length() == 14);
+
+    sit = sstr.erase(sit, sstr.end());
+    uit = ustr.erase(uit, ustr.end());
+    
+    REQUIRE(sstr == "01234");
+    REQUIRE(ustr == "01234");
+    REQUIRE(sstr.length() == 5);
+    REQUIRE(ustr.length() == 5);
+}
+
+TEST_CASE("String::erase(const_iterator first, const_iterator last) check", "[string]" ) {
+    std::string sstr("0123456789abcdefghij");
+    String ustr("0123456789abcdefghij");
+
+    auto sit = sstr.erase(sstr.begin() + 8, sstr.begin() + 5);
+    auto uit = ustr.erase(ustr.begin() + 8, ustr.begin() + 5);
+    
+    REQUIRE(sstr == "01234567");
+    REQUIRE(ustr == "01234567");
+    REQUIRE(sit == sstr.begin() + 8);
+    REQUIRE(uit == ustr.begin() + 8);
+    REQUIRE(sstr.length() == 8);
+    REQUIRE(ustr.length() == 8);
+}
+
+// shrinking ======================================================================================
+
+TEST_CASE("String::shrink() 1", "[string]" ) {
+    String str1("abcdefghij");
+    String str2;
+
+    for (int idx = 0; idx < 33; idx++) {
+        str2 += str1;
+    }
+    for (int idx = 0; idx < 32; idx++) {
+        str2.erase(0, str1.length());
+    }
+    str2.shrink_to_fit();
+    REQUIRE(str2.length() == str1.length());
+    REQUIRE(str2.capacity() == String::InlineCapacity);
 }
