@@ -341,11 +341,14 @@ public:
         }
     }
 
-    // finding and related ========================================================================
+    // starts_with ================================================================================
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr bool starts_with(const StringViewLikeT &t) const {
+        if (t.length() == 0) {
+            return true;
+        }
         if (t.length() > length()) {
             return false;
         }
@@ -361,9 +364,14 @@ public:
         return length() >= len && Traits::compare(data(), s, len) == 0;
     }
 
+    // ends_with ==================================================================================
+
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr bool ends_with(const StringViewLikeT &t) const {
+        if (t.length() == 0) {
+            return true;
+        }
         if (t.length() > length()) {
             return false;
         }
@@ -381,45 +389,73 @@ public:
         return length() >= len && Traits::compare(data() + pos, s, len) == 0;
     }
 
+    // contains ===================================================================================
+
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr bool contains(const StringViewLikeT &t) const noexcept {
+        return find(t) != npos;
+    }
+
+    constexpr bool contains(CharT c) const noexcept {
+        return find(c) != npos;
+    }
+
+    constexpr bool contains(const CharT *s) const {
+        return find(s) != npos;
+    }
+
+    // finding ====================================================================================
+
+    constexpr SizeType find(const BasicString &str, SizeType pos = 0) const noexcept {
+        return find(BasicStringView(str), pos);
+    }
+
+    constexpr SizeType find(const CharT *s, SizeType pos, SizeType count) const {
+        return find(BasicStringView(s, count), pos);
+    }
+
+    constexpr SizeType find(const CharT *s, SizeType pos = 0) const {
+        return find(BasicStringView(s, Traits::length(s)), pos);
+    }
+
+    constexpr SizeType find(CharT c, SizeType pos = 0) const noexcept {
+        for (SizeType idx = pos; idx < length(); idx++) {
+            if (m_ptr[idx] == c) {
+                return idx;
+            }
+        }
+        return npos;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr SizeType find(const StringViewLikeT &t, SizeType pos = 0) const noexcept {
         if (t.length() == 0) {
-            return false;
+            return pos;
+        }
+        if (t.length() > length() || pos > length()) {
+            return npos;
         }
         else if (t.length() == 1) {
-            return contains(t[0]);
+            return find(t[0], pos);
         }
         else if (t.length() == 2) {
             const CharT a = t[0];
             const CharT b = t[1];
-            for (SizeType idx = 0; idx < length() - 1; idx++) {
+            for (SizeType idx = pos; idx < length() - 1; idx++) {
                 if (m_ptr[idx] == a && m_ptr[idx + 1] == b) {
-                    return true;
+                    return idx;
                 }
             }
-            return false;
+            return npos;
         }
         const auto searcher = std::boyer_moore_searcher(t.begin(), t.end());
-        auto it = std::search(begin(), end(), searcher);
-        return it != end();
+        auto it = std::search(begin() + pos, end(), searcher);
+        return it != end() ? it - begin() : npos;
     }
 
-    constexpr bool contains(CharT c) const noexcept {
-        for (SizeType idx = 0; idx < length(); idx++) {
-            if (m_ptr[idx] == c) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    constexpr bool contains(const CharT *s) const {
-        BasicStringView needle(s, Traits::length(s));
-        return contains(needle);
-    }
-
-    // copying =================================================================================---
+    // copy =======================================================================================
 
     constexpr SizeType copy(CharT* dst, SizeType count, SizeType pos = 0) const {
         if (UNLIKELY(pos > length())) {

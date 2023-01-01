@@ -264,7 +264,7 @@ TEST_CASE("String::contains(const StringViewLikeT &t)", "[string]" ) {
     REQUIRE(str1.contains(str2));
 
     str2 = "";
-    REQUIRE_FALSE(str1.contains(str2));
+    REQUIRE(str1.contains(str2));
 
     str2 = "6789abce";
     REQUIRE_FALSE(str1.contains(str2));
@@ -298,11 +298,306 @@ TEST_CASE("String::contains(const CharT *s)", "[string]" ) {
     REQUIRE(str1.contains("0"));
     REQUIRE(str1.contains("ij"));
     REQUIRE(str1.contains("j"));
-    REQUIRE_FALSE(str1.contains(""));
+    REQUIRE(str1.contains(""));
     REQUIRE_FALSE(str1.contains("0123456789abcdefghijk"));
     REQUIRE_FALSE(str1.contains("012345a"));
     REQUIRE_FALSE(str1.contains("k"));
     REQUIRE_FALSE(str1.contains("k"));
+}
+
+// find ===========================================================================================
+
+TEST_CASE("String::find(const String &s, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+    
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghij")) == 0);
+    REQUIRE(ustr1.find(String("0123456789abcdefghij")) == 0);
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghij"), 5) == String::npos);
+    REQUIRE(ustr1.find(String("0123456789abcdefghij"), 5) == String::npos);
+    REQUIRE(sstr1.find(std::string("abcdefghij")) == 10);
+    REQUIRE(ustr1.find(String("abcdefghij")) == 10);
+    REQUIRE(sstr1.find(std::string("abcdefghij"), 3) == 10);
+    REQUIRE(ustr1.find(String("abcdefghij"), 3) == 10);
+    REQUIRE(sstr1.find(std::string("789abcdef")) == 7);
+    REQUIRE(ustr1.find(String("789abcdef")) == 7);
+    REQUIRE(sstr1.find(std::string("789abcdef"), 2) == 7);
+    REQUIRE(ustr1.find(String("789abcdef"), 2) == 7);
+    REQUIRE(sstr1.find(std::string("01")) == 0);
+    REQUIRE(ustr1.find(String("01")) == 0);
+    REQUIRE(sstr1.find(std::string("01"), 1) == String::npos);
+    REQUIRE(ustr1.find(String("01"), 1) == String::npos);
+    REQUIRE(sstr1.find(std::string("12")) == 1);
+    REQUIRE(ustr1.find(String("12")) == 1);
+    REQUIRE(sstr1.find(std::string("12"), 1) == 1);
+    REQUIRE(ustr1.find(String("12"), 1) == 1);
+    REQUIRE(sstr1.find(std::string("12"), 2) == String::npos);
+    REQUIRE(ustr1.find(String("12"), 2) == String::npos);
+    REQUIRE(sstr1.find(std::string("567")) == 5);
+    REQUIRE(ustr1.find(String("567")) == 5);
+    REQUIRE(sstr1.find(std::string("567"), 2) == 5);
+    REQUIRE(ustr1.find(String("567"), 2) == 5);
+    REQUIRE(sstr1.find(std::string("567"), 7) == String::npos);
+    REQUIRE(ustr1.find(String("567"), 7) == String::npos);
+    REQUIRE(sstr1.find(std::string("0")) == 0);
+    REQUIRE(ustr1.find(String("0")) == 0);
+    REQUIRE(sstr1.find(std::string("0"), 1) == String::npos);
+    REQUIRE(ustr1.find(String("0"), 1) == String::npos);
+    REQUIRE(sstr1.find(std::string("ij")) == 18);
+    REQUIRE(ustr1.find(String("ij")) == 18);
+    REQUIRE(sstr1.find(std::string("ij"), 10) == 18);
+    REQUIRE(ustr1.find(String("ij"), 10) == 18);
+    REQUIRE(sstr1.find(std::string("ij"), 19) == String::npos);
+    REQUIRE(ustr1.find(String("ij"), 19) == String::npos);
+    REQUIRE(sstr1.find(std::string("j")) == 19);
+    REQUIRE(ustr1.find(String("j")) == 19);
+    REQUIRE(sstr1.find(std::string("j"), 5) == 19);
+    REQUIRE(ustr1.find(String("j"), 5) == 19);
+    REQUIRE(sstr1.find(std::string("j"), 19) == 19);
+    REQUIRE(ustr1.find(String("j"), 19) == 19);
+    REQUIRE(sstr1.find(std::string("j"), 20) == String::npos);
+    REQUIRE(ustr1.find(String("j"), 20) == String::npos);
+    REQUIRE(sstr1.find(std::string("")) == 0);
+    REQUIRE(ustr1.find(String("")) == 0);
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghijk")) == String::npos);
+    REQUIRE(ustr1.find(String("0123456789abcdefghijk")) == String::npos);
+    REQUIRE(sstr1.find(std::string("0123456789abcdefghijk"), 5) == String::npos);
+    REQUIRE(ustr1.find(String("0123456789abcdefghijk"), 5) == String::npos);
+    REQUIRE(sstr1.find(std::string("012345a")) == String::npos);
+    REQUIRE(ustr1.find(String("012345a")) == String::npos);
+    REQUIRE(sstr1.find(std::string("012345a"), 3) == String::npos);
+    REQUIRE(ustr1.find(String("012345a"), 3) == String::npos);
+    REQUIRE(sstr1.find(std::string("k")) == String::npos);
+    REQUIRE(ustr1.find(String("k")) == String::npos);
+    REQUIRE(sstr1.find(std::string("k"), 2) == String::npos);
+    REQUIRE(ustr1.find(String("k"), 2) == String::npos);
+}
+
+TEST_CASE("String::find(const StringViewLikeT &t)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    String str2("0123456789abcdefghij");
+    REQUIRE(str1.find(str2) == 0);
+
+    str2 = "abcdefghij";
+    REQUIRE(str1.find(str2) == 10);
+
+    str2 = "6789abc";
+    REQUIRE(str1.find(str2) == 6);
+
+    str2 = "j";
+    REQUIRE(str1.find(str2) == 19);
+
+    str2 = "01";
+    REQUIRE(str1.find(str2) == 0);
+
+    str2 = "12";
+    REQUIRE(str1.find(str2) == 1);
+
+    str2 = "hi";
+    REQUIRE(str1.find(str2) == 17);
+
+    str2 = "ij";
+    REQUIRE(str1.find(str2) == 18);
+
+    str2 = "";
+    REQUIRE(str1.find(str2) == 0);
+
+    str2 = "6789abce";
+    REQUIRE(str1.find(str2) == String::npos);
+
+    str2 = "0123456789abcdefghijk";
+    REQUIRE(str1.find(str2) == String::npos);
+
+    str2 = "0123459";
+    REQUIRE(str1.find(str2) == String::npos);
+}
+
+TEST_CASE("String::find(const CharT *s)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    REQUIRE(str1.find("0123456789abcdefghij") == 0);
+    REQUIRE(str1.find("abcdefghij") == 10);
+    REQUIRE(str1.find("789abcdef") == 7);
+    REQUIRE(str1.find("01") == 0);
+    REQUIRE(str1.find("12") == 1);
+    REQUIRE(str1.find("567") == 5);
+    REQUIRE(str1.find("0") == 0);
+    REQUIRE(str1.find("ij") == 18);
+    REQUIRE(str1.find("j") == 19);
+    REQUIRE(str1.find("") == 0);
+    REQUIRE(str1.find("0123456789abcdefghijk") == String::npos);
+    REQUIRE(str1.find("012345a") == String::npos);
+    REQUIRE(str1.find("k") == String::npos);
+    REQUIRE(str1.find("k") == String::npos);
+}
+
+TEST_CASE("String::find(const CharT *s, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+    
+    REQUIRE(sstr1.find("0123456789abcdefghij") == 0);
+    REQUIRE(ustr1.find("0123456789abcdefghij") == 0);
+    REQUIRE(sstr1.find("0123456789abcdefghij", 5) == String::npos);
+    REQUIRE(ustr1.find("0123456789abcdefghij", 5) == String::npos);
+    REQUIRE(sstr1.find("abcdefghij") == 10);
+    REQUIRE(ustr1.find("abcdefghij") == 10);
+    REQUIRE(sstr1.find("abcdefghij", 3) == 10);
+    REQUIRE(ustr1.find("abcdefghij", 3) == 10);
+    REQUIRE(sstr1.find("789abcdef") == 7);
+    REQUIRE(ustr1.find("789abcdef") == 7);
+    REQUIRE(sstr1.find("789abcdef", 2) == 7);
+    REQUIRE(ustr1.find("789abcdef", 2) == 7);
+    REQUIRE(sstr1.find("01") == 0);
+    REQUIRE(ustr1.find("01") == 0);
+    REQUIRE(sstr1.find("01", 1) == String::npos);
+    REQUIRE(ustr1.find("01", 1) == String::npos);
+    REQUIRE(sstr1.find("12") == 1);
+    REQUIRE(ustr1.find("12") == 1);
+    REQUIRE(sstr1.find("12", 1) == 1);
+    REQUIRE(ustr1.find("12", 1) == 1);
+    REQUIRE(sstr1.find("12", 2) == String::npos);
+    REQUIRE(ustr1.find("12", 2) == String::npos);
+    REQUIRE(sstr1.find("567") == 5);
+    REQUIRE(ustr1.find("567") == 5);
+    REQUIRE(sstr1.find("567", 2) == 5);
+    REQUIRE(ustr1.find("567", 2) == 5);
+    REQUIRE(sstr1.find("567", 7) == String::npos);
+    REQUIRE(ustr1.find("567", 7) == String::npos);
+    REQUIRE(sstr1.find("0") == 0);
+    REQUIRE(ustr1.find("0") == 0);
+    REQUIRE(sstr1.find("0", 1) == String::npos);
+    REQUIRE(ustr1.find("0", 1) == String::npos);
+    REQUIRE(sstr1.find("ij") == 18);
+    REQUIRE(ustr1.find("ij") == 18);
+    REQUIRE(sstr1.find("ij", 10) == 18);
+    REQUIRE(ustr1.find("ij", 10) == 18);
+    REQUIRE(sstr1.find("ij", 19) == String::npos);
+    REQUIRE(ustr1.find("ij", 19) == String::npos);
+    REQUIRE(sstr1.find("j") == 19);
+    REQUIRE(ustr1.find("j") == 19);
+    REQUIRE(sstr1.find("j", 5) == 19);
+    REQUIRE(ustr1.find("j", 5) == 19);
+    REQUIRE(sstr1.find("j", 19) == 19);
+    REQUIRE(ustr1.find("j", 19) == 19);
+    REQUIRE(sstr1.find("j", 20) == String::npos);
+    REQUIRE(ustr1.find("j", 20) == String::npos);
+    REQUIRE(sstr1.find("") == 0);
+    REQUIRE(ustr1.find("") == 0);
+    REQUIRE(sstr1.find("0123456789abcdefghijk") == String::npos);
+    REQUIRE(ustr1.find("0123456789abcdefghijk") == String::npos);
+    REQUIRE(sstr1.find("0123456789abcdefghijk", 5) == String::npos);
+    REQUIRE(ustr1.find("0123456789abcdefghijk", 5) == String::npos);
+    REQUIRE(sstr1.find("012345a") == String::npos);
+    REQUIRE(ustr1.find("012345a") == String::npos);
+    REQUIRE(sstr1.find("012345a", 3) == String::npos);
+    REQUIRE(ustr1.find("012345a", 3) == String::npos);
+    REQUIRE(sstr1.find("k") == String::npos);
+    REQUIRE(ustr1.find("k") == String::npos);
+    REQUIRE(sstr1.find("k", 2) == String::npos);
+    REQUIRE(ustr1.find("k", 2) == String::npos);
+}
+
+TEST_CASE("String::find(const CharT *s, SizeType pos, SizeType count)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+    
+    REQUIRE(sstr1.find("0123456789abcdefghij", 0, 5) == 0);
+    REQUIRE(ustr1.find("0123456789abcdefghij", 0, 5) == 0);
+    REQUIRE(sstr1.find("0123456789abcdefghij", 5, 5) == String::npos);
+    REQUIRE(ustr1.find("0123456789abcdefghij", 5, 5) == String::npos);
+    REQUIRE(sstr1.find("abcdefghij", 0, 5) == 10);
+    REQUIRE(ustr1.find("abcdefghij", 0, 5) == 10);
+    REQUIRE(sstr1.find("abcdefghij", 3, 5) == 10);
+    REQUIRE(ustr1.find("abcdefghij", 3, 5) == 10);
+    REQUIRE(sstr1.find("789abcdef", 1, 4) == 7);
+    REQUIRE(ustr1.find("789abcdef", 1, 4) == 7);
+    REQUIRE(sstr1.find("789abcdef", 2, 5) == 7);
+    REQUIRE(ustr1.find("789abcdef", 2, 5) == 7);
+    REQUIRE(sstr1.find("01", 0, 1) == 0);
+    REQUIRE(ustr1.find("01", 0, 1) == 0);
+    REQUIRE(sstr1.find("01", 1, 1) == String::npos);
+    REQUIRE(ustr1.find("01", 1, 1) == String::npos);
+    REQUIRE(sstr1.find("12", 0, 1) == 1);
+    REQUIRE(ustr1.find("12", 0, 1) == 1);
+    REQUIRE(sstr1.find("12", 1, 2) == 1);
+    REQUIRE(ustr1.find("12", 1, 2) == 1);
+    REQUIRE(sstr1.find("12", 2, 2) == String::npos);
+    REQUIRE(ustr1.find("12", 2, 2) == String::npos);
+    REQUIRE(sstr1.find("567", 0, 2) == 5);
+    REQUIRE(ustr1.find("567", 0, 2) == 5);
+    REQUIRE(sstr1.find("567", 2, 3) == 5);
+    REQUIRE(ustr1.find("567", 2, 3) == 5);
+    REQUIRE(sstr1.find("567", 7, 3) == String::npos);
+    REQUIRE(ustr1.find("567", 7, 3) == String::npos);
+    REQUIRE(sstr1.find("0", 0, 1) == 0);
+    REQUIRE(ustr1.find("0", 0, 1) == 0);
+    REQUIRE(sstr1.find("0", 1, 1) == String::npos);
+    REQUIRE(ustr1.find("0", 1, 1) == String::npos);
+    REQUIRE(sstr1.find("ij", 0, 2) == 18);
+    REQUIRE(ustr1.find("ij", 0, 2) == 18);
+    REQUIRE(sstr1.find("ij", 10, 1) == 18);
+    REQUIRE(ustr1.find("ij", 10, 1) == 18);
+    REQUIRE(sstr1.find("ij", 19, 1) == String::npos);
+    REQUIRE(ustr1.find("ij", 19, 1) == String::npos);
+    REQUIRE(sstr1.find("j", 0, 1) == 19);
+    REQUIRE(ustr1.find("j", 0, 1) == 19);
+    REQUIRE(sstr1.find("j", 5, 1) == 19);
+    REQUIRE(ustr1.find("j", 5, 1) == 19);
+    REQUIRE(sstr1.find("j", 19, 1) == 19);
+    REQUIRE(ustr1.find("j", 19, 1) == 19);
+    REQUIRE(sstr1.find("j", 20, 1) == String::npos);
+    REQUIRE(ustr1.find("j", 20, 1) == String::npos);
+    REQUIRE(sstr1.find("", 0, 0) == 0);
+    REQUIRE(ustr1.find("", 0, 0) == 0);
+    REQUIRE(sstr1.find("0123456789abcdefghijk", 0, 10) == 0);
+    REQUIRE(ustr1.find("0123456789abcdefghijk", 0, 10) == 0);
+    REQUIRE(sstr1.find("0123456789abcdefghijk", 0, 21) == String::npos);
+    REQUIRE(ustr1.find("0123456789abcdefghijk", 0, 21) == String::npos);
+    REQUIRE(sstr1.find("0123456789abcdefghijk", 5, 10) == String::npos);
+    REQUIRE(ustr1.find("0123456789abcdefghijk", 5, 10) == String::npos);
+    REQUIRE(sstr1.find("012345a", 0, 5) == 0);
+    REQUIRE(ustr1.find("012345a", 0, 5) == 0);
+    REQUIRE(sstr1.find("012345a", 0, 7) == String::npos);
+    REQUIRE(ustr1.find("012345a", 0, 7) == String::npos);
+    REQUIRE(sstr1.find("012345a", 3, 4) == String::npos);
+    REQUIRE(ustr1.find("012345a", 3, 4) == String::npos);
+    REQUIRE(sstr1.find("012345a", 3, 7) == String::npos);
+    REQUIRE(ustr1.find("012345a", 3, 7) == String::npos);
+    REQUIRE(sstr1.find("k", 0, 1) == String::npos);
+    REQUIRE(ustr1.find("k", 0, 1) == String::npos);
+    REQUIRE(sstr1.find("k", 2, 1) == String::npos);
+    REQUIRE(ustr1.find("k", 2, 1) == String::npos);
+}
+
+TEST_CASE("String::find(CharT c, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+    
+    REQUIRE(sstr1.find('9') == 9);
+    REQUIRE(ustr1.find('9') == 9);
+    REQUIRE(sstr1.find('9', 3) == 9);
+    REQUIRE(ustr1.find('9', 3) == 9);
+    REQUIRE(sstr1.find('9', 10) == String::npos);
+    REQUIRE(ustr1.find('9', 10) == String::npos);
+    REQUIRE(sstr1.find('0') == 0);
+    REQUIRE(ustr1.find('0') == 0);
+    REQUIRE(sstr1.find('0', 1) == String::npos);
+    REQUIRE(ustr1.find('0', 1) == String::npos);
+    REQUIRE(sstr1.find('1') == 1);
+    REQUIRE(ustr1.find('1') == 1);
+    REQUIRE(sstr1.find('1', 5) == String::npos);
+    REQUIRE(ustr1.find('1', 5) == String::npos);
+    REQUIRE(sstr1.find('5', 2) == 5);
+    REQUIRE(ustr1.find('5', 2) == 5);
+    REQUIRE(sstr1.find('5', 7) == String::npos);
+    REQUIRE(ustr1.find('5', 7) == String::npos);
+    REQUIRE(sstr1.find('5') == 5);
+    REQUIRE(ustr1.find('5') == 5);
+    REQUIRE(sstr1.find('a') == String::npos);
+    REQUIRE(ustr1.find('a') == String::npos);
+    REQUIRE(sstr1.find('a', 5) == String::npos);
+    REQUIRE(ustr1.find('a', 5) == String::npos);
 }
 
 // copy ==========================================================================================
