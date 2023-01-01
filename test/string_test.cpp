@@ -15,16 +15,130 @@ using namespace UU;
 
 // constructing ===================================================================================
 
-TEST_CASE("String ctor test: std::initializer_list", "[string]" ) {
-    String ustr{ 'a', 'b', 'c' };
-    REQUIRE(ustr == "abc");
+TEST_CASE("String(SizeType count, CharT c)", "[string]" ) {
+    std::string sstr(16, 'g');
+    String ustr(16, 'g');
+    REQUIRE(sstr == ustr);
+    REQUIRE(ustr == "gggggggggggggggg");
+    REQUIRE(strlen(sstr.c_str()) == 16);
+    REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
-TEST_CASE("String ctor test: BasicString(SizeType length, CharT c)", "[string]" ) {
-    String str(16, 'g');
-    String exp = "gggggggggggggggg";
-    REQUIRE(str == exp);
-    REQUIRE(strlen(str.c_str()) == 16);
+TEST_CASE("String(const BasicString &other, SizeType pos, SizeType count)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+
+    auto sstr2 = std::string(sstr1, 5, 5); 
+    auto ustr2 = String(ustr1, 5, 5); 
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(ustr2 == "56789");
+    REQUIRE(strlen(sstr2.c_str()) == 5);
+    REQUIRE(strlen(ustr2.c_str()) == 5);
+}
+
+TEST_CASE("String(const CharT *ptr, SizeType length)", "[string]" ) {
+    std::string sstr("0123456789", 5);
+    String ustr("0123456789", 5);
+
+    REQUIRE(sstr == ustr);
+    REQUIRE(ustr == "01234");
+    REQUIRE(strlen(sstr.c_str()) == 5);
+    REQUIRE(strlen(ustr.c_str()) == 5);
+}
+
+TEST_CASE("BasicString<char32_t>(const CharT *ptr, SizeType length)", "[string]" ) {
+    std::basic_string<char32_t> sstr(U"0123456789", 5);
+    BasicString<char32_t> ustr(U"0123456789", 5);
+
+    REQUIRE(sstr == ustr);
+    REQUIRE(ustr == U"01234");
+    REQUIRE(sstr.length() == 5);
+    REQUIRE(ustr.length() == 5);
+}
+
+TEST_CASE("BasicString<char32_t>(const char *ptr, SizeType length)", "[string]" ) {
+    BasicString<char32_t> ustr("0123456789", 5);
+
+    REQUIRE(ustr == "01234");
+    REQUIRE(ustr.length() == 5);
+}
+
+TEST_CASE("String(const CharT *ptr)", "[string]" ) {
+    std::string sstr("0123456789");
+    String ustr("0123456789");
+
+    REQUIRE(sstr == ustr);
+    REQUIRE(ustr == "0123456789");
+    REQUIRE(strlen(sstr.c_str()) == 10);
+    REQUIRE(strlen(ustr.c_str()) == 10);
+}
+
+TEST_CASE("BasicString<char32_t>(const CharT *ptr)", "[string]" ) {
+    std::basic_string<char32_t> sstr(U"0123456789");
+    BasicString<char32_t> ustr(U"0123456789");
+
+    REQUIRE(sstr == ustr);
+    REQUIRE(ustr == U"0123456789");
+    REQUIRE(sstr.length() == 10);
+    REQUIRE(ustr.length() == 10);
+}
+
+TEST_CASE("BasicString<char32_t>(const char *ptr)", "[string]" ) {
+    BasicString<char32_t> ustr("0123456789");
+
+    REQUIRE(ustr == "0123456789");
+    REQUIRE(ustr.length() == 10);
+}
+
+TEST_CASE("String(InputIt first, InputIt last)", "[string]" ) {
+    std::string sstr1("0123456789");
+    std::string sstr2 = std::string(sstr1.begin() + 3, sstr1.end());
+    String ustr1("0123456789");
+    String ustr2 = String(ustr1.begin() + 3, ustr1.end());
+
+    REQUIRE(ustr2 == sstr2);
+    REQUIRE(sstr2 == "3456789");
+    REQUIRE(ustr2 == "3456789");
+    REQUIRE(strlen(sstr2.c_str()) == 7);
+    REQUIRE(strlen(ustr2.c_str()) == 7);
+}
+
+TEST_CASE("String(std::initializer_list<CharT> ilist)", "[string]" ) {
+    std::string sstr({ 'a', 'b', 'c' });
+    String ustr({ 'a', 'b', 'c' });
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "abc");
+    REQUIRE(ustr == "abc");
+    REQUIRE(strlen(sstr.c_str()) == 3);
+    REQUIRE(strlen(ustr.c_str()) == 3);
+}
+
+TEST_CASE("String(const StringViewLikeT &t)", "[string]" ) {
+    std::string_view vstr("abc");
+    std::string_view vstr_view(vstr);
+    std::string sstr(vstr_view);
+    String ustr(vstr_view);
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "abc");
+    REQUIRE(ustr == "abc");
+    REQUIRE(strlen(sstr.c_str()) == 3);
+    REQUIRE(strlen(ustr.c_str()) == 3);
+}
+
+TEST_CASE("String(const StringViewLikeT &t, SizeType pos, SizeType count)", "[string]" ) {
+    std::string_view vstr("abcdefghij");
+    std::string_view vstr_view(vstr);
+    std::string sstr(vstr_view, 3, 4);
+    String ustr(vstr_view, 3, 4);
+
+    REQUIRE(ustr == sstr);
+    REQUIRE(sstr == "defg");
+    REQUIRE(ustr == "defg");
+    REQUIRE(strlen(sstr.c_str()) == 4);
+    REQUIRE(strlen(ustr.c_str()) == 4);
 }
 
 TEST_CASE("BasicString<Char32> override", "[string]" ) {

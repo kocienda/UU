@@ -213,67 +213,56 @@ public:
 
     // constructing ===============================================================================
 
-    constexpr BasicString() { null_terminate(); }
+    constexpr BasicString() noexcept { null_terminate(); }
     
     explicit BasicString(SizeType capacity) {
         ensure_capacity(capacity);
         null_terminate();
     }
     
-    BasicString(SizeType count, CharT c) {
-        append(count, c);
+    constexpr BasicString(SizeType count, CharT c) {
+        assign(count, c);
     }
 
-    BasicString(const BasicString &other, SizeType pos, SizeType count = npos) {
+    constexpr BasicString(const BasicString &other, SizeType pos, SizeType count = npos) {
         assign(other, pos, std::min(count, other.length() - pos));
     }
 
-    BasicString(const char *ptr, SizeType length) {
-        append(ptr, length);
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString(const char *ptr, SizeType length) {
+        assign(ptr, length);
     }
 
-    BasicString(const CharT *ptr) {
-        append(ptr, Traits::length(ptr));
+    constexpr BasicString(const CharT *ptr, SizeType length) {
+        assign(ptr, length);
     }
 
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    BasicString(const std::string &str) {
-        append(str.data(), str.length());
+    constexpr BasicString(const char *ptr) {
+        assign(ptr, strlen(ptr));
     }
 
-    BasicString(const std::basic_string<CharT> &str) {
-        append(str.data(), str.length());
-    }
-
-    BasicString(const std::basic_string_view<CharT> &str) {
-        append(str.data(), str.length());
-    }
-
-    BasicString(std::istream &in) {
-        char buffer[1024];
-        while (in.read(buffer, sizeof(buffer))) {
-            append((const Byte *)buffer, sizeof(buffer));
-        }
-        append(buffer, in.gcount());
+    constexpr BasicString(const CharT *ptr) {
+        assign(ptr, Traits::length(ptr));
     }
 
     template <typename InputIt, typename MaybeT = InputIt, 
         std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
-    BasicString(InputIt first, InputIt last) {
-        for (auto it = first; it != last; ++it) {
-            ensure_capacity(m_length + 1);
-            m_ptr[m_length] = *it;
-            m_length++;
-        }
-        null_terminate();
+    constexpr BasicString(InputIt first, InputIt last) {
+        assign(first, last);
     }
 
-    BasicString(std::initializer_list<CharT> ilist) {
-        insert(end(), ilist.begin(), ilist.end());
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    BasicString(const std::string &str) {
+        assign(str.data(), str.length());
+    }
+
+    BasicString(const std::basic_string<CharT> &str) {
+        assign(str.data(), str.length());
     }
 
     BasicString(const BasicString &other) {
-        append(other.data(), other.length());
+        assign(other.data(), other.length());
     }
 
     BasicString(BasicString &&other) {
@@ -284,8 +273,24 @@ public:
             other.reset();
         }
         else {
-            append(other.data(), other.length());
+            assign(other.data(), other.length());
         }
+    }
+
+    BasicString(std::initializer_list<CharT> ilist) {
+        assign(ilist);
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    BasicString(const StringViewLikeT &str) {
+        assign(str);
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    BasicString(const StringViewLikeT &str, SizeType pos, SizeType count = npos) {
+        assign(str, pos, count);
     }
 
     // destructor =================================================================================
@@ -664,16 +669,22 @@ public:
     template <typename InputIt, typename MaybeT = InputIt, 
         std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     constexpr BasicString &append(InputIt first, InputIt last) {
-        BasicString str(first, last);
-        append(str.data(), str.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
+        for (auto it = first; it != last; ++it) {
+            ensure_capacity(m_length + 1);
+            m_ptr[m_length] = *it;
+            m_length++;
+        }
+        null_terminate();
         return *this;
     }
 
     constexpr BasicString &append(std::initializer_list<CharT> ilist) {
-        BasicString str(ilist);
-        append(str.data(), str.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
+        for (auto it = ilist.begin(); it != ilist.end(); ++it) {
+            ensure_capacity(m_length + 1);
+            m_ptr[m_length] = *it;
+            m_length++;
+        }
+        null_terminate();
         return *this;
     }
 
@@ -803,18 +814,30 @@ public:
     template <typename InputIt, typename MaybeT = InputIt, 
         std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     iterator insert(const_iterator pos, InputIt first, InputIt last) {
-        BasicString str(first, last);
-        ptrdiff_t diff = pos - begin();
-        insert(diff, str, 0, str.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
+        ptrdiff_t count = last - first;
+        ensure_capacity(m_length + count);
+        iterator dst = iterator(pos);
+        Traits::move(dst + count, pos, end() - pos);
+        ptrdiff_t offset = pos - begin(); 
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[offset + idx] = *(first + idx);
+        }
+        m_length += count;
+        null_terminate();
         return iterator(pos);
     }
 
     constexpr iterator insert(const_iterator pos, std::initializer_list<CharT> ilist) {
-        BasicString str(ilist);
-        ptrdiff_t diff = pos - begin();
-        insert(diff, str, 0, str.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
+        ptrdiff_t count = ilist.size();
+        ensure_capacity(m_length + count);
+        iterator dst = iterator(pos);
+        Traits::move(dst + count, pos, end() - pos);
+        ptrdiff_t offset = pos - begin(); 
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[offset + idx] = *(ilist.begin() + idx);
+        }
+        m_length += count;
+        null_terminate();
         return iterator(pos);
     }
 
