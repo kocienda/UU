@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <initializer_list>
 #include <iostream>
 #include <iterator>
@@ -347,6 +348,28 @@ public:
         return length() >= len && Traits::compare(data() + pos, s, len) == 0;
     }
 
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr bool contains(const StringViewLikeT &t) const noexcept {
+        const auto searcher = std::boyer_moore_searcher(t.begin(), t.end());
+        auto it = std::search(begin(), end(), searcher);
+        return it != end();
+    }
+
+    constexpr bool contains(CharT c) const noexcept {
+        for (SizeType idx = 0; idx < length(); idx++) {
+            if (m_ptr[idx] == c) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    constexpr bool contains(const CharT *s) const {
+        BasicStringView needle(s, Traits::length(s));
+        return contains(needle);
+    }
+
     // resizing ===================================================================================
 
     void reserve(SizeType length) { ensure_capacity(length); }
@@ -506,7 +529,7 @@ public:
 
     constexpr BasicString &append(SizeType count, CharT c) {
         ensure_capacity(m_length + count);
-        for (int idx = 0; idx < count; idx++) {
+        for (SizeType idx = 0; idx < count; idx++) {
             m_ptr[m_length + idx] = c;
         }
         m_length += count;
@@ -536,7 +559,7 @@ public:
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     constexpr BasicString &append(const char *ptr, SizeType length) {
         ensure_capacity(m_length + length);
-        for (int idx = 0; idx < length; idx++) {
+        for (SizeType idx = 0; idx < length; idx++) {
             m_ptr[m_length + idx] = ptr[idx];
         }
         m_length += length;
@@ -556,7 +579,7 @@ public:
     constexpr BasicString &append(const char *ptr) {
         SizeType length = strlen(ptr);
         ensure_capacity(m_length + length);
-        for (int idx = 0; idx < length; idx++) {
+        for (SizeType idx = 0; idx < length; idx++) {
             m_ptr[idx + length] = ptr[idx];
         }
         m_length += length;
@@ -648,7 +671,7 @@ public:
         iterator dst = pos + count;
         Traits::move(dst, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
-        for (int idx = 0; idx < count; idx++) {
+        for (SizeType idx = 0; idx < count; idx++) {
             m_ptr[diff + idx] = c;
         }
         m_length += count;
@@ -704,7 +727,7 @@ public:
         iterator dst = iterator(pos);
         Traits::move(dst + count, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
-        for (int idx = 0; idx < count; idx++) {
+        for (SizeType idx = 0; idx < count; idx++) {
             m_ptr[diff + idx] = ch;
         }
         m_length += count;

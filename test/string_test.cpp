@@ -118,6 +118,63 @@ TEST_CASE("String::ends_with(const CharT *s)", "[string]" ) {
     REQUIRE_FALSE(str1.ends_with("012345"));
 }
 
+TEST_CASE("String::contains(const StringViewLikeT &t)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    String str2("0123456789abcdefghij");
+    REQUIRE(str1.contains(str2));
+
+    str2 = "abcdefghij";
+    REQUIRE(str1.contains(str2));
+
+    str2 = "6789abc";
+    REQUIRE(str1.contains(str2));
+
+    str2 = "j";
+    REQUIRE(str1.contains(str2));
+
+    str2 = "";
+    REQUIRE(str1.contains(str2));
+
+    str2 = "6789abce";
+    REQUIRE_FALSE(str1.contains(str2));
+
+    str2 = "0123456789abcdefghijk";
+    REQUIRE_FALSE(str1.contains(str2));
+
+    str2 = "0123459";
+    REQUIRE_FALSE(str1.contains(str2));
+}
+
+TEST_CASE("String::contains(CharT c)", "[string]" ) {
+    String str1("0123456789");
+    
+    REQUIRE(str1.contains('9'));
+    REQUIRE(str1.contains('0'));
+    REQUIRE(str1.contains('1'));
+    REQUIRE(str1.contains('5'));
+    REQUIRE_FALSE(str1.contains('a'));
+}
+
+TEST_CASE("String::contains(const CharT *s)", "[string]" ) {
+    String str1("0123456789abcdefghij");
+    
+    REQUIRE(str1.contains("0123456789abcdefghij"));
+    REQUIRE(str1.contains("abcdefghij"));
+    REQUIRE(str1.contains("789abcdef"));
+    REQUIRE(str1.contains("01"));
+    REQUIRE(str1.contains("12"));
+    REQUIRE(str1.contains("567"));
+    REQUIRE(str1.contains("0"));
+    REQUIRE(str1.contains("ij"));
+    REQUIRE(str1.contains("j"));
+    REQUIRE(str1.contains(""));
+    REQUIRE_FALSE(str1.contains("0123456789abcdefghijk"));
+    REQUIRE_FALSE(str1.contains("012345a"));
+    REQUIRE_FALSE(str1.contains("k"));
+    REQUIRE_FALSE(str1.contains("k"));
+}
+
 // assigning ======================================================================================
 
 TEST_CASE("String::assign(SizeType count, CharT c)", "[string]" ) {
