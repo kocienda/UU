@@ -198,6 +198,29 @@ TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos = 0)", "[string
     REQUIRE(c3 == 4);
 }
 
+// push and pop ===================================================================================
+
+TEST_CASE("String push and pop", "[string]" ) {
+    String ustr("12345");
+
+    ustr.push_back('6');
+    REQUIRE(ustr == "123456");
+    REQUIRE(ustr.length() == 6);
+
+    ustr.push('7');
+    REQUIRE(ustr == "1234567");
+    REQUIRE(ustr.length() == 7);
+
+    ustr.pop_back();
+    REQUIRE(ustr == "123456");
+    REQUIRE(ustr.length() == 6);
+
+    String::CharType c = ustr.pop();
+    REQUIRE(ustr == "12345");
+    REQUIRE(ustr.length() == 5);
+    REQUIRE(c == '6');
+}
+
 // assigning ======================================================================================
 
 TEST_CASE("String::assign(SizeType count, CharT c)", "[string]" ) {

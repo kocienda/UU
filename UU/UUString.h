@@ -185,19 +185,21 @@ private:
     }
 
 public:
-    // constants ==================================================================================
-
-    static constexpr SizeType InlineCapacity = S;
-    static constexpr const SizeType npos = SizeTypeMax;
-    static constexpr CharT empty_value = CharT();
 
     // using ======================================================================================
 
+    using CharType = CharT;
     using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
     using iterator = CharT *;
     using const_iterator = const CharT *;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
+
+    // constants ==================================================================================
+
+    static constexpr SizeType InlineCapacity = S;
+    static constexpr const SizeType npos = SizeTypeMax;
+    static constexpr CharT empty_value = 0;
 
     // constructing ===============================================================================
 
@@ -434,6 +436,33 @@ public:
         free(old_ptr);
         null_terminate();
         ASSERT(is_using_allocated_buffer());
+    }
+
+    // push and pop ===============================================================================
+
+    constexpr void push_back(CharT c) {
+        append(c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr void pop_back() {
+        erase(end() - 1);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr void push(CharT c) {
+        append(c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr CharT pop() {
+        if (UNLIKELY(length() == 0)) {
+            return empty_value;
+        }
+        CharT c = back();
+        pop_back();
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return c;
     }
 
     // assigning ==================================================================================
