@@ -251,8 +251,20 @@ TEST_CASE("String::contains(const StringViewLikeT &t)", "[string]" ) {
     str2 = "j";
     REQUIRE(str1.contains(str2));
 
-    str2 = "";
+    str2 = "01";
     REQUIRE(str1.contains(str2));
+
+    str2 = "12";
+    REQUIRE(str1.contains(str2));
+
+    str2 = "hi";
+    REQUIRE(str1.contains(str2));
+
+    str2 = "ij";
+    REQUIRE(str1.contains(str2));
+
+    str2 = "";
+    REQUIRE_FALSE(str1.contains(str2));
 
     str2 = "6789abce";
     REQUIRE_FALSE(str1.contains(str2));
@@ -286,7 +298,7 @@ TEST_CASE("String::contains(const CharT *s)", "[string]" ) {
     REQUIRE(str1.contains("0"));
     REQUIRE(str1.contains("ij"));
     REQUIRE(str1.contains("j"));
-    REQUIRE(str1.contains(""));
+    REQUIRE_FALSE(str1.contains(""));
     REQUIRE_FALSE(str1.contains("0123456789abcdefghijk"));
     REQUIRE_FALSE(str1.contains("012345a"));
     REQUIRE_FALSE(str1.contains("k"));

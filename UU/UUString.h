@@ -304,6 +304,7 @@ public:
     // accessors ==================================================================================
 
     constexpr CharT *data() const { return m_ptr; }
+    constexpr CharT *data() { return m_ptr; }
     constexpr SizeType length() const { return m_length; }
     constexpr SizeType size() const { return m_length; }
     constexpr SizeType max_size() const noexcept { return std::distance(begin(), end()); }
@@ -383,6 +384,22 @@ public:
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr bool contains(const StringViewLikeT &t) const noexcept {
+        if (t.length() == 0) {
+            return false;
+        }
+        else if (t.length() == 1) {
+            return contains(t[0]);
+        }
+        else if (t.length() == 2) {
+            const CharT a = t[0];
+            const CharT b = t[1];
+            for (SizeType idx = 0; idx < length() - 1; idx++) {
+                if (m_ptr[idx] == a && m_ptr[idx + 1] == b) {
+                    return true;
+                }
+            }
+            return false;
+        }
         const auto searcher = std::boyer_moore_searcher(t.begin(), t.end());
         auto it = std::search(begin(), end(), searcher);
         return it != end();
