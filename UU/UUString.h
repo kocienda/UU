@@ -25,6 +25,7 @@
 #ifndef UU_STRING_H
 #define UU_STRING_H
 
+#include "UU/Compiler.h"
 #include <UU/Assertions.h>
 #include <UU/MathLike.h>
 #include <UU/Types.h>
@@ -162,6 +163,16 @@ private:
         throw std::out_of_range(msg);
 #else
         return *this;
+#endif
+    }
+
+    UU_ALWAYS_INLINE SizeType return_zero_or_throw_out_of_range(SizeType pos) const { 
+#if UU_STRING_THROWS_EXCEPTIONS
+        BasicString<char, std::char_traits<char>, 64> msg("String access out of range: ");
+        msg.append_as_string(pos);
+        throw std::out_of_range(msg);
+#else
+        return 0;
 #endif
     }
 
@@ -368,6 +379,17 @@ public:
     constexpr bool contains(const CharT *s) const {
         BasicStringView needle(s, Traits::length(s));
         return contains(needle);
+    }
+
+    // copying =================================================================================---
+
+    constexpr SizeType copy(CharT* dst, SizeType count, SizeType pos = 0) const {
+        if (UNLIKELY(pos > length())) {
+            return_zero_or_throw_out_of_range(pos);
+        }
+        SizeType ecount = std::min(count, length() - pos);
+        Traits::copy(dst, begin() + pos, ecount);
+        return ecount;
     }
 
     // resizing ===================================================================================

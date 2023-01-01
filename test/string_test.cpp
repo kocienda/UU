@@ -36,7 +36,7 @@ TEST_CASE("BasicString<Char32> override", "[string]" ) {
     REQUIRE(strcmp(ustr1.c_str(), ustr2.c_str()) == 0);
 }
 
-// finding and related ============================================================================
+// starts_with ====================================================================================
 
 TEST_CASE("String::starts_with(const StringViewLikeT &t)", "[string]" ) {
     String str1("0123456789abcdefghij");
@@ -78,6 +78,8 @@ TEST_CASE("String::starts_with(const CharT *s)", "[string]" ) {
     REQUIRE_FALSE(str1.starts_with("abcdef"));
 }
 
+// ends_with ======================================================================================
+
 TEST_CASE("String::ends_with(const StringViewLikeT &t)", "[string]" ) {
     String str1("0123456789abcdefghij");
     
@@ -117,6 +119,8 @@ TEST_CASE("String::ends_with(const CharT *s)", "[string]" ) {
     REQUIRE_FALSE(str1.ends_with("0123456789abcdefghijk"));
     REQUIRE_FALSE(str1.ends_with("012345"));
 }
+
+// contains =======================================================================================
 
 TEST_CASE("String::contains(const StringViewLikeT &t)", "[string]" ) {
     String str1("0123456789abcdefghij");
@@ -173,6 +177,25 @@ TEST_CASE("String::contains(const CharT *s)", "[string]" ) {
     REQUIRE_FALSE(str1.contains("012345a"));
     REQUIRE_FALSE(str1.contains("k"));
     REQUIRE_FALSE(str1.contains("k"));
+}
+
+// copy ==========================================================================================
+
+TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos = 0)", "[string]" ) {
+    char buf[32];
+    String str("0123456789abcdefghij");
+    
+    SizeType c1 = str.copy(buf, 10);
+    REQUIRE(memcmp(buf, "0123456789", 10) == 0);
+    REQUIRE(c1 == 10);
+
+    SizeType c2 = str.copy(buf, 10, 5);
+    REQUIRE(memcmp(buf, "56789abcde", 10) == 0);
+    REQUIRE(c2 == 10);
+
+    SizeType c3 = str.copy(buf, 4, 16);
+    REQUIRE(memcmp(buf, "ghij", 4) == 0);
+    REQUIRE(c3 == 4);
 }
 
 // assigning ======================================================================================
