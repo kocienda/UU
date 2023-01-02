@@ -1507,27 +1507,27 @@ public:
     // iterators ==================================================================================
 
     constexpr iterator begin() {
-        return iterator::make(m_ptr);
+        return iterator(m_ptr);
     }
 
     constexpr const_iterator begin() const {
-        return iterator::make(m_ptr);
+        return iterator(m_ptr);
     }
 
     constexpr const_iterator cbegin() const {
-        return iterator::make(m_ptr);
+        return iterator(m_ptr);
     }
 
     constexpr iterator end() {
-        return iterator::make(m_ptr) + m_length;
+        return iterator(m_ptr) + m_length;
     }
 
     constexpr const_iterator end() const {
-        return iterator::make(m_ptr) + m_length;
+        return iterator(m_ptr) + m_length;
     }
 
     constexpr const_iterator cend() const {
-        return iterator::make(m_ptr) + m_length;
+        return iterator(m_ptr) + m_length;
     }
 
     constexpr reverse_iterator rbegin() {

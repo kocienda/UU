@@ -33,23 +33,20 @@
 
 namespace UU {
 
-template <typename Iterator>
+template <typename IteratorT>
 class IteratorWrapper
 {
 public:
-    using iterator_type = Iterator;
+    using iterator_type = IteratorT;
     using value_type = typename std::iterator_traits<iterator_type>::value_type;
     using difference_type = typename std::iterator_traits<iterator_type>::difference_type;
     using pointer = typename std::iterator_traits<iterator_type>::pointer;
     using reference = typename std::iterator_traits<iterator_type>::reference;
     using iterator_category = typename std::iterator_traits<iterator_type>::iterator_category;
 
-    static IteratorWrapper make(iterator_type &it) { return IteratorWrapper(it); }
-    static IteratorWrapper make(const iterator_type &it) { return IteratorWrapper(it); }
-
     constexpr IteratorWrapper() : m_it(nullptr) {}
-    constexpr explicit IteratorWrapper(Iterator &it) : m_it(it) {}
-    constexpr explicit IteratorWrapper(const Iterator &it) : m_it(it) {}
+    constexpr IteratorWrapper(iterator_type &it) : m_it(it) {}
+    IteratorWrapper(const iterator_type &it) : m_it(it) {}
 
     IteratorWrapper(const IteratorWrapper &t) : m_it(t.base()) {}
     IteratorWrapper &operator=(const IteratorWrapper &t) { m_it = t.base(); return *this; }
