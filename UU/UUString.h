@@ -356,7 +356,7 @@ public:
     }
 
     constexpr bool starts_with(CharT c) const noexcept {
-        return length() > 0 && m_ptr[0] == c;
+        return length() > 0 && Traits::eq(m_ptr[0], c);
     }
 
     constexpr bool starts_with(const CharT *s) const {
@@ -380,7 +380,7 @@ public:
     }
 
     constexpr bool ends_with(CharT c) const noexcept {
-        return length() > 0 && m_ptr[length() - 1] == c;
+        return length() > 0 && Traits::eq(m_ptr[length() - 1], c);
     }
 
     constexpr bool ends_with(const CharT *s) const {
@@ -421,7 +421,7 @@ public:
 
     constexpr SizeType find(CharT c, SizeType pos = 0) const noexcept {
         for (SizeType idx = pos; idx < length(); idx++) {
-            if (m_ptr[idx] == c) {
+            if (Traits::eq(m_ptr[idx], c)) {
                 return idx;
             }
         }
@@ -444,7 +444,7 @@ public:
             const CharT a = t[0];
             const CharT b = t[1];
             for (SizeType idx = pos; idx < length() - 1; idx++) {
-                if (m_ptr[idx] == a && m_ptr[idx + 1] == b) {
+                if (Traits::eq(m_ptr[idx], a) && Traits::eq(m_ptr[idx + 1], b)) {
                     return idx;
                 }
             }
@@ -453,7 +453,7 @@ public:
         else {
             const CharT a = t[0];
             for (SizeType idx = pos; idx <= length() - t.length(); idx++) {
-                if (m_ptr[idx] == a && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                if (Traits::eq(m_ptr[idx], a) && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
                     return idx;
                 }
             }
@@ -489,7 +489,7 @@ public:
             const CharT a = t[0];
             const CharT b = t[1];
             for (SizeType idx = pos; idx < length() - 1; idx++) {
-                if (m_ptr[idx] == a && m_ptr[idx + 1] == b) {
+                if (Traits::eq(m_ptr[idx], a) && Traits::eq(m_ptr[idx + 1], b)) {
                     return idx;
                 }
             }
@@ -523,7 +523,7 @@ public:
         }
         SizeType idx = std::min(pos, length() - 1);
         for (;;) {
-            if (m_ptr[idx] == c) {
+            if (Traits::eq(m_ptr[idx], c)) {
                 return idx;
             }
             if (idx == 0) {
@@ -551,7 +551,7 @@ public:
             const CharT b = t[1];
             SizeType idx = std::min(pos, length() - t.length());
             for (;;) {
-                if (m_ptr[idx] == a && m_ptr[idx + 1] == b) {
+                if (Traits::eq(m_ptr[idx], a) && Traits::eq(m_ptr[idx + 1], b)) {
                     return idx;
                 }
                 if (idx == 0) {
@@ -565,7 +565,7 @@ public:
             const CharT a = t[0];
             SizeType idx = std::min(pos, length() - t.length());
             for (;;) {
-                if (m_ptr[idx] == a && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                if (Traits::eq(m_ptr[idx], a) && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
                     return idx;
                 }
                 if (idx == 0) {
