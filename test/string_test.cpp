@@ -1235,9 +1235,31 @@ TEST_CASE("String::find_last_not_of(const String &s, SizeType pos)", "[string]" 
     REQUIRE(ustr1.find_last_not_of(String("k"), 2) == 2);
 }
 
+// replace ===========================================================================================
+
+TEST_CASE("String::replace(SizeType pos, SizeType count, const BasicString &str)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+    std::string sstr2("abcdefghij");
+
+    String ustr0("0123456789");
+    String ustr1;
+    String ustr2("abcdefghij");
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 0, sstr2);
+    REQUIRE(sstr1 == "abcdefghij0123456789");
+    REQUIRE(sstr1.length() == 20);
+
+    // ustr1 = ustr0;
+    // ustr1.replace(0, 0, ustr2);
+    // REQUIRE(ustr1 == "abcdefghij0123456789");
+    // REQUIRE(ustr1.length() == 20);
+}
+
 // copy ===========================================================================================
 
-TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos = 0)", "[string]" ) {
+TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos)", "[string]" ) {
     char buf[32];
     String str("0123456789abcdefghij");
     
@@ -1967,7 +1989,7 @@ TEST_CASE("String::insert(SizeType index, const StringViewLikeT &t)", "[string]"
     REQUIRE(strlen(ustr1.c_str()) == 13);
 }
 
-TEST_CASE("String::insert(SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count = npos)", "[string]" ) {
+TEST_CASE("String::insert(SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
 

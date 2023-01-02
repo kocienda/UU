@@ -27,6 +27,7 @@
 
 #include "UU/Compiler.h"
 #include <UU/Assertions.h>
+#include <UU/IteratorWrapper.h>
 #include <UU/MathLike.h>
 #include <UU/Types.h>
 
@@ -107,6 +108,22 @@ template <typename CharT, SizeType S = BasicStringDefaultSize, class Traits = st
 class BasicString
 {
 public:
+    // using ======================================================================================
+
+    using CharType = CharT;
+    using TraitsType = Traits;
+    using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
+    using iterator = IteratorWrapper<CharT *>;
+    using const_iterator = IteratorWrapper<const CharT *>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+
+    // constants ==================================================================================
+
+    static constexpr SizeType InlineCapacity = S;
+    static constexpr const SizeType npos = SizeTypeMax;
+    static constexpr CharT empty_value = 0;
+
     // public guts inspection =====================================================================
 
     template <bool B = true> constexpr bool is_using_inline_buffer() const { 
@@ -194,23 +211,17 @@ private:
         return a.is_same_string<B>(b); 
     }
 
+    UU_ALWAYS_INLINE iterator unconst_copy(const_iterator it) { 
+        return iterator(const_cast<CharT *>(it.base())); 
+    }
+
+    UU_ALWAYS_INLINE void reset() {
+        m_ptr = m_buf;
+        m_length = 0;
+        m_capacity = InlineCapacity;
+    }
+
 public:
-    // using ======================================================================================
-
-    using CharType = CharT;
-    using TraitsType = Traits;
-    using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
-    using iterator = CharT *;
-    using const_iterator = const CharT *;
-    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    using reverse_iterator = std::reverse_iterator<iterator>;
-
-    // constants ==================================================================================
-
-    static constexpr SizeType InlineCapacity = S;
-    static constexpr const SizeType npos = SizeTypeMax;
-    static constexpr CharT empty_value = 0;
-
     // constructing ===============================================================================
 
     constexpr BasicString() noexcept { null_terminate(); }
@@ -760,6 +771,94 @@ public:
         return npos;
     }
 
+    // replace ====================================================================================
+
+    constexpr BasicString &replace(SizeType pos, SizeType count, const BasicString &str) {
+        if (pos > length()) {
+            return_this_or_throw_out_of_range(pos);
+        }
+        if (count < str.length()) {
+            // move out
+            SizeType distance = str.length() - count;
+            ensure_capacity(distance + 1);
+            CharT *ptr_dst = begin() + pos + str.length();
+            CharT *ptr_src = begin() + pos + count;
+            Traits::move(ptr_dst, ptr_src, distance);
+        }
+        else if (count > str.length()) {
+            // move in
+            SizeType distance = count - str.length();
+            CharT *ptr_dst = begin() + pos + count;
+            CharT *ptr_src = begin() + pos + str.length();
+            Traits::move(ptr_dst, ptr_src, distance);
+        }
+        // overwrite
+        Traits::copy(begin() + pos, str.data(), str.length());
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &replace(const_iterator first, const_iterator last, const BasicString &str) {
+        return replace(static_cast<SizeType>(first - begin()), static_cast<SizeType>(last - first), str);
+    }
+
+    constexpr BasicString &replace(SizeType pos, SizeType count, const BasicString &str, SizeType pos2, SizeType count2 = npos) {
+        return *this;
+    }
+
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
+    constexpr BasicString &replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
+        return *this;
+    }
+
+    constexpr BasicString &replace(SizeType pos, SizeType count, const CharT *cstr, SizeType count2) {
+        return *this;
+    }
+
+    constexpr BasicString &replace(const_iterator first, const_iterator last, const CharT *cstr, SizeType count2) {
+        return *this;
+    }
+
+    constexpr BasicString &replace(SizeType pos, SizeType count, const CharT *cstr) {
+        return *this;
+    }
+
+    constexpr BasicString &replace(const_iterator first, const_iterator last, const CharT *cstr) {
+        return *this;
+    }
+
+    constexpr BasicString &replace(SizeType pos, SizeType count, SizeType count2, CharT c) {
+        return *this;
+    }
+
+    constexpr BasicString &replace(const_iterator first, const_iterator last, SizeType count2, CharT c) {
+        return *this;
+    }
+
+    constexpr BasicString &replace(const_iterator first, const_iterator last, std::initializer_list<CharT> ilist) {
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &replace(SizeType pos, SizeType count, const StringViewLikeT &t) {
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &replace(const_iterator first, const_iterator last, const StringViewLikeT &t) {
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &replace(SizeType pos, SizeType count, const StringViewLikeT &t, 
+        SizeType pos2, SizeType count2 = npos) {
+        return *this;
+    }
+
     // copy =======================================================================================
 
     constexpr SizeType copy(CharT* dst, SizeType count, SizeType pos = 0) const {
@@ -1148,17 +1247,17 @@ public:
 
     constexpr iterator insert(const_iterator pos, CharT ch) {
         ensure_capacity(m_length + 1);
-        iterator dst = iterator(pos);
+        iterator dst = unconst_copy(pos);
         Traits::move(dst + 1, pos, end() - pos);
         m_ptr[pos - begin()] = ch;
         m_length++;
         null_terminate();
-        return iterator(pos);
+        return dst;
     }
 
     constexpr iterator insert(const_iterator pos, SizeType count, CharT ch) {
         ensure_capacity(m_length + count);
-        iterator dst = iterator(pos);
+        iterator dst = unconst_copy(pos);
         Traits::move(dst + count, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
         for (SizeType idx = 0; idx < count; idx++) {
@@ -1166,7 +1265,7 @@ public:
         }
         m_length += count;
         null_terminate();
-        return iterator(pos);
+        return dst;
     }
 
     template <typename InputIt, typename MaybeT = InputIt, 
@@ -1174,7 +1273,7 @@ public:
     iterator insert(const_iterator pos, InputIt first, InputIt last) {
         ptrdiff_t count = last - first;
         ensure_capacity(m_length + count);
-        iterator dst = iterator(pos);
+        iterator dst = unconst_copy(pos);
         Traits::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
         for (SizeType idx = 0; idx < count; idx++) {
@@ -1182,13 +1281,13 @@ public:
         }
         m_length += count;
         null_terminate();
-        return iterator(pos);
+        return dst;
     }
 
     constexpr iterator insert(const_iterator pos, std::initializer_list<CharT> ilist) {
         ptrdiff_t count = ilist.size();
         ensure_capacity(m_length + count);
-        iterator dst = iterator(pos);
+        iterator dst = unconst_copy(pos);
         Traits::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
         for (SizeType idx = 0; idx < count; idx++) {
@@ -1196,7 +1295,7 @@ public:
         }
         m_length += count;
         null_terminate();
-        return iterator(pos);
+        return dst;
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
@@ -1255,7 +1354,7 @@ public:
         Traits::move(begin() + first_idx, begin() + last_idx, rem);
         m_length -= amt;
         null_terminate();
-        return iterator(first);
+        return unconst_copy(first);
     }
 
     // operator[] =================================================================================
@@ -1408,27 +1507,27 @@ public:
     // iterators ==================================================================================
 
     constexpr iterator begin() {
-        return m_ptr;
+        return iterator::make(m_ptr);
     }
 
     constexpr const_iterator begin() const {
-        return m_ptr;
+        return iterator::make(m_ptr);
     }
 
     constexpr const_iterator cbegin() const {
-        return m_ptr;
+        return iterator::make(m_ptr);
     }
 
     constexpr iterator end() {
-        return m_ptr + m_length;
+        return iterator::make(m_ptr) + m_length;
     }
 
     constexpr const_iterator end() const {
-        return m_ptr + m_length;
+        return iterator::make(m_ptr) + m_length;
     }
 
     constexpr const_iterator cend() const {
-        return m_ptr + m_length;
+        return iterator::make(m_ptr) + m_length;
     }
 
     constexpr reverse_iterator rbegin() {
@@ -1532,12 +1631,6 @@ public:
     }
 
 private:
-    void reset() {
-        m_ptr = m_buf;
-        m_length = 0;
-        m_capacity = InlineCapacity;
-    }
-
     void grow(SizeType new_capacity) {
         while (m_capacity < new_capacity) {
             m_capacity *= 2;

@@ -36,6 +36,7 @@ static constexpr int UU_FIXES_VERSION = 0;
 #include <UU/CloseGuard.h>
 #include <UU/Compiler.h>
 #include <UU/FileLike.h>
+#include <UU/IteratorWrapper.h>
 #include <UU/MappedFile.h>
 #include <UU/MathLike.h>
 #include <UU/Platform.h>

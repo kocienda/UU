@@ -40,6 +40,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/CloseGuard.h
   ${CODE_DIR}/Compiler.h
   ${CODE_DIR}/FileLike.h
+  ${CODE_DIR}/IteratorWrapper.h
   ${CODE_DIR}/MappedFile.h
   ${CODE_DIR}/MathLike.h
   ${CODE_DIR}/Platform.h
