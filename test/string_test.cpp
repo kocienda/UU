@@ -780,6 +780,13 @@ TEST_CASE("String::rfind(const CharT *s, SizeType pos, SizeType count)", "[strin
     REQUIRE(ustr1.rfind("k", 0, 1) == String::npos);
     REQUIRE(sstr1.rfind("k", 2, 1) == String::npos);
     REQUIRE(ustr1.rfind("k", 2, 1) == String::npos);
+    REQUIRE(sstr1.rfind("", String::npos) == sstr1.length());
+    REQUIRE(ustr1.rfind("", String::npos) == ustr1.length());
+
+    std::string sstr2;
+    String ustr2;
+    REQUIRE(sstr2.rfind("", String::npos) == 0);
+    REQUIRE(ustr2.rfind("", String::npos) == 0);
 }
 
 // copy ===========================================================================================

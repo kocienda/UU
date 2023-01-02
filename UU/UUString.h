@@ -505,16 +505,16 @@ public:
     // rfind =======================================================================================
 
     constexpr SizeType rfind( const BasicString &str, SizeType pos = npos) const noexcept {
-        return str.length() == 0 ? pos : rfind(BasicStringView(str), pos);
+        return str.length() == 0 ? std::min(pos, length()) : rfind(BasicStringView(str), pos);
     }
 
     constexpr SizeType rfind(const CharT *s, SizeType pos, SizeType count) const {
-        return count == 0 ? pos : rfind(BasicStringView(s, count), pos);
+        return count == 0 ? std::min(pos, length()) : rfind(BasicStringView(s, count), pos);
     }
 
     constexpr SizeType rfind(const CharT *s, SizeType pos = npos) const {
         SizeType len = Traits::length(s);
-        return len == 0 ? pos : rfind(BasicStringView(s, len), pos);
+        return len == 0 ? std::min(pos, length()) : rfind(BasicStringView(s, len), pos);
     }
 
     constexpr SizeType rfind(CharT c, SizeType pos = npos) const noexcept {
@@ -537,8 +537,11 @@ public:
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr SizeType rfind(const StringViewLikeT &t, SizeType pos = npos) const noexcept {
+        if (length() == 0) {
+            return npos;
+        }
         if (t.length() == 0) {
-            return pos;
+            return std::min(pos, length());
         }
         if (t.length() > length()) {
             return npos;
