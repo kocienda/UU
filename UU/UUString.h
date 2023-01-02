@@ -661,6 +661,48 @@ public:
         return npos;
     }
 
+    // find_last_of ==============================================================================
+
+    constexpr SizeType find_last_of(const BasicString &str, SizeType pos = npos) const noexcept {
+        return find_last_of(BasicStringView(str), pos);
+    }
+
+    constexpr SizeType find_last_of(const CharT *s, SizeType pos, SizeType count) const {
+        return find_last_of(BasicStringView(s, count), pos);
+    }
+
+    constexpr SizeType find_last_of(const CharT *s, SizeType pos = npos) const {
+        return find_last_of(BasicStringView(s, Traits::length(s)), pos);
+    }
+
+    constexpr SizeType find_last_of(CharT c, SizeType pos = npos) const noexcept {
+        return rfind(c, pos);
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr SizeType find_last_of(const StringViewLikeT &t, SizeType pos = npos) const noexcept {
+        if (length() == 0) {
+            return npos;
+        }
+        if (t.length() == 0) {
+            return npos;
+        }
+        SizeType idx = std::min(pos, length() - 1);
+        for (;;) {
+            for (SizeType cidx = 0; cidx < t.length(); cidx++) {
+                if (Traits::eq(m_ptr[idx], t[cidx])) {
+                    return idx;
+                }
+            }
+            if (idx == 0) {
+                break;
+            }
+            idx--;
+        }
+        return npos;
+    }
+
     // copy =======================================================================================
 
     constexpr SizeType copy(CharT* dst, SizeType count, SizeType pos = 0) const {
