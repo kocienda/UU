@@ -789,6 +789,114 @@ TEST_CASE("String::rfind(const CharT *s, SizeType pos, SizeType count)", "[strin
     REQUIRE(ustr2.rfind("", String::npos) == 0);
 }
 
+// find_first_of ==================================================================================
+
+TEST_CASE("String::find_first_of(CharT c, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+    
+    REQUIRE(sstr1.find_first_of("9") == 9);
+    REQUIRE(ustr1.find_first_of("9") == 9);
+    REQUIRE(sstr1.find_first_of("9", 3) == 9);
+    REQUIRE(ustr1.find_first_of("9", 3) == 9);
+    REQUIRE(sstr1.find_first_of("9", 10) == String::npos);
+    REQUIRE(ustr1.find_first_of("9", 10) == String::npos);
+    REQUIRE(sstr1.find_first_of("0") == 0);
+    REQUIRE(ustr1.find_first_of("0") == 0);
+    REQUIRE(sstr1.find_first_of("0", 1) == String::npos);
+    REQUIRE(ustr1.find_first_of("0", 1) == String::npos);
+    REQUIRE(sstr1.find_first_of("1") == 1);
+    REQUIRE(ustr1.find_first_of("1") == 1);
+    REQUIRE(sstr1.find_first_of("1", 5) == String::npos);
+    REQUIRE(ustr1.find_first_of("1", 5) == String::npos);
+    REQUIRE(sstr1.find_first_of("5", 2) == 5);
+    REQUIRE(ustr1.find_first_of("5", 2) == 5);
+    REQUIRE(sstr1.find_first_of("5", 7) == String::npos);
+    REQUIRE(ustr1.find_first_of("5", 7) == String::npos);
+    REQUIRE(sstr1.find_first_of("5") == 5);
+    REQUIRE(ustr1.find_first_of("5") == 5);
+    REQUIRE(sstr1.find_first_of("a") == String::npos);
+    REQUIRE(ustr1.find_first_of("a") == String::npos);
+    REQUIRE(sstr1.find_first_of("a", 5) == String::npos);
+    REQUIRE(ustr1.find_first_of("a", 5) == String::npos);
+}
+
+TEST_CASE("String::find_first_of(const String &s, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+    
+    REQUIRE(sstr1.find_first_of(std::string("0123456789abcdefghij")) == 0);
+    REQUIRE(ustr1.find_first_of(String("0123456789abcdefghij")) == 0);
+    REQUIRE(sstr1.find_first_of(std::string("0123456789abcdefghij"), 5) == 5);
+    REQUIRE(ustr1.find_first_of(String("0123456789abcdefghij"), 5) == 5);
+    REQUIRE(sstr1.find_first_of(std::string("abcdefghij")) == 10);
+    REQUIRE(ustr1.find_first_of(String("abcdefghij")) == 10);
+    REQUIRE(sstr1.find_first_of(std::string("abcdefghij"), 3) == 10);
+    REQUIRE(ustr1.find_first_of(String("abcdefghij"), 3) == 10);
+    REQUIRE(sstr1.find_first_of(std::string("789abcdef")) == 7);
+    REQUIRE(ustr1.find_first_of(String("789abcdef")) == 7);
+    REQUIRE(sstr1.find_first_of(std::string("789abcdef"), 2) == 7);
+    REQUIRE(ustr1.find_first_of(String("789abcdef"), 2) == 7);
+    REQUIRE(sstr1.find_first_of(std::string("abcdef789abcdef"), 2) == 7);
+    REQUIRE(ustr1.find_first_of(String("abcdef789abcdef"), 2) == 7);
+    REQUIRE(sstr1.find_first_of(std::string("01")) == 0);
+    REQUIRE(ustr1.find_first_of(String("01")) == 0);
+    REQUIRE(sstr1.find_first_of(std::string("01"), 1) == 1);
+    REQUIRE(ustr1.find_first_of(String("01"), 1) == 1);
+    REQUIRE(sstr1.find_first_of(std::string("12")) == 1);
+    REQUIRE(ustr1.find_first_of(String("12")) == 1);
+    REQUIRE(sstr1.find_first_of(std::string("12"), 1) == 1);
+    REQUIRE(ustr1.find_first_of(String("12"), 1) == 1);
+    REQUIRE(sstr1.find_first_of(std::string("12"), 2) == 2);
+    REQUIRE(ustr1.find_first_of(String("12"), 2) == 2);
+    REQUIRE(sstr1.find_first_of(std::string("12"), 3) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("12"), 3) == String::npos);
+    REQUIRE(sstr1.find_first_of(std::string("567")) == 5);
+    REQUIRE(ustr1.find_first_of(String("567")) == 5);
+    REQUIRE(sstr1.find_first_of(std::string("567"), 2) == 5);
+    REQUIRE(ustr1.find_first_of(String("567"), 2) == 5);
+    REQUIRE(sstr1.find_first_of(std::string("567"), 7) == 7);
+    REQUIRE(ustr1.find_first_of(String("567"), 7) == 7);
+    REQUIRE(sstr1.find_first_of(std::string("567"), 9) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("567"), 9) == String::npos);
+    REQUIRE(sstr1.find_first_of(std::string("0")) == 0);
+    REQUIRE(ustr1.find_first_of(String("0")) == 0);
+    REQUIRE(sstr1.find_first_of(std::string("0"), 1) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("0"), 1) == String::npos);
+    REQUIRE(sstr1.find_first_of(std::string("ij")) == 18);
+    REQUIRE(ustr1.find_first_of(String("ij")) == 18);
+    REQUIRE(sstr1.find_first_of(std::string("ij"), 10) == 18);
+    REQUIRE(ustr1.find_first_of(String("ij"), 10) == 18);
+    REQUIRE(sstr1.find_first_of(std::string("ij"), 19) == 19);
+    REQUIRE(ustr1.find_first_of(String("ij"), 19) == 19);
+    REQUIRE(sstr1.find_first_of(std::string("ij"), 20) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("ij"), 20) == String::npos);
+    REQUIRE(sstr1.find_first_of(std::string("j")) == 19);
+    REQUIRE(ustr1.find_first_of(String("j")) == 19);
+    REQUIRE(sstr1.find_first_of(std::string("j"), 5) == 19);
+    REQUIRE(ustr1.find_first_of(String("j"), 5) == 19);
+    REQUIRE(sstr1.find_first_of(std::string("j"), 19) == 19);
+    REQUIRE(ustr1.find_first_of(String("j"), 19) == 19);
+    REQUIRE(sstr1.find_first_of(std::string("j"), 20) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("j"), 20) == String::npos);
+    REQUIRE(sstr1.find_first_of(std::string("")) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("")) == String::npos);
+    REQUIRE(sstr1.find_first_of(std::string("0123456789abcdefghijk")) == 0);
+    REQUIRE(ustr1.find_first_of(String("0123456789abcdefghijk")) == 0);
+    REQUIRE(sstr1.find_first_of(std::string("0123456789abcdefghijk"), 5) == 5);
+    REQUIRE(ustr1.find_first_of(String("0123456789abcdefghijk"), 5) == 5);
+    REQUIRE(sstr1.find_first_of(std::string("abcdef012345")) == 0);
+    REQUIRE(ustr1.find_first_of(String("abcdef012345")) == 0);
+    REQUIRE(sstr1.find_first_of(std::string("012345a")) == 0);
+    REQUIRE(ustr1.find_first_of(String("012345a")) == 0);
+    REQUIRE(sstr1.find_first_of(std::string("012345a"), 3) == 3);
+    REQUIRE(ustr1.find_first_of(String("012345a"), 3) == 3);
+    REQUIRE(sstr1.find_first_of(std::string("k")) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("k")) == String::npos);
+    REQUIRE(sstr1.find_first_of(std::string("k"), 2) == String::npos);
+    REQUIRE(ustr1.find_first_of(String("k"), 2) == String::npos);
+}
+
 // copy ===========================================================================================
 
 TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos = 0)", "[string]" ) {

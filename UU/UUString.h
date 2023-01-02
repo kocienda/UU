@@ -582,6 +582,40 @@ public:
 
     // copy =======================================================================================
 
+    constexpr SizeType find_first_of(const BasicString &str, SizeType pos = 0) const noexcept {
+        return find_first_of(BasicStringView(str), pos);
+    }
+
+    constexpr SizeType find_first_of(const CharT *s, SizeType pos, SizeType count) const {
+        return find_first_of(BasicStringView(s, count), pos);
+    }
+
+    constexpr SizeType find_first_of(const CharT *s, SizeType pos = 0) const {
+        return find_first_of(BasicStringView(s, Traits::length(s)), pos);
+    }
+
+    constexpr SizeType find_first_of(CharT c, SizeType pos = 0) const noexcept {
+        return find(c, pos);
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr SizeType find_first_of(const StringViewLikeT &t, SizeType pos = 0) const noexcept {
+        if (pos > length()) {
+            return npos;
+        }
+        for (SizeType idx = pos; idx < length(); idx++) {
+            for (SizeType cidx = 0; cidx < t.length(); cidx++) {
+                if (Traits::eq(m_ptr[idx], t[cidx])) {
+                    return idx;
+                }
+            }
+        }
+        return npos;
+    }
+
+    // copy =======================================================================================
+
     constexpr SizeType copy(CharT* dst, SizeType count, SizeType pos = 0) const {
         if (UNLIKELY(pos > length())) {
             return_zero_or_throw_out_of_range(pos);
