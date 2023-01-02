@@ -2310,6 +2310,149 @@ TEST_CASE("String::operator+=(CharT c)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 11);
 }
 
+// operator+= =====================================================================================
+
+TEST_CASE("String::operator+(const String &a, const String &b)", "[string]" ) {
+    std::string sstr1("hello ");
+    String ustr1("hello ");
+    std::string sstr1a("world!");
+    String ustr1a("world!");
+
+    std::string sstr2 = sstr1 + sstr1a;
+    String ustr2 = ustr1 + ustr1a;
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello world!");
+    REQUIRE(ustr2 == "hello world!");
+    REQUIRE(sstr2.length() == 12);
+    REQUIRE(ustr2.length() == 12);
+}
+
+TEST_CASE("String::operator+(const String &a, CharT b)", "[string]" ) {
+    std::string sstr1("hello");
+    String ustr1("hello");
+
+    std::string sstr2 = sstr1 + '!';
+    String ustr2 = ustr1 + '!';
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello!");
+    REQUIRE(ustr2 == "hello!");
+    REQUIRE(sstr2.length() == 6);
+    REQUIRE(ustr2.length() == 6);
+}
+
+TEST_CASE("String::operator+(const CharT *a, const String &b)", "[string]" ) {
+    std::string sstr1("world!");
+    String ustr1("world!");
+
+    std::string sstr2 = "hello " + sstr1;
+    String ustr2 = "hello " + ustr1;
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello world!");
+    REQUIRE(ustr2 == "hello world!");
+    REQUIRE(sstr2.length() == 12);
+    REQUIRE(ustr2.length() == 12);
+}
+
+TEST_CASE("String::operator+(CharT a, const String &b)", "[string]" ) {
+    std::string sstr1("hello");
+    String ustr1("hello");
+
+    std::string sstr2 = '!' + sstr1;
+    String ustr2 = '!' + ustr1;
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "!hello");
+    REQUIRE(ustr2 == "!hello");
+    REQUIRE(sstr2.length() == 6);
+    REQUIRE(ustr2.length() == 6);
+}
+
+TEST_CASE("String::operator+(const String &&a, const String &&b)", "[string]" ) {
+    std::string sstr2 = std::string("hello ") + std::string("world!");
+    String ustr2 = String("hello ") + String("world!");
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello world!");
+    REQUIRE(ustr2 == "hello world!");
+    REQUIRE(sstr2.length() == 12);
+    REQUIRE(ustr2.length() == 12);
+}
+
+TEST_CASE("String::operator+(const String &&a, const String &b)", "[string]" ) {
+    std::string sstr1("world!");
+    String ustr1("world!");
+
+    std::string sstr2 = std::string("hello ") + sstr1;
+    String ustr2 = BasicString("hello ") + ustr1;
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello world!");
+    REQUIRE(ustr2 == "hello world!");
+    REQUIRE(sstr2.length() == 12);
+    REQUIRE(ustr2.length() == 12);
+}
+
+TEST_CASE("String::operator+(const String &&a, const CharT *b)", "[string]" ) {
+    std::string sstr2 = std::string("hello ") + "world!";
+    String ustr2 = BasicString("hello ") + "world!";
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello world!");
+    REQUIRE(ustr2 == "hello world!");
+    REQUIRE(sstr2.length() == 12);
+    REQUIRE(ustr2.length() == 12);
+}
+
+TEST_CASE("String::operator+(const String &&a, CharT b)", "[string]" ) {
+    std::string sstr2 = std::string("hello") + '!';
+    String ustr2 = BasicString("hello") + '!';
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello!");
+    REQUIRE(ustr2 == "hello!");
+    REQUIRE(sstr2.length() == 6);
+    REQUIRE(ustr2.length() == 6);
+}
+
+TEST_CASE("String::operator+(const String &a, const String &&b)", "[string]" ) {
+    std::string sstr1("hello ");
+    String ustr1("hello ");
+
+    std::string sstr2 = sstr1 + std::string("world!");
+    String ustr2 = ustr1 + BasicString("world!");
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello world!");
+    REQUIRE(ustr2 == "hello world!");
+    REQUIRE(sstr2.length() == 12);
+    REQUIRE(ustr2.length() == 12);
+}
+
+TEST_CASE("String::operator+(const CharT *a, const String &&b)", "[string]" ) {
+    std::string sstr2 = "hello " + std::string("world!");
+    String ustr2 = "hello " + BasicString("world!");
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "hello world!");
+    REQUIRE(ustr2 == "hello world!");
+    REQUIRE(sstr2.length() == 12);
+    REQUIRE(ustr2.length() == 12);
+}
+
+TEST_CASE("String::operator+(CharT a, const String &&b)", "[string]" ) {
+    std::string sstr2 = '!' + std::string("hello");
+    String ustr2 = '!' + BasicString("hello");
+
+    REQUIRE(sstr2 == ustr2);
+    REQUIRE(sstr2 == "!hello");
+    REQUIRE(ustr2 == "!hello");
+    REQUIRE(sstr2.length() == 6);
+    REQUIRE(ustr2.length() == 6);
+}
+
 // inserting ======================================================================================
 
 TEST_CASE("String::insert(SizeType index, SizeType count, CharT c)", "[string]" ) {

@@ -104,7 +104,7 @@ constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, Traits> &&
 // BasicString class
 //
 
-template <typename CharT, SizeType S = BasicStringDefaultSize, class Traits = std::char_traits<CharT>>
+template <typename CharT, SizeType S = BasicStringDefaultSize, typename Traits = std::char_traits<CharT>>
 class BasicString
 {
 public:
@@ -1668,12 +1668,109 @@ private:
     SizeType m_capacity = InlineCapacity;
 };
 
-template <typename CharT, SizeType S, class Traits>
+template <typename CharT, SizeType S, typename Traits>
 std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const BasicString<CharT, S, Traits> &str)
 {
     os.write(str.data(), str.length());
     return os;
 }
+
+// operator+ ======================================================================================
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs,
+    const BasicString<CharT, S, Traits> &rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs, 
+    const CharT* rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs, CharT rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const CharT* lhs, 
+    const BasicString<CharT, S, Traits> &rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(CharT lhs, const BasicString<CharT, S, Traits> &rhs) {
+        BasicString<CharT, S, Traits> str(1, lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs,
+    const BasicString<CharT, S, Traits> &&rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs,
+    const BasicString<CharT, S, Traits> &rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs,
+    const CharT *rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs, CharT rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs,
+    const BasicString<CharT, S, Traits> &&rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(const CharT *lhs, 
+    const BasicString<CharT, S, Traits> &&rhs) {
+        BasicString<CharT, S, Traits> str(lhs);
+        str += rhs;
+        return str;
+}
+
+template <typename CharT, SizeType S, typename Traits>
+BasicString<CharT, S, Traits> operator+(CharT lhs,
+    const BasicString<CharT, S, Traits> &&rhs) {
+        BasicString<CharT, S, Traits> str(1, lhs);
+        str += rhs;
+        return str;
+}
+
+// String =========================================================================================
 
 using String = BasicString<char, BasicStringDefaultSize>;
 using StringView = BasicString<char, BasicStringDefaultSize>::BasicStringView;
