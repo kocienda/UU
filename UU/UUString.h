@@ -580,7 +580,7 @@ public:
         }
     }
 
-    // copy =======================================================================================
+    // find_first_of ==============================================================================
 
     constexpr SizeType find_first_of(const BasicString &str, SizeType pos = 0) const noexcept {
         return find_first_of(BasicStringView(str), pos);
@@ -609,6 +609,53 @@ public:
                 if (Traits::eq(m_ptr[idx], t[cidx])) {
                     return idx;
                 }
+            }
+        }
+        return npos;
+    }
+
+    // find_first_not_of ==========================================================================
+
+    constexpr SizeType find_first_not_of(const BasicString &str, SizeType pos = 0) const noexcept {
+        return find_first_not_of(BasicStringView(str), pos);
+    }
+
+    constexpr SizeType find_first_not_of(const CharT *s, SizeType pos, SizeType count) const {
+        return find_first_not_of(BasicStringView(s, count), pos);
+    }
+
+    constexpr SizeType find_first_not_of(const CharT *s, SizeType pos = 0) const {
+        return find_first_not_of(BasicStringView(s, Traits::length(s)), pos);
+    }
+
+    constexpr SizeType find_first_not_of(CharT c, SizeType pos = 0) const noexcept {
+        if (pos > length()) {
+            return npos;
+        }
+        for (SizeType idx = pos; idx < length(); idx++) {
+            if (!Traits::eq(m_ptr[idx], c)) {
+                return idx;
+            }
+        }
+        return npos;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr SizeType find_first_not_of(const StringViewLikeT &t, SizeType pos = 0) const noexcept {
+        if (pos > length()) {
+            return npos;
+        }
+        for (SizeType idx = pos; idx < length(); idx++) {
+            bool match = false;
+            for (SizeType cidx = 0; cidx < t.length(); cidx++) {
+                if (Traits::eq(m_ptr[idx], t[cidx])) {
+                    match = true;
+                    break;
+                }
+            }
+            if (!match) {
+                return idx;
             }
         }
         return npos;

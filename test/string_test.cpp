@@ -897,6 +897,114 @@ TEST_CASE("String::find_first_of(const String &s, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find_first_of(String("k"), 2) == String::npos);
 }
 
+// find_first_not_of ==============================================================================
+
+TEST_CASE("String::find_first_not_of(CharT c, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+    
+    REQUIRE(sstr1.find_first_not_of("9") == 0);
+    REQUIRE(ustr1.find_first_not_of("9") == 0);
+    REQUIRE(sstr1.find_first_not_of("9", 3) == 3);
+    REQUIRE(ustr1.find_first_not_of("9", 3) == 3);
+    REQUIRE(sstr1.find_first_not_of("9", 10) == String::npos);
+    REQUIRE(ustr1.find_first_not_of("9", 10) == String::npos);
+    REQUIRE(sstr1.find_first_not_of("0") == 1);
+    REQUIRE(ustr1.find_first_not_of("0") == 1);
+    REQUIRE(sstr1.find_first_not_of("0", 1) == 1);
+    REQUIRE(ustr1.find_first_not_of("0", 1) == 1);
+    REQUIRE(sstr1.find_first_not_of("1") == 0);
+    REQUIRE(ustr1.find_first_not_of("1") == 0);
+    REQUIRE(sstr1.find_first_not_of("1", 5) == 5);
+    REQUIRE(ustr1.find_first_not_of("1", 5) == 5);
+    REQUIRE(sstr1.find_first_not_of("5", 2) == 2);
+    REQUIRE(ustr1.find_first_not_of("5", 2) == 2);
+    REQUIRE(sstr1.find_first_not_of("5", 7) == 7);
+    REQUIRE(ustr1.find_first_not_of("5", 7) == 7);
+    REQUIRE(sstr1.find_first_not_of("5") == 0);
+    REQUIRE(ustr1.find_first_not_of("5") == 0);
+    REQUIRE(sstr1.find_first_not_of("a") == 0);
+    REQUIRE(ustr1.find_first_not_of("a") == 0);
+    REQUIRE(sstr1.find_first_not_of("a", 5) == 5);
+    REQUIRE(ustr1.find_first_not_of("a", 5) == 5);
+}
+
+TEST_CASE("String::find_first_not_of(const String &s, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+    
+    REQUIRE(sstr1.find_first_not_of(std::string("0123456789abcdefghij")) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("0123456789abcdefghij")) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("0123456789abcdefghij"), 5) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("0123456789abcdefghij"), 5) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("abcdefghij")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("abcdefghij")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("abcdefghij"), 3) == 3);
+    REQUIRE(ustr1.find_first_not_of(String("abcdefghij"), 3) == 3);
+    REQUIRE(sstr1.find_first_not_of(std::string("789abcdef")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("789abcdef")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("789abcdef"), 2) == 2);
+    REQUIRE(ustr1.find_first_not_of(String("789abcdef"), 2) == 2);
+    REQUIRE(sstr1.find_first_not_of(std::string("abcdef789abcdef"), 2) == 2);
+    REQUIRE(ustr1.find_first_not_of(String("abcdef789abcdef"), 2) == 2);
+    REQUIRE(sstr1.find_first_not_of(std::string("01")) == 2);
+    REQUIRE(ustr1.find_first_not_of(String("01")) == 2);
+    REQUIRE(sstr1.find_first_not_of(std::string("01"), 1) == 2);
+    REQUIRE(ustr1.find_first_not_of(String("01"), 1) == 2);
+    REQUIRE(sstr1.find_first_not_of(std::string("12")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("12")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("12"), 1) == 3);
+    REQUIRE(ustr1.find_first_not_of(String("12"), 1) == 3);
+    REQUIRE(sstr1.find_first_not_of(std::string("12"), 2) == 3);
+    REQUIRE(ustr1.find_first_not_of(String("12"), 2) == 3);
+    REQUIRE(sstr1.find_first_not_of(std::string("12"), 3) == 3);
+    REQUIRE(ustr1.find_first_not_of(String("12"), 3) == 3);
+    REQUIRE(sstr1.find_first_not_of(std::string("567")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("567")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("567"), 2) == 2);
+    REQUIRE(ustr1.find_first_not_of(String("567"), 2) == 2);
+    REQUIRE(sstr1.find_first_not_of(std::string("567"), 7) == 8);
+    REQUIRE(ustr1.find_first_not_of(String("567"), 7) == 8);
+    REQUIRE(sstr1.find_first_not_of(std::string("567"), 9) == 9);
+    REQUIRE(ustr1.find_first_not_of(String("567"), 9) == 9);
+    REQUIRE(sstr1.find_first_not_of(std::string("0")) == 1);
+    REQUIRE(ustr1.find_first_not_of(String("0")) == 1);
+    REQUIRE(sstr1.find_first_not_of(std::string("0"), 1) == 1);
+    REQUIRE(ustr1.find_first_not_of(String("0"), 1) == 1);
+    REQUIRE(sstr1.find_first_not_of(std::string("ij")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("ij")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("ij"), 10) == 10);
+    REQUIRE(ustr1.find_first_not_of(String("ij"), 10) == 10);
+    REQUIRE(sstr1.find_first_not_of(std::string("ij"), 19) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("ij"), 19) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("ij"), 20) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("ij"), 20) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("j")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("j")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("j"), 5) == 5);
+    REQUIRE(ustr1.find_first_not_of(String("j"), 5) == 5);
+    REQUIRE(sstr1.find_first_not_of(std::string("j"), 19) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("j"), 19) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("j"), 20) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("j"), 20) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("0123456789abcdefghijk")) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("0123456789abcdefghijk")) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("0123456789abcdefghijk"), 5) == String::npos);
+    REQUIRE(ustr1.find_first_not_of(String("0123456789abcdefghijk"), 5) == String::npos);
+    REQUIRE(sstr1.find_first_not_of(std::string("abcdef012345")) == 6);
+    REQUIRE(ustr1.find_first_not_of(String("abcdef012345")) == 6);
+    REQUIRE(sstr1.find_first_not_of(std::string("012345a")) == 6);
+    REQUIRE(ustr1.find_first_not_of(String("012345a")) == 6);
+    REQUIRE(sstr1.find_first_not_of(std::string("012345a"), 3) == 6);
+    REQUIRE(ustr1.find_first_not_of(String("012345a"), 3) == 6);
+    REQUIRE(sstr1.find_first_not_of(std::string("k")) == 0);
+    REQUIRE(ustr1.find_first_not_of(String("k")) == 0);
+    REQUIRE(sstr1.find_first_not_of(std::string("k"), 2) == 2);
+    REQUIRE(ustr1.find_first_not_of(String("k"), 2) == 2);
+}
+
 // copy ===========================================================================================
 
 TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos = 0)", "[string]" ) {
