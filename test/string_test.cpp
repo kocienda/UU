@@ -666,7 +666,123 @@ TEST_CASE("String::find_boyer_moore(const String &s, SizeType pos)", "[string]" 
     REQUIRE(ustr1.find_boyer_moore(String("k"), 2) == String::npos);
 }
 
-// copy ==========================================================================================
+// rfind ==========================================================================================
+
+TEST_CASE("String::rfind(CharT c, SizeType pos)", "[string]" ) {
+    std::string sstr1("0123456789");
+    String ustr1("0123456789");
+    
+    REQUIRE(sstr1.rfind('9') == 9);
+    REQUIRE(ustr1.rfind('9') == 9);
+    REQUIRE(sstr1.rfind('9', 3) == String::npos);
+    REQUIRE(ustr1.rfind('9', 3) == String::npos);
+    REQUIRE(sstr1.rfind('9', 10) == 9);
+    REQUIRE(ustr1.rfind('9', 10) == 9);
+    REQUIRE(sstr1.rfind('0') == 0);
+    REQUIRE(ustr1.rfind('0') == 0);
+    REQUIRE(sstr1.rfind('0', 1) == 0);
+    REQUIRE(ustr1.rfind('0', 1) == 0);
+    REQUIRE(sstr1.rfind('1') == 1);
+    REQUIRE(ustr1.rfind('1') == 1);
+    REQUIRE(sstr1.rfind('1', 5) == 1);
+    REQUIRE(ustr1.rfind('1', 5) == 1);
+    REQUIRE(sstr1.rfind('1', 0) == String::npos);
+    REQUIRE(ustr1.rfind('1', 0) == String::npos);
+    REQUIRE(sstr1.rfind('5', 2) == String::npos);
+    REQUIRE(ustr1.rfind('5', 2) == String::npos);
+    REQUIRE(sstr1.rfind('5', 7) == 5);
+    REQUIRE(ustr1.rfind('5', 7) == 5);
+    REQUIRE(sstr1.rfind('5') == 5);
+    REQUIRE(ustr1.rfind('5') == 5);
+    REQUIRE(sstr1.rfind('a') == String::npos);
+    REQUIRE(ustr1.rfind('a') == String::npos);
+    REQUIRE(sstr1.rfind('a', 5) == String::npos);
+    REQUIRE(ustr1.rfind('a', 5) == String::npos);
+}
+
+TEST_CASE("String::rfind(const CharT *s, SizeType pos, SizeType count)", "[string]" ) {
+    std::string sstr1("0123456789abcdefghij");
+    String ustr1("0123456789abcdefghij");
+    
+    REQUIRE(sstr1.rfind("0123456789abcdefghij", 0, 5) == 0);
+    REQUIRE(ustr1.rfind("0123456789abcdefghij", 0, 5) == 0);
+    REQUIRE(sstr1.rfind("0123456789abcdefghij", 5, 5) == 0);
+    REQUIRE(ustr1.rfind("0123456789abcdefghij", 5, 5) == 0);
+    REQUIRE(sstr1.rfind("0123456789abcdefghij") == 0);
+    REQUIRE(ustr1.rfind("0123456789abcdefghij") == 0);
+    REQUIRE(sstr1.rfind("abcdefghij", 0, 5) == String::npos);
+    REQUIRE(ustr1.rfind("abcdefghij", 0, 5) == String::npos);
+    REQUIRE(sstr1.rfind("abcdefghij", 10, 5) == 10);
+    REQUIRE(ustr1.rfind("abcdefghij", 10, 5) == 10);
+    REQUIRE(sstr1.rfind("abcdefghij", String::npos, 5) == 10);
+    REQUIRE(ustr1.rfind("abcdefghij", String::npos, 5) == 10);
+    REQUIRE(sstr1.rfind("abcdefghij", 3, 5) == String::npos);
+    REQUIRE(ustr1.rfind("abcdefghij", 3, 5) == String::npos);
+    REQUIRE(sstr1.rfind("789abcdef", 1, 4) == String::npos);
+    REQUIRE(ustr1.rfind("789abcdef", 1, 4) == String::npos);
+    REQUIRE(sstr1.rfind("789abcdef", 10, 5) == 7);
+    REQUIRE(ustr1.rfind("789abcdef", 10, 5) == 7);
+    REQUIRE(sstr1.rfind("01", 0, 1) == 0);
+    REQUIRE(ustr1.rfind("01", 0, 1) == 0);
+    REQUIRE(sstr1.rfind("01", 1, 1) == 0);
+    REQUIRE(ustr1.rfind("01", 1, 1) == 0);
+    REQUIRE(sstr1.rfind("12", 0, 1) == String::npos);
+    REQUIRE(ustr1.rfind("12", 0, 1) == String::npos);
+    REQUIRE(sstr1.rfind("12", 1, 2) == 1);
+    REQUIRE(ustr1.rfind("12", 1, 2) == 1);
+    REQUIRE(sstr1.rfind("12", 2, 2) == 1);
+    REQUIRE(ustr1.rfind("12", 2, 2) == 1);
+    REQUIRE(sstr1.rfind("12", 0, 2) == String::npos);
+    REQUIRE(ustr1.rfind("12", 0, 2) == String::npos);
+    REQUIRE(sstr1.rfind("567", 0, 2) == String::npos);
+    REQUIRE(ustr1.rfind("567", 0, 2) == String::npos);
+    REQUIRE(sstr1.rfind("567", 2, 3) == String::npos);
+    REQUIRE(ustr1.rfind("567", 2, 3) == String::npos);
+    REQUIRE(sstr1.rfind("567", 7, 3) == 5);
+    REQUIRE(ustr1.rfind("567", 7, 3) == 5);
+    REQUIRE(sstr1.rfind("0", 0, 1) == 0);
+    REQUIRE(ustr1.rfind("0", 0, 1) == 0);
+    REQUIRE(sstr1.rfind("0", 1, 1) == 0);
+    REQUIRE(ustr1.rfind("0", 1, 1) == 0);
+    REQUIRE(sstr1.rfind("ij", 0, 2) == String::npos);
+    REQUIRE(ustr1.rfind("ij", 0, 2) == String::npos);
+    REQUIRE(sstr1.rfind("ij", 10, 1) == String::npos);
+    REQUIRE(ustr1.rfind("ij", 10, 1) == String::npos);
+    REQUIRE(sstr1.rfind("ij", 19, 1) == 18);
+    REQUIRE(ustr1.rfind("ij", 19, 1) == 18);
+    REQUIRE(sstr1.rfind("j", 0, 1) == String::npos);
+    REQUIRE(ustr1.rfind("j", 0, 1) == String::npos);
+    REQUIRE(sstr1.rfind("j", 5, 1) == String::npos);
+    REQUIRE(ustr1.rfind("j", 5, 1) == String::npos);
+    REQUIRE(sstr1.rfind("j", 19, 1) == 19);
+    REQUIRE(ustr1.rfind("j", 19, 1) == 19);
+    REQUIRE(sstr1.rfind("j", 20, 1) == 19);
+    REQUIRE(ustr1.rfind("j", 20, 1) == 19);
+    REQUIRE(sstr1.rfind("j", String::npos, 1) == 19);
+    REQUIRE(ustr1.rfind("j", String::npos, 1) == 19);
+    REQUIRE(sstr1.rfind("", 0, 0) == 0);
+    REQUIRE(ustr1.rfind("", 0, 0) == 0);
+    REQUIRE(sstr1.rfind("0123456789abcdefghijk", 0, 10) == 0);
+    REQUIRE(ustr1.rfind("0123456789abcdefghijk", 0, 10) == 0);
+    REQUIRE(sstr1.rfind("0123456789abcdefghijk", 0, 21) == String::npos);
+    REQUIRE(ustr1.rfind("0123456789abcdefghijk", 0, 21) == String::npos);
+    REQUIRE(sstr1.rfind("0123456789abcdefghijk", 5, 10) == 0);
+    REQUIRE(ustr1.rfind("0123456789abcdefghijk", 5, 10) == 0);
+    REQUIRE(sstr1.rfind("012345a", 0, 5) == 0);
+    REQUIRE(ustr1.rfind("012345a", 0, 5) == 0);
+    REQUIRE(sstr1.rfind("012345a", 0, 7) == String::npos);
+    REQUIRE(ustr1.rfind("012345a", 0, 7) == String::npos);
+    REQUIRE(sstr1.rfind("012345a", 3, 4) == 0);
+    REQUIRE(ustr1.rfind("012345a", 3, 4) == 0);
+    REQUIRE(sstr1.rfind("012345a", 3, 7) == String::npos);
+    REQUIRE(ustr1.rfind("012345a", 3, 7) == String::npos);
+    REQUIRE(sstr1.rfind("k", 0, 1) == String::npos);
+    REQUIRE(ustr1.rfind("k", 0, 1) == String::npos);
+    REQUIRE(sstr1.rfind("k", 2, 1) == String::npos);
+    REQUIRE(ustr1.rfind("k", 2, 1) == String::npos);
+}
+
+// copy ===========================================================================================
 
 TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos = 0)", "[string]" ) {
     char buf[32];

@@ -502,7 +502,80 @@ public:
         }
     }
 
+    // rfind =======================================================================================
 
+    constexpr SizeType rfind( const BasicString &str, SizeType pos = npos) const noexcept {
+        return str.length() == 0 ? pos : rfind(BasicStringView(str), pos);
+    }
+
+    constexpr SizeType rfind(const CharT *s, SizeType pos, SizeType count) const {
+        return count == 0 ? pos : rfind(BasicStringView(s, count), pos);
+    }
+
+    constexpr SizeType rfind(const CharT *s, SizeType pos = npos) const {
+        SizeType len = Traits::length(s);
+        return len == 0 ? pos : rfind(BasicStringView(s, len), pos);
+    }
+
+    constexpr SizeType rfind(CharT c, SizeType pos = npos) const noexcept {
+        if (length() == 0) {
+            return npos;
+        }
+        SizeType idx = std::min(pos, length() - 1);
+        for (;;) {
+            if (m_ptr[idx] == c) {
+                return idx;
+            }
+            if (idx == 0) {
+                break;
+            }
+            idx--;
+        }
+        return npos;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr SizeType rfind(const StringViewLikeT &t, SizeType pos = npos) const noexcept {
+        if (t.length() == 0) {
+            return pos;
+        }
+        if (t.length() > length()) {
+            return npos;
+        }
+        else if (t.length() == 1) {
+            return rfind(t[0], pos);
+        }
+        else if (t.length() == 2) {
+            const CharT a = t[0];
+            const CharT b = t[1];
+            SizeType idx = std::min(pos, length() - t.length());
+            for (;;) {
+                if (m_ptr[idx] == a && m_ptr[idx + 1] == b) {
+                    return idx;
+                }
+                if (idx == 0) {
+                    break;
+                }
+                idx--;
+            }
+            return npos;
+        }
+        else {
+            const CharT a = t[0];
+            SizeType idx = std::min(pos, length() - t.length());
+            for (;;) {
+                if (m_ptr[idx] == a && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                    return idx;
+                }
+                if (idx == 0) {
+                    break;
+                }
+                idx--;
+            }
+            return npos;
+        }
+    }
 
     // copy =======================================================================================
 
