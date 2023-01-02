@@ -1237,24 +1237,510 @@ TEST_CASE("String::find_last_not_of(const String &s, SizeType pos)", "[string]" 
 
 // replace ===========================================================================================
 
-TEST_CASE("String::replace(SizeType pos, SizeType count, const BasicString &str)", "[string::replace]" ) {
+TEST_CASE("String::replace(SizeType pos, SizeType count, const CharT *cstr)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 0, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij0123456789");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 0, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij0123456789");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 5, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij56789");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 5, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij56789");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(1, 5, "abcdefghij");
+    REQUIRE(sstr1 == "0abcdefghij6789");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(1, 5, "abcdefghij");
+    REQUIRE(ustr1 == "0abcdefghij6789");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(10, 0, "abcdefghij");
+    REQUIRE(sstr1 == "0123456789abcdefghij");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(10, 0, "abcdefghij");
+    REQUIRE(ustr1 == "0123456789abcdefghij");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(5, 0, "abcdefghij");
+    REQUIRE(sstr1 == "01234abcdefghij56789");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(5, 0, "abcdefghij");
+    REQUIRE(ustr1 == "01234abcdefghij56789");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 10, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 10, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(ustr1.length() == 10);
+
+    sstr1 = sstr0;
+    sstr1.replace(0, String::npos, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, String::npos, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(ustr1.length() == 10);
+
+    sstr1 = sstr0;
+    sstr1.replace(3, 10, "abcdefghij");
+    REQUIRE(sstr1 == "012abcdefghij");
+    REQUIRE(sstr1.length() == 13);
+
+    ustr1 = ustr0;
+    ustr1.replace(3, 10, "abcdefghij");
+    REQUIRE(ustr1 == "012abcdefghij");
+    REQUIRE(ustr1.length() == 13);
+
+    sstr1 = sstr0;
+    sstr1.replace(3, 5, "abcdefghij");
+    REQUIRE(sstr1 == "012abcdefghij89");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(3, 5, "abcdefghij");
+    REQUIRE(ustr1 == "012abcdefghij89");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(3, 10, "abc");
+    REQUIRE(sstr1 == "012abc");
+    REQUIRE(sstr1.length() == 6);
+
+    ustr1 = ustr0;
+    ustr1.replace(3, 10, "abc");
+    REQUIRE(ustr1 == "012abc");
+    REQUIRE(ustr1.length() == 6);
+}
+
+TEST_CASE("String::replace(SizeType pos, SizeType count, BasicString &str)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 0, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "abcdefghij0123456789");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 0, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "abcdefghij0123456789");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 5, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "abcdefghij56789");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 5, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "abcdefghij56789");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(1, 5, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "0abcdefghij6789");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(1, 5, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "0abcdefghij6789");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(10, 0, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "0123456789abcdefghij");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(10, 0, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "0123456789abcdefghij");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(5, 0, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "01234abcdefghij56789");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(5, 0, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "01234abcdefghij56789");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 10, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 10, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(ustr1.length() == 10);
+
+    sstr1 = sstr0;
+    sstr1.replace(0, String::npos, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, String::npos, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(ustr1.length() == 10);
+
+    sstr1 = sstr0;
+    sstr1.replace(3, 10, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "012abcdefghij");
+    REQUIRE(sstr1.length() == 13);
+
+    ustr1 = ustr0;
+    ustr1.replace(3, 10, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "012abcdefghij");
+    REQUIRE(ustr1.length() == 13);
+
+    sstr1 = sstr0;
+    sstr1.replace(3, 5, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "012abcdefghij89");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(3, 5, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "012abcdefghij89");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(3, 10, std::string("abc"));
+    REQUIRE(sstr1 == "012abc");
+    REQUIRE(sstr1.length() == 6);
+
+    ustr1 = ustr0;
+    ustr1.replace(3, 10, BasicString("abc"));
+    REQUIRE(ustr1 == "012abc");
+    REQUIRE(ustr1.length() == 6);
+}
+
+TEST_CASE("String::replace(const_iterator first, const_iterator last, BasicString &str)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 0, sstr1.begin() + 0, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "abcdefghij0123456789");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 0, ustr1.begin() + 0, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "abcdefghij0123456789");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 0, sstr1.begin() + 5, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "abcdefghij56789");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 0, ustr1.begin() + 5, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "abcdefghij56789");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 1, sstr1.begin() + 5, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "0abcdefghij56789");
+    REQUIRE(sstr1.length() == 16);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 1, ustr1.begin() + 5, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "0abcdefghij56789");
+    REQUIRE(ustr1.length() == 16);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 0, sstr1.begin() + 10, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 0, ustr1.begin() + 10, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(ustr1.length() == 10);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 3, sstr1.begin() + 10, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "012abcdefghij");
+    REQUIRE(sstr1.length() == 13);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 3, ustr1.begin() + 10, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "012abcdefghij");
+    REQUIRE(ustr1.length() == 13);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 3, sstr1.begin() + 5, std::string("abcdefghij"));
+    REQUIRE(sstr1 == "012abcdefghij56789");
+    REQUIRE(sstr1.length() == 18);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 3, ustr1.begin() + 5, BasicString("abcdefghij"));
+    REQUIRE(ustr1 == "012abcdefghij56789");
+    REQUIRE(ustr1.length() == 18);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 3, sstr1.begin() + 10, std::string("abc"));
+    REQUIRE(sstr1 == "012abc");
+    REQUIRE(sstr1.length() == 6);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 3, ustr1.begin() + 10, BasicString("abc"));
+    REQUIRE(ustr1 == "012abc");
+    REQUIRE(ustr1.length() == 6);
+}
+
+TEST_CASE("String::replace(const_iterator first, const_iterator last, const CharT *cstr)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 0, sstr1.begin() + 0, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij0123456789");
+    REQUIRE(sstr1.length() == 20);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 0, ustr1.begin() + 0, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij0123456789");
+    REQUIRE(ustr1.length() == 20);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 0, sstr1.begin() + 5, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij56789");
+    REQUIRE(sstr1.length() == 15);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 0, ustr1.begin() + 5, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij56789");
+    REQUIRE(ustr1.length() == 15);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 1, sstr1.begin() + 5, "abcdefghij");
+    REQUIRE(sstr1 == "0abcdefghij56789");
+    REQUIRE(sstr1.length() == 16);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 1, ustr1.begin() + 5, "abcdefghij");
+    REQUIRE(ustr1 == "0abcdefghij56789");
+    REQUIRE(ustr1.length() == 16);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 0, sstr1.begin() + 10, "abcdefghij");
+    REQUIRE(sstr1 == "abcdefghij");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 0, ustr1.begin() + 10, "abcdefghij");
+    REQUIRE(ustr1 == "abcdefghij");
+    REQUIRE(ustr1.length() == 10);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 3, sstr1.begin() + 10, "abcdefghij");
+    REQUIRE(sstr1 == "012abcdefghij");
+    REQUIRE(sstr1.length() == 13);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 3, ustr1.begin() + 10, "abcdefghij");
+    REQUIRE(ustr1 == "012abcdefghij");
+    REQUIRE(ustr1.length() == 13);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 3, sstr1.begin() + 5, "abcdefghij");
+    REQUIRE(sstr1 == "012abcdefghij56789");
+    REQUIRE(sstr1.length() == 18);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 3, ustr1.begin() + 5, "abcdefghij");
+    REQUIRE(ustr1 == "012abcdefghij56789");
+    REQUIRE(ustr1.length() == 18);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin() + 3, sstr1.begin() + 10, "abc");
+    REQUIRE(sstr1 == "012abc");
+    REQUIRE(sstr1.length() == 6);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin() + 3, ustr1.begin() + 10, "abc");
+    REQUIRE(ustr1 == "012abc");
+    REQUIRE(ustr1.length() == 6);
+}
+
+TEST_CASE("String::replace(SizeType pos, SizeType count, const BasicString &str, SizeType pos2, SizeType count2)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 0, std::string("abcdefghij"), 0, 3);
+    REQUIRE(sstr1 == "abc0123456789");
+    REQUIRE(sstr1.length() == 13);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 0, BasicString("abcdefghij"), 0, 3);
+    REQUIRE(ustr1 == "abc0123456789");
+    REQUIRE(ustr1.length() == 13);
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 5, std::string("abcdefghij"), 1, 4);
+    REQUIRE(sstr1 == "bcde56789");
+    REQUIRE(sstr1.length() == 9);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 5, BasicString("abcdefghij"), 1, 4);
+    REQUIRE(ustr1 == "bcde56789");
+    REQUIRE(ustr1.length() == 9);
+
+    sstr1 = sstr0;
+    sstr1.replace(1, 5, std::string("abcdefghij"), 6, 2);
+    REQUIRE(sstr1 == "0gh6789");
+    REQUIRE(sstr1.length() == 7);
+
+    ustr1 = ustr0;
+    ustr1.replace(1, 5, BasicString("abcdefghij"), 6, 2);
+    REQUIRE(ustr1 == "0gh6789");
+    REQUIRE(ustr1.length() == 7);
+}
+
+TEST_CASE("String::replace(SizeType pos, SizeType count, SizeType count2, CharT c)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(0, 0, 3, 'x');
+    REQUIRE(sstr1 == "xxx0123456789");
+    REQUIRE(sstr1.length() == 13);
+
+    ustr1 = ustr0;
+    ustr1.replace(0, 0, 3, 'x');
+    REQUIRE(ustr1 == "xxx0123456789");
+    REQUIRE(ustr1.length() == 13);
+}
+
+TEST_CASE("String::replace(const_iterator first, const_iterator last, SizeType count2, CharT c)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin(), sstr1.begin() + 3, 3, 'x');
+    REQUIRE(sstr1 == "xxx3456789");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin(), ustr1.begin() + 3, 3, 'x');
+    REQUIRE(ustr1 == "xxx3456789");
+    REQUIRE(ustr1.length() == 10);
+}
+
+TEST_CASE("String::replace(const_iterator first, const_iterator last, const_iterator first, const_iterator last, std::initializer_list<CharT> ilist)", "[string::replace]" ) {
+    std::string sstr0("0123456789");
+    std::string sstr1;
+
+    String ustr0("0123456789");
+    String ustr1;
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin(), sstr1.begin() + 3, { 'a', 'b', 'c' });
+    REQUIRE(sstr1 == "abc3456789");
+    REQUIRE(sstr1.length() == 10);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin(), ustr1.begin() + 3, { 'a', 'b', 'c' });
+    REQUIRE(ustr1 == "abc3456789");
+    REQUIRE(ustr1.length() == 10);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin(), sstr1.begin() + 3, { 'a', 'b', 'c', 'd' });
+    REQUIRE(sstr1 == "abcd3456789");
+    REQUIRE(sstr1.length() == 11);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin(), ustr1.begin() + 3, { 'a', 'b', 'c', 'd' });
+    REQUIRE(ustr1 == "abcd3456789");
+    REQUIRE(ustr1.length() == 11);
+
+    sstr1 = sstr0;
+    sstr1.replace(sstr1.begin(), sstr1.begin() + 3, { 'a', 'b' });
+    REQUIRE(sstr1 == "ab3456789");
+    REQUIRE(sstr1.length() == 9);
+
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin(), ustr1.begin() + 3, { 'a', 'b' });
+    REQUIRE(ustr1 == "ab3456789");
+    REQUIRE(ustr1.length() == 9);
+}
+
+TEST_CASE("String::replace(SizeType pos, SizeType count, const StringViewLikeT &t)", "[string::replace]" ) {
     std::string sstr0("0123456789");
     std::string sstr1;
     std::string sstr2("abcdefghij");
+    std::string_view sstr2_view = sstr2;
 
     String ustr0("0123456789");
     String ustr1;
     String ustr2("abcdefghij");
+    StringView ustr2_view = ustr2;
 
     sstr1 = sstr0;
-    sstr1.replace(0, 0, sstr2);
-    REQUIRE(sstr1 == "abcdefghij0123456789");
-    REQUIRE(sstr1.length() == 20);
+    sstr1.replace(sstr1.begin(), sstr1.begin() + 3, sstr2_view);
+    REQUIRE(sstr1 == "abcdefghij3456789");
+    REQUIRE(sstr1.length() == 17);
 
-    // ustr1 = ustr0;
-    // ustr1.replace(0, 0, ustr2);
-    // REQUIRE(ustr1 == "abcdefghij0123456789");
-    // REQUIRE(ustr1.length() == 20);
+    ustr1 = ustr0;
+    ustr1.replace(ustr1.begin(), ustr1.begin() + 3, ustr2_view);
+    REQUIRE(ustr1 == "abcdefghij3456789");
+    REQUIRE(ustr1.length() == 17);
 }
 
 // copy ===========================================================================================

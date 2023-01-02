@@ -112,11 +112,11 @@ public:
 
     using CharType = CharT;
     using TraitsType = Traits;
-    using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
     using iterator = IteratorWrapper<CharT *>;
     using const_iterator = IteratorWrapper<const CharT *>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     using reverse_iterator = std::reverse_iterator<iterator>;
+    using BasicStringView = std::basic_string_view<CharT, std::char_traits<CharT>>;
 
     // constants ==================================================================================
 
@@ -350,6 +350,493 @@ public:
         else {
             return return_empty_or_throw_out_of_range(index);
         }
+    }
+
+    // resizing ===================================================================================
+
+    void reserve(SizeType length) { ensure_capacity(length); }
+    constexpr void clear() { resize(0); }
+
+    constexpr void resize(SizeType count) { 
+        m_length = count; 
+        null_terminate();
+    }
+
+    constexpr void resize(SizeType count, CharT c) {
+        resize(0);
+        append(count, c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr void shrink_to_fit() {
+        if (is_using_inline_buffer()) {
+            return;
+        }
+
+        if (length() < InlineCapacity) {
+            CharT *old_ptr = m_ptr;
+            m_ptr = m_buf;
+            Traits::copy(m_ptr, old_ptr, length());
+            free(old_ptr);
+            null_terminate();
+            ASSERT(is_using_inline_buffer());
+            return;
+        }
+
+        SizeType shrink_length = ceil_to_page_size(length());
+        if (shrink_length == ceil_to_page_size(capacity())) {
+            return;
+        }
+        CharT *old_ptr = m_ptr;
+        SizeType amt = shrink_length * sizeof(CharT);
+        m_ptr = static_cast<CharT *>(malloc(amt));
+        Traits::copy(m_ptr, old_ptr, length());
+        free(old_ptr);
+        null_terminate();
+        ASSERT(is_using_allocated_buffer());
+    }
+
+    // push and pop ===============================================================================
+
+    constexpr void push_back(CharT c) {
+        append(c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr void pop_back() {
+        erase(end() - 1);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr void push(CharT c) {
+        append(c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr CharT pop() {
+        if (UNLIKELY(length() == 0)) {
+            return empty_value;
+        }
+        CharT c = back();
+        pop_back();
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return c;
+    }
+
+    // assigning ==================================================================================
+    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
+
+    constexpr BasicString &assign(SizeType count, CharT c) {
+        m_length = 0;
+        append(count, c);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const BasicString &str) {
+        m_length = 0;
+        append(str);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &assign(const std::string &str) {
+        m_length = 0;
+        append(str.data(), str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const BasicString &str, SizeType pos, SizeType count = npos) {
+        m_length = 0;
+        append(str, pos, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(BasicString &&str) noexcept {
+        if (str.is_using_allocated_buffer()) {
+            m_ptr = str.m_ptr;
+            m_length = str.length();
+            m_capacity = str.capacity();
+        }
+        else {
+            assign(str.data(), str.length());
+        }
+        str.reset();
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &assign(const char *ptr, SizeType length) {
+        m_length = 0;
+        append(ptr, length);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const CharT *ptr, SizeType length) {
+        m_length = 0;
+        append(ptr, length);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(const CharT *ptr) {
+        m_length = 0;
+        append(ptr);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &assign(const char *ptr) {
+        m_length = 0;
+        append(ptr);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
+    constexpr BasicString &assign(InputIt first, InputIt last) {
+        m_length = 0;
+        append(first, last);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &assign(std::initializer_list<CharT> ilist) {
+        m_length = 0;
+        append(ilist);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &assign(const StringViewLikeT &t) {
+        m_length = 0;
+        append(t);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &assign(const StringViewLikeT &t, SizeType pos, SizeType count = npos) {
+        m_length = 0;
+        append(t, pos, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    // appending ==================================================================================
+    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
+
+    constexpr BasicString &append(SizeType count, CharT c) {
+        ensure_capacity(m_length + count);
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[m_length + idx] = c;
+        }
+        m_length += count;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &append(const BasicString &str) {
+        append(str.data(), str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(const std::string &str) {
+        append(str.data(), str.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    constexpr BasicString &append(const BasicString &str, SizeType pos, SizeType count = npos) {
+        insert(length(), str, pos, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(const char *ptr, SizeType length) {
+        ensure_capacity(m_length + length);
+        for (SizeType idx = 0; idx < length; idx++) {
+            m_ptr[m_length + idx] = ptr[idx];
+        }
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+    
+    constexpr BasicString &append(const CharT *ptr, SizeType length) {
+        ensure_capacity(m_length + length);
+        Traits::copy(m_ptr + m_length, ptr, length);
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(const char *ptr) {
+        SizeType length = strlen(ptr);
+        ensure_capacity(m_length + length);
+        for (SizeType idx = 0; idx < length; idx++) {
+            m_ptr[idx + length] = ptr[idx];
+        }
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &append(const CharT *ptr) {
+        SizeType length = Traits::length(ptr);
+        ensure_capacity(m_length + length);
+        Traits::copy(m_ptr + m_length, ptr, length);
+        m_length += length;
+        null_terminate();
+        return *this;
+    }
+
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
+    constexpr BasicString &append(InputIt first, InputIt last) {
+        for (auto it = first; it != last; ++it) {
+            ensure_capacity(m_length + 1);
+            m_ptr[m_length] = *it;
+            m_length++;
+        }
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &append(std::initializer_list<CharT> ilist) {
+        for (auto it = ilist.begin(); it != ilist.end(); ++it) {
+            ensure_capacity(m_length + 1);
+            m_ptr[m_length] = *it;
+            m_length++;
+        }
+        null_terminate();
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &append(const StringViewLikeT &t) {
+        append(t.data(), t.length());
+        return *this;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &append(const StringViewLikeT &t, SizeType pos, SizeType count = npos) {
+        BasicStringView v(t.substr(pos, count));
+        append(v.data(), v.length());
+        return *this;
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    constexpr BasicString &append(char c) {
+        ensure_capacity(m_length + 1);
+        m_ptr[m_length] = c;
+        m_length++;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &append(CharT c) {
+        ensure_capacity(m_length + 1);
+        m_ptr[m_length] = c;
+        m_length++;
+        null_terminate();
+        return *this;
+    }
+
+    BasicString &append(const Span<int> &);
+    BasicString &append(const Span<SizeType> &);
+    BasicString &append(const Span<Int64> &);
+    BasicString &append(const TextRef &);
+
+    template <typename N>
+    BasicString &append_as_string(N val) {
+        char buf[MaximumInteger64LengthAsString];
+        memset(buf, 0, MaximumInteger64LengthAsString);
+        char *ptr = buf;
+        integer_to_string(val, ptr);
+        SizeType len = strlen(ptr);
+        ensure_capacity(m_length + len);
+        append(ptr, len);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    // inserting ==================================================================================
+    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
+
+    constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
+        ensure_capacity(m_length + count);
+        iterator pos = begin() + index;
+        iterator dst = pos + count;
+        Traits::move(dst, pos, end() - pos);
+        ptrdiff_t diff = pos - begin();
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[diff + idx] = c;
+        }
+        m_length += count;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &insert(SizeType index, const CharT *s) {
+        return insert(index, s, strlen(s));
+    }
+
+    constexpr BasicString &insert(SizeType index, const CharT *s, SizeType count) {
+        ensure_capacity(m_length + count);
+        iterator pos = begin() + index;
+        iterator dst = pos + count;
+        Traits::move(dst, pos, end() - pos);
+        Traits::copy(pos, s, count);
+        m_length += count;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &insert(SizeType index, const BasicString& str) {
+        insert(index, str, 0, str.length()); 
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;      
+    }
+
+    constexpr BasicString &insert(SizeType index, const BasicString &str, SizeType index_str, SizeType count = npos) {
+        SizeType ecount = std::min(count, str.length() - index_str);
+        ensure_capacity(m_length + ecount);
+        iterator pos = begin() + index;
+        iterator dst = pos + ecount;
+        Traits::move(dst, pos, end() - pos);
+        Traits::copy(pos, str.begin() + index_str, ecount);
+        m_length += ecount;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr iterator insert(const_iterator pos, CharT c) {
+        ensure_capacity(m_length + 1);
+        iterator dst = unconst_copy(pos);
+        Traits::move(dst + 1, pos, end() - pos);
+        m_ptr[pos - begin()] = c;
+        m_length++;
+        null_terminate();
+        return dst;
+    }
+
+    constexpr iterator insert(const_iterator pos, SizeType count, CharT c) {
+        ensure_capacity(m_length + count);
+        iterator dst = unconst_copy(pos);
+        Traits::move(dst + count, pos, end() - pos);
+        ptrdiff_t diff = pos - begin();
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[diff + idx] = c;
+        }
+        m_length += count;
+        null_terminate();
+        return dst;
+    }
+
+    template <typename InputIt, typename MaybeT = InputIt, 
+        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
+    iterator insert(const_iterator pos, InputIt first, InputIt last) {
+        ptrdiff_t count = last - first;
+        ensure_capacity(m_length + count);
+        iterator dst = unconst_copy(pos);
+        Traits::move(dst + count, pos, end() - pos);
+        ptrdiff_t offset = pos - begin(); 
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[offset + idx] = *(first + idx);
+        }
+        m_length += count;
+        null_terminate();
+        return dst;
+    }
+
+    constexpr iterator insert(const_iterator pos, std::initializer_list<CharT> ilist) {
+        ptrdiff_t count = ilist.size();
+        ensure_capacity(m_length + count);
+        iterator dst = unconst_copy(pos);
+        Traits::move(dst + count, pos, end() - pos);
+        ptrdiff_t offset = pos - begin(); 
+        for (SizeType idx = 0; idx < count; idx++) {
+            m_ptr[offset + idx] = *(ilist.begin() + idx);
+        }
+        m_length += count;
+        null_terminate();
+        return dst;
+    }
+
+    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t) {
+        insert(index, t.data(), t.length());
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count = npos) {
+        insert(index, t.data(), index_str, count);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        return *this;
+    }
+
+    // erasing ===================================================================================
+
+    constexpr BasicString &erase(SizeType index = 0, SizeType count = npos) {
+        if (UNLIKELY(index > length())) {
+            return_this_or_throw_out_of_range(index);
+        }
+        SizeType amt = std::min(count, length() - index);
+        SizeType rem = length() - amt;
+        Traits::move(m_ptr + index, m_ptr + index + amt, rem);
+        m_length -= amt;
+        null_terminate();
+        return *this;
+    }
+
+    constexpr iterator erase(const_iterator pos) {
+        if (pos == end()) {
+            return end();
+        }
+        SizeType rem = end() - pos - 1;
+        ptrdiff_t diff = pos - begin();
+        Traits::move(begin() + diff, begin() + diff + 1, rem);
+        m_length -= 1;
+        null_terminate();
+        return begin() + diff;
+    }
+
+    constexpr iterator erase(const_iterator first, const_iterator last) {
+        if (first == end()) {
+            return end();
+        }
+        if (first >= last) {
+            last = end();
+        }
+        ptrdiff_t first_idx = first - begin();
+        ptrdiff_t last_idx = last - begin();
+        SizeType amt = last_idx - first_idx;
+        ptrdiff_t rem = length() - last_idx;
+        Traits::move(begin() + first_idx, begin() + last_idx, rem);
+        m_length -= amt;
+        null_terminate();
+        return unconst_copy(first);
     }
 
     // starts_with ================================================================================
@@ -774,88 +1261,105 @@ public:
     // replace ====================================================================================
 
     constexpr BasicString &replace(SizeType pos, SizeType count, const BasicString &str) {
-        if (pos > length()) {
-            return_this_or_throw_out_of_range(pos);
-        }
-        if (count < str.length()) {
-            // move out
-            SizeType distance = str.length() - count;
-            ensure_capacity(distance + 1);
-            CharT *ptr_dst = begin() + pos + str.length();
-            CharT *ptr_src = begin() + pos + count;
-            Traits::move(ptr_dst, ptr_src, distance);
-        }
-        else if (count > str.length()) {
-            // move in
-            SizeType distance = count - str.length();
-            CharT *ptr_dst = begin() + pos + count;
-            CharT *ptr_src = begin() + pos + str.length();
-            Traits::move(ptr_dst, ptr_src, distance);
-        }
-        // overwrite
-        Traits::copy(begin() + pos, str.data(), str.length());
-        null_terminate();
-        return *this;
-    }
-
-    constexpr BasicString &replace(const_iterator first, const_iterator last, const BasicString &str) {
-        return replace(static_cast<SizeType>(first - begin()), static_cast<SizeType>(last - first), str);
+        return replace(pos, count, str, 0, str.length());
     }
 
     constexpr BasicString &replace(SizeType pos, SizeType count, const BasicString &str, SizeType pos2, SizeType count2 = npos) {
-        return *this;
+        return replace(pos, count, BasicStringView(str), pos2, count2);
+    }
+
+    constexpr BasicString &replace(const_iterator first, const_iterator last, const BasicString &str) {
+        SizeType pos = first - begin();
+        SizeType count = last - first;
+        return replace(pos, count, str);
     }
 
     template <typename InputIt, typename MaybeT = InputIt, 
         std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     constexpr BasicString &replace(const_iterator first, const_iterator last, InputIt first2, InputIt last2) {
-        return *this;
+        SizeType pos = first - begin();
+        SizeType count = last - first;
+        return replace(pos, count, BasicStringView(first2, last2), 0, last2 - first2);
     }
 
     constexpr BasicString &replace(SizeType pos, SizeType count, const CharT *cstr, SizeType count2) {
-        return *this;
+        return replace(pos, count, BasicStringView(cstr, count2), 0, count2);
     }
 
     constexpr BasicString &replace(const_iterator first, const_iterator last, const CharT *cstr, SizeType count2) {
-        return *this;
+        SizeType pos = first - begin();
+        SizeType count = last - first;
+        return replace(pos, count, BasicStringView(cstr, count2), 0, count2);
     }
 
     constexpr BasicString &replace(SizeType pos, SizeType count, const CharT *cstr) {
-        return *this;
+        SizeType len = Traits::length(cstr);
+        return replace(pos, count, BasicStringView(cstr, len), 0, len);
     }
 
     constexpr BasicString &replace(const_iterator first, const_iterator last, const CharT *cstr) {
-        return *this;
+        SizeType pos = first - begin();
+        SizeType count = last - first;
+        SizeType len = Traits::length(cstr);
+        return replace(pos, count, BasicStringView(cstr, len), 0, len);
     }
 
     constexpr BasicString &replace(SizeType pos, SizeType count, SizeType count2, CharT c) {
-        return *this;
+        BasicString str(count2, c);
+        return replace(pos, count, str);
     }
 
     constexpr BasicString &replace(const_iterator first, const_iterator last, SizeType count2, CharT c) {
-        return *this;
+        SizeType pos = first - begin();
+        SizeType count = last - first;
+        BasicString str(count2, c);
+        return replace(pos, count, str);
     }
 
     constexpr BasicString &replace(const_iterator first, const_iterator last, std::initializer_list<CharT> ilist) {
-        return *this;
+        SizeType pos = first - begin();
+        SizeType count = last - first;
+        BasicString str(ilist);
+        return replace(pos, count, str);
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr BasicString &replace(SizeType pos, SizeType count, const StringViewLikeT &t) {
-        return *this;
+        return replace(pos, count, t, 0, t.length());
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
     constexpr BasicString &replace(const_iterator first, const_iterator last, const StringViewLikeT &t) {
-        return *this;
+        SizeType pos = first - begin();
+        SizeType count = last - first;
+        return replace(pos, count, t, 0, t.length());
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &replace(SizeType pos, SizeType count, const StringViewLikeT &t, 
-        SizeType pos2, SizeType count2 = npos) {
+    constexpr BasicString &replace(SizeType pos, SizeType count, 
+        const StringViewLikeT &t, SizeType pos2, SizeType count2 = npos) {
+        StringViewLikeT et = t.substr(pos2, std::min(count2, t.length() - pos2));
+        if (pos > length()) {
+            return_this_or_throw_out_of_range(pos);
+        }
+        if (pos2 > et.length()) {
+            return_this_or_throw_out_of_range(pos);
+        }
+        if (count + pos > length()) {
+            count = length() - pos;
+        }
+        if (et.length() > count) {
+            insert(pos, et.length() - count, 'x');
+        }
+        else if (count > et.length()) {
+            erase(pos, count - et.length());
+        }
+        // overwrite
+        Traits::copy(begin() + pos, et.data(), et.length());
+        null_terminate();
         return *this;
     }
 
@@ -868,493 +1372,6 @@ public:
         SizeType ecount = std::min(count, length() - pos);
         Traits::copy(dst, begin() + pos, ecount);
         return ecount;
-    }
-
-    // resizing ===================================================================================
-
-    void reserve(SizeType length) { ensure_capacity(length); }
-    constexpr void clear() { resize(0); }
-
-    constexpr void resize(SizeType count) { 
-        m_length = count; 
-        null_terminate();
-    }
-
-    constexpr void resize(SizeType count, CharT c) {
-        resize(0);
-        append(count, c);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-    }
-
-    constexpr void shrink_to_fit() {
-        if (is_using_inline_buffer()) {
-            return;
-        }
-
-        if (length() < InlineCapacity) {
-            CharT *old_ptr = m_ptr;
-            m_ptr = m_buf;
-            Traits::copy(m_ptr, old_ptr, length());
-            free(old_ptr);
-            null_terminate();
-            ASSERT(is_using_inline_buffer());
-            return;
-        }
-
-        SizeType shrink_length = ceil_to_page_size(length());
-        if (shrink_length == ceil_to_page_size(capacity())) {
-            return;
-        }
-        CharT *old_ptr = m_ptr;
-        SizeType amt = shrink_length * sizeof(CharT);
-        m_ptr = static_cast<CharT *>(malloc(amt));
-        Traits::copy(m_ptr, old_ptr, length());
-        free(old_ptr);
-        null_terminate();
-        ASSERT(is_using_allocated_buffer());
-    }
-
-    // push and pop ===============================================================================
-
-    constexpr void push_back(CharT c) {
-        append(c);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-    }
-
-    constexpr void pop_back() {
-        erase(end() - 1);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-    }
-
-    constexpr void push(CharT c) {
-        append(c);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-    }
-
-    constexpr CharT pop() {
-        if (UNLIKELY(length() == 0)) {
-            return empty_value;
-        }
-        CharT c = back();
-        pop_back();
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return c;
-    }
-
-    // assigning ==================================================================================
-    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
-
-    constexpr BasicString &assign(SizeType count, CharT c) {
-        m_length = 0;
-        append(count, c);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    constexpr BasicString &assign(const BasicString &str) {
-        m_length = 0;
-        append(str);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &assign(const std::string &str) {
-        m_length = 0;
-        append(str.data(), str.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    constexpr BasicString &assign(const BasicString &str, SizeType pos, SizeType count = npos) {
-        m_length = 0;
-        append(str, pos, count);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    constexpr BasicString &assign(BasicString &&str) noexcept {
-        if (str.is_using_allocated_buffer()) {
-            m_ptr = str.m_ptr;
-            m_length = str.length();
-            m_capacity = str.capacity();
-        }
-        else {
-            assign(str.data(), str.length());
-        }
-        str.reset();
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &assign(const char *ptr, SizeType length) {
-        m_length = 0;
-        append(ptr, length);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    constexpr BasicString &assign(const CharT *ptr, SizeType length) {
-        m_length = 0;
-        append(ptr, length);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    constexpr BasicString &assign(const CharT *ptr) {
-        m_length = 0;
-        append(ptr);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &assign(const char *ptr) {
-        m_length = 0;
-        append(ptr);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <typename InputIt, typename MaybeT = InputIt, 
-        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
-    constexpr BasicString &assign(InputIt first, InputIt last) {
-        m_length = 0;
-        append(first, last);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    constexpr BasicString &assign(std::initializer_list<CharT> ilist) {
-        m_length = 0;
-        append(ilist);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &assign(const StringViewLikeT &t) {
-        m_length = 0;
-        append(t);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &assign(const StringViewLikeT &t, SizeType pos, SizeType count = npos) {
-        m_length = 0;
-        append(t, pos, count);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    // appending ==================================================================================
-    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
-
-    constexpr BasicString &append(SizeType count, CharT c) {
-        ensure_capacity(m_length + count);
-        for (SizeType idx = 0; idx < count; idx++) {
-            m_ptr[m_length + idx] = c;
-        }
-        m_length += count;
-        null_terminate();
-        return *this;
-    }
-
-    constexpr BasicString &append(const BasicString &str) {
-        append(str.data(), str.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &append(const std::string &str) {
-        append(str.data(), str.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    constexpr BasicString &append(const BasicString &str, SizeType pos, SizeType count = npos) {
-        insert(length(), str, pos, count);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &append(const char *ptr, SizeType length) {
-        ensure_capacity(m_length + length);
-        for (SizeType idx = 0; idx < length; idx++) {
-            m_ptr[m_length + idx] = ptr[idx];
-        }
-        m_length += length;
-        null_terminate();
-        return *this;
-    }
-    
-    constexpr BasicString &append(const CharT *ptr, SizeType length) {
-        ensure_capacity(m_length + length);
-        Traits::copy(m_ptr + m_length, ptr, length);
-        m_length += length;
-        null_terminate();
-        return *this;
-    }
-
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &append(const char *ptr) {
-        SizeType length = strlen(ptr);
-        ensure_capacity(m_length + length);
-        for (SizeType idx = 0; idx < length; idx++) {
-            m_ptr[idx + length] = ptr[idx];
-        }
-        m_length += length;
-        null_terminate();
-        return *this;
-    }
-
-    constexpr BasicString &append(const CharT *ptr) {
-        SizeType length = Traits::length(ptr);
-        ensure_capacity(m_length + length);
-        Traits::copy(m_ptr + m_length, ptr, length);
-        m_length += length;
-        null_terminate();
-        return *this;
-    }
-
-    template <typename InputIt, typename MaybeT = InputIt, 
-        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
-    constexpr BasicString &append(InputIt first, InputIt last) {
-        for (auto it = first; it != last; ++it) {
-            ensure_capacity(m_length + 1);
-            m_ptr[m_length] = *it;
-            m_length++;
-        }
-        null_terminate();
-        return *this;
-    }
-
-    constexpr BasicString &append(std::initializer_list<CharT> ilist) {
-        for (auto it = ilist.begin(); it != ilist.end(); ++it) {
-            ensure_capacity(m_length + 1);
-            m_ptr[m_length] = *it;
-            m_length++;
-        }
-        null_terminate();
-        return *this;
-    }
-
-    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &append(const StringViewLikeT &t) {
-        append(t.data(), t.length());
-        return *this;
-    }
-
-    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &append(const StringViewLikeT &t, SizeType pos, SizeType count = npos) {
-        BasicStringView v(t.substr(pos, count));
-        append(v.data(), v.length());
-        return *this;
-    }
-
-    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    constexpr BasicString &append(char c) {
-        ensure_capacity(m_length + 1);
-        m_ptr[m_length] = c;
-        m_length++;
-        null_terminate();
-        return *this;
-    }
-
-    constexpr BasicString &append(CharT c) {
-        ensure_capacity(m_length + 1);
-        m_ptr[m_length] = c;
-        m_length++;
-        null_terminate();
-        return *this;
-    }
-
-    BasicString &append(const Span<int> &);
-    BasicString &append(const Span<SizeType> &);
-    BasicString &append(const Span<Int64> &);
-    BasicString &append(const TextRef &);
-
-    template <typename N>
-    BasicString &append_as_string(N val) {
-        char buf[MaximumInteger64LengthAsString];
-        memset(buf, 0, MaximumInteger64LengthAsString);
-        char *ptr = buf;
-        integer_to_string(val, ptr);
-        SizeType len = strlen(ptr);
-        ensure_capacity(m_length + len);
-        append(ptr, len);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    // inserting ==================================================================================
-    // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
-
-    constexpr BasicString &insert(SizeType index, SizeType count, CharT c) {
-        ensure_capacity(m_length + count);
-        iterator pos = begin() + index;
-        iterator dst = pos + count;
-        Traits::move(dst, pos, end() - pos);
-        ptrdiff_t diff = pos - begin();
-        for (SizeType idx = 0; idx < count; idx++) {
-            m_ptr[diff + idx] = c;
-        }
-        m_length += count;
-        null_terminate();
-        return *this;
-    }
-
-    constexpr BasicString &insert(SizeType index, const CharT *s) {
-        return insert(index, s, strlen(s));
-    }
-
-    constexpr BasicString &insert(SizeType index, const CharT *s, SizeType count) {
-        ensure_capacity(m_length + count);
-        iterator pos = begin() + index;
-        iterator dst = pos + count;
-        Traits::move(dst, pos, end() - pos);
-        Traits::copy(pos, s, count);
-        m_length += count;
-        null_terminate();
-        return *this;
-    }
-
-    constexpr BasicString &insert(SizeType index, const BasicString& str) {
-        insert(index, str, 0, str.length()); 
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;      
-    }
-
-    constexpr BasicString &insert(SizeType index, const BasicString &str, SizeType index_str, SizeType count = npos) {
-        SizeType ecount = std::min(count, str.length() - index_str);
-        ensure_capacity(m_length + ecount);
-        iterator pos = begin() + index;
-        iterator dst = pos + ecount;
-        Traits::move(dst, pos, end() - pos);
-        Traits::copy(pos, str.begin() + index_str, ecount);
-        m_length += ecount;
-        null_terminate();
-        return *this;
-    }
-
-    constexpr iterator insert(const_iterator pos, CharT ch) {
-        ensure_capacity(m_length + 1);
-        iterator dst = unconst_copy(pos);
-        Traits::move(dst + 1, pos, end() - pos);
-        m_ptr[pos - begin()] = ch;
-        m_length++;
-        null_terminate();
-        return dst;
-    }
-
-    constexpr iterator insert(const_iterator pos, SizeType count, CharT ch) {
-        ensure_capacity(m_length + count);
-        iterator dst = unconst_copy(pos);
-        Traits::move(dst + count, pos, end() - pos);
-        ptrdiff_t diff = pos - begin();
-        for (SizeType idx = 0; idx < count; idx++) {
-            m_ptr[diff + idx] = ch;
-        }
-        m_length += count;
-        null_terminate();
-        return dst;
-    }
-
-    template <typename InputIt, typename MaybeT = InputIt, 
-        std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
-    iterator insert(const_iterator pos, InputIt first, InputIt last) {
-        ptrdiff_t count = last - first;
-        ensure_capacity(m_length + count);
-        iterator dst = unconst_copy(pos);
-        Traits::move(dst + count, pos, end() - pos);
-        ptrdiff_t offset = pos - begin(); 
-        for (SizeType idx = 0; idx < count; idx++) {
-            m_ptr[offset + idx] = *(first + idx);
-        }
-        m_length += count;
-        null_terminate();
-        return dst;
-    }
-
-    constexpr iterator insert(const_iterator pos, std::initializer_list<CharT> ilist) {
-        ptrdiff_t count = ilist.size();
-        ensure_capacity(m_length + count);
-        iterator dst = unconst_copy(pos);
-        Traits::move(dst + count, pos, end() - pos);
-        ptrdiff_t offset = pos - begin(); 
-        for (SizeType idx = 0; idx < count; idx++) {
-            m_ptr[offset + idx] = *(ilist.begin() + idx);
-        }
-        m_length += count;
-        null_terminate();
-        return dst;
-    }
-
-    template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t) {
-        insert(index, t.data(), t.length());
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    constexpr BasicString &insert(SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count = npos) {
-        insert(index, t.data(), index_str, count);
-        UU_STRING_ASSERT_NULL_TERMINATED;
-        return *this;
-    }
-
-    // erasing ===================================================================================
-
-    constexpr BasicString &erase(SizeType index = 0, SizeType count = npos) {
-        if (UNLIKELY(index > length())) {
-            return_this_or_throw_out_of_range(index);
-        }
-        SizeType amt = std::min(count, length() - index);
-        SizeType rem = length() - amt;
-        Traits::move(m_ptr + index, m_ptr + index + amt, rem);
-        m_length -= amt;
-        null_terminate();
-        return *this;
-    }
-
-    constexpr iterator erase(const_iterator pos) {
-        if (pos == end()) {
-            return end();
-        }
-        SizeType rem = end() - pos - 1;
-        ptrdiff_t diff = pos - begin();
-        Traits::move(begin() + diff, begin() + diff + 1, rem);
-        m_length -= 1;
-        null_terminate();
-        return begin() + diff;
-    }
-
-    constexpr iterator erase(const_iterator first, const_iterator last) {
-        if (first == end()) {
-            return end();
-        }
-        if (first >= last) {
-            last = end();
-        }
-        ptrdiff_t first_idx = first - begin();
-        ptrdiff_t last_idx = last - begin();
-        SizeType amt = last_idx - first_idx;
-        ptrdiff_t rem = length() - last_idx;
-        Traits::move(begin() + first_idx, begin() + last_idx, rem);
-        m_length -= amt;
-        null_terminate();
-        return unconst_copy(first);
     }
 
     // operator[] =================================================================================
@@ -1659,6 +1676,7 @@ std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const Basic
 }
 
 using String = BasicString<char, BasicStringDefaultSize>;
+using StringView = BasicString<char, BasicStringDefaultSize>::BasicStringView;
 
 }  // namespace UU
 
