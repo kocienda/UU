@@ -667,7 +667,6 @@ public:
     template <typename N>
     BasicString &append_as_string(N val) {
         char buf[MaximumInteger64LengthAsString];
-        memset(buf, 0, MaximumInteger64LengthAsString);
         char *ptr = buf;
         integer_to_string(val, ptr);
         SizeType len = strlen(ptr);

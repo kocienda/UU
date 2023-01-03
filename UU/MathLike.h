@@ -215,7 +215,8 @@ void integer_to_string(N n, char *c)
     if (sign) {
         *c = '-';
     }
-    c += size - 1;
+    c += size;
+    *c-- = '\0';
     while (val >= 100) {
         int pos = val % 100;
         val /= 100;
@@ -232,7 +233,6 @@ template <typename N>
 std::string integer_to_string(N n)
 {
     char buf[MaximumInteger64LengthAsString];
-    memset(buf, 0, MaximumInteger64LengthAsString);
     integer_to_string(n, buf);
     return std::string(buf);
 }
