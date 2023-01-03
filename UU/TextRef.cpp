@@ -135,6 +135,29 @@ TextRef TextRef::from_string(const std::string &str)
 //     }
 // }
 
+static void add_highlight(String &output, const String &str, const Span<size_t> &span, int highlight_color) 
+{
+    size_t idx = 0;
+    for (const auto &range : span.ranges()) {
+        const auto first = range.first();
+        const auto last = range.last();
+        if (first - 1 > idx) {
+            std::string_view chunk = str.substr(idx, first - 1 - idx);
+            output += chunk;
+        }
+        output += "\033[";
+        output.append_as_string(highlight_color);
+        output += 'm';
+        output += str.substr(first - 1, last - first);
+        output += "\033[0m";
+        idx = last - 1;
+    }
+    if (span.last() - 1 < str.length()) {
+        std::string_view chunk = str.substr(span.last() - 1);
+        output += chunk;
+    }
+}
+
 String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
 {
     String output;
@@ -146,16 +169,22 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
     }
 
     if (has_filename() && (flags & TextRef::Filename)) {
-        std::string path = filename();
+        String path = filename().string();
         if (filename_format == FilenameFormat::ABSOLUTE) {
-            path = fs::absolute(filename());
+            path = fs::absolute(filename()).string();
         }
         else if (!reference_path.empty()) {
             fs::path absolute_reference_path = fs::absolute(reference_path);
             fs::path absolute_filename_path = fs::absolute(filename());
             path = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
         }
-        output += shell_escaped_string(path.c_str());
+        String escaped_path = shell_escaped_string(path.c_str());
+        if (highlight_color == 0 || ((flags & HighlightFilename) == 0) || !has_span()) {
+            output += path;
+        }
+        else {
+            add_highlight(output, path, span(), highlight_color);
+        }
     }
     if (has_line() && (flags & TextRef::Line)) {
         if (output.length()) {
@@ -182,32 +211,11 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
             output += ':';
         }
         std::string_view msg(message());
-        if (highlight_color == 0 || !has_span()) {
+        if (highlight_color == 0 || ((flags & HighlightMessage) == 0) || !has_span()) {
             output += msg;
         }
         else {
-            const auto &spn = span();
-            size_t idx = 0;
-            for (const auto &range : spn.ranges()) {
-                const auto first = range.first();
-                const auto last = range.last();
-                if (first - 1 > idx) {
-                    std::string_view chunk = msg.substr(idx, first - 1 - idx);
-                    // zap_gremlins(ss, chunk);
-                    output += chunk;
-                }
-                output += "\033[";
-                output.append_as_string(highlight_color);
-                output += 'm';
-                output += msg.substr(first - 1, last - first);
-                output += "\033[0m";
-                idx = last - 1;
-            }
-            if (spn.last() - 1 < msg.length()) {
-                std::string_view chunk = msg.substr(spn.last() - 1);
-                output += chunk;
-                // zap_gremlins(ss, chunk);
-            }
+            add_highlight(output, msg, span(), highlight_color);
         }
     }
 

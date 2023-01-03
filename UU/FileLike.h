@@ -31,6 +31,9 @@
 
 #include <fnmatch.h>
 
+#include <UU/UUString.h>
+
+
 namespace UU {
 
 static constexpr int FilenameMatchWildcard = 0;
@@ -47,7 +50,7 @@ bool is_searchable(const std::vector<std::filesystem::path> searchables, const s
 std::string get_file_contents_as_string(const std::filesystem::path &path);
 bool write_file(const std::filesystem::path &path, const std::string &string);
 
-bool filename_match(const std::string &pattern, const std::filesystem::path &path, int flags=0);
+bool filename_match(const UU::String &pattern, const std::filesystem::path &path, int flags=0);
 
 std::filesystem::path absolute_path_relative_to(const std::filesystem::path &path, const std::filesystem::path &reference_path);
 

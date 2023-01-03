@@ -53,10 +53,10 @@ int launch(const fs::path &program, const std::vector<std::string> &args)
         return rc;
 }
 
-std::string shell_escaped_string(const std::string &str)
+String shell_escaped_string(const String &str)
 {
-    std::string result;
-    if (str.find(' ') == std::string::npos && str.find('\'') == std::string::npos) {
+    String result;
+    if (str.find(' ') == String::npos && str.find('\'') == String::npos) {
         result = str;
     }
     else {

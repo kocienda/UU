@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <filesystem>
 #include <functional>
 #include <initializer_list>
 #include <iostream>
@@ -274,6 +275,10 @@ public:
 
     BasicString(const BasicString &other) {
         assign(other.data(), other.length());
+    }
+
+    BasicString(const std::filesystem::path &path) {
+        assign(path.string());
     }
 
     BasicString(BasicString &&other) {

@@ -38,16 +38,20 @@ namespace UU {
 class TextRef
 {
 public:
-    static constexpr int Index =       0x01;
-    static constexpr int Filename =    0x02;
-    static constexpr int Line =        0x04;
-    static constexpr int Column =      0x08;
-    static constexpr int Span =        0x10; 
-    static constexpr int Extent =      0x20; 
-    static constexpr int Message =     0x40;
+    static constexpr int Index =             0x0001;
+    static constexpr int Filename =          0x0002;
+    static constexpr int Line =              0x0004;
+    static constexpr int Column =            0x0008;
+    static constexpr int Span =              0x0010; 
+    static constexpr int Extent =            0x0020; 
+    static constexpr int Message =           0x0040;
+    static constexpr int HighlightFilename = 0x1000;
+    static constexpr int HighlightMessage =  0x2000;
+
     static constexpr int CompactFeatures = Index | Filename | Line | Message;
     static constexpr int StandardFeatures = Index | Filename | Line | Column | Message;
     static constexpr int ExtendedFeatures = Index | Filename | Line | Span | Message;
+
 
     enum class FilenameFormat { RELATIVE, ABSOLUTE };
 

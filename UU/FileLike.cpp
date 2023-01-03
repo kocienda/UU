@@ -131,10 +131,10 @@ bool write_file(const std::filesystem::path &path, const std::string &string)
     return true;
 }
 
-bool filename_match(const std::string &pattern, const fs::path &path, int flags)
+bool filename_match(const String &pattern, const fs::path &path, int flags)
 {
-    std::string filename = path.filename().c_str();
-    std::string effective_pattern = (flags & FilenameMatchExact) ? pattern : ("*" + pattern + "*");
+    String filename = path.filename().c_str();
+    String effective_pattern = (flags & FilenameMatchExact) ? pattern : ("*" + pattern + "*");
     int fnmatch_flags = (flags & FilenameMatchCaseSensitive) ? 0 : FNM_CASEFOLD;
     return fnmatch(effective_pattern.c_str(), filename.c_str(), fnmatch_flags) == 0;
 }
