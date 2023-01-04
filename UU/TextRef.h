@@ -55,12 +55,12 @@ public:
 
     enum class FilenameFormat { RELATIVE, ABSOLUTE };
 
-    static constexpr size_t Invalid = std::numeric_limits<size_t>::max();
+    static constexpr size_t Invalid = UU::SizeTypeMax;
 
     static TextRef from_rune_string(const RuneString &str);
     static TextRef from_string(const std::string &str);
 
-    TextRef() : m_index(NotAnIndex), m_line(Invalid) {}
+    TextRef() {}
     
     TextRef(const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, const std::string &message = std::string()) :
         m_index(NotAnIndex), m_filename(filename), m_line(line), m_message(message) {
@@ -105,9 +105,9 @@ public:
     template <bool B = true> bool has_message() const { return (m_message.length() > 0) == B; }
 
 private:
-    size_t m_index;
+    size_t m_index = Invalid;
     std::filesystem::path m_filename;
-    size_t m_line;
+    size_t m_line = Invalid;
     UU::Span<size_t> m_span;
     String m_message;
 };

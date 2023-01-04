@@ -94,3 +94,10 @@ TEST_CASE( "TextRef parsing function 10", "[textref]" ) {
     REQUIRE(t.line() == 291);
 }
 
+TEST_CASE( "TextRef parsing function 11", "[textref]" ) {
+    TextRef t = TextRef::from_string("2) /System/Volumes/Data/Projects/work/Project 4/control.c:309:18:* Function Name: ProcessAll");
+    REQUIRE(t.index() == 2);
+    REQUIRE(t.filename() == std::string("/System/Volumes/Data/Projects/work/Project 4/control.c"));
+    REQUIRE(t.line() == 309);
+}
+
