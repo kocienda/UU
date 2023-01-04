@@ -1,5 +1,5 @@
 //
-// UU.h
+// ANSICode.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,34 +22,51 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_H
-#define UU_H
+#ifndef UU_ANSI_CODE_H
+#define UU_ANSI_CODE_H
 
-static constexpr int UU_MAJOR_VERSION = 0;
-static constexpr int UU_MINOR_VERSION = 1;
-static constexpr int UU_FIXES_VERSION = 0;
+#include <map>
+#include <string>
 
-#include <UU/Assertions.h>
+namespace UU {
 
-#include <UU/AcquireReleaseGuard.h>
-#include <UU/ANSICode.h>
-#include <UU/Any.h>
-#include <UU/CloseGuard.h>
-#include <UU/Compiler.h>
-#include <UU/FileLike.h>
-#include <UU/IteratorWrapper.h>
-#include <UU/MappedFile.h>
-#include <UU/MathLike.h>
-#include <UU/Platform.h>
-#include <UU/Range.h>
-#include <UU/SmallVector.h>
-#include <UU/Span.h>
-#include <UU/StackTrace.h>
-#include <UU/StringLike.h>
-#include <UU/TextRef.h>
-#include <UU/Types.h>
-#include <UU/UTF8.h>
-#include <UU/UnixLike.h>
-#include <UU/UUString.h>
+class ANSICode
+{
+public:
 
-#endif // UU_H
+    enum class BrightColor {
+        None = 0,
+        Black = 30,
+        Gray = 90,
+        Red = 91,
+        Green = 92,
+        Yellow = 93,
+        Blue = 94,
+        Magenta = 95,
+        Cyan = 96,
+        White = 97,
+    };
+
+    static BrightColor bright_color_from_string(const std::string &key)
+    {
+        static std::map<std::string, BrightColor> color_map = {
+            {"black", BrightColor::Black},
+            {"gray", BrightColor::Gray},
+            {"red", BrightColor::Red},
+            {"green", BrightColor::Green},
+            {"yellow", BrightColor::Yellow},
+            {"blue", BrightColor::Blue},
+            {"magenta", BrightColor::Magenta},
+            {"cyan", BrightColor::Cyan},
+            {"white", BrightColor::White},
+        };
+
+        const auto r = color_map.find(key);
+        return r == color_map.end() ? BrightColor::None : r->second;
+    }
+
+};
+
+}  // namespace UU
+
+#endif  // UU_ANSI_CODE_H

@@ -34,6 +34,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/UU.h
   ${CODE_DIR}/Assertions.h
   ${CODE_DIR}/AcquireReleaseGuard.h
+  ${CODE_DIR}/ANSICode.h
   ${CODE_DIR}/Any.h
   ${CODE_DIR}/ByteReader.h
   ${CODE_DIR}/ByteWriter.h
