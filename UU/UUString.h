@@ -32,6 +32,7 @@
 #include <UU/Types.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
@@ -1696,9 +1697,10 @@ public:
 
     template <bool B = true, class CharX = CharT, std::enable_if_t<IsByteSized<CharX>, int> = 0>
     bool is_whitespace(CharT c) { return std::isspace(c) == B; }
-    
+
     template <bool B = true, class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     bool is_whitespace(CharT c) { 
+        bool result = false;
         switch (c) {
             case L'\u0009':
             case L'\u000A':
@@ -1722,9 +1724,10 @@ public:
             case L'\u2029':
             case L'\u205F':
             case L'\u3000':
-                return true;
+                result = true;
+                break;
         }
-        return false;
+        return result == B;
     }
 
     constexpr BasicString &chomp() {

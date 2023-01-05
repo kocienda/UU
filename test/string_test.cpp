@@ -3243,3 +3243,11 @@ TEST_CASE("String::replace_all(StringViewLikeT &a, StringViewLikeT &b)", "[strin
     REQUIRE(ustr1 == "012345678Z012345678Z");
     REQUIRE(ustr1.length() == 20);
 }
+
+TEST_CASE("String::chomp(", "[string]" ) {
+    String ustr1("0123456789\n");
+
+    ustr1.chomp();
+    REQUIRE(ustr1 == "0123456789");
+    REQUIRE(ustr1.length() == 10);
+}
