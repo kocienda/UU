@@ -3199,3 +3199,47 @@ TEST_CASE("String::shrink() 1", "[string]" ) {
     REQUIRE(str2.length() == str1.length());
     REQUIRE(str2.capacity() == String::InlineCapacity);
 }
+
+
+// replace_all =====================================================================================
+
+TEST_CASE("String::replace_all(CharT a, CharT b)", "[string]" ) {
+    String ustr1("01123456789abcdefghij");
+
+    ustr1.replace_all('a', 'z');
+    REQUIRE(ustr1 == "01123456789zbcdefghij");
+    REQUIRE(ustr1.length() == 21);
+
+    ustr1.replace_all('0', 'y');
+    REQUIRE(ustr1 == "y1123456789zbcdefghij");
+    REQUIRE(ustr1.length() == 21);
+
+    ustr1.replace_all('j', 'x');
+    REQUIRE(ustr1 == "y1123456789zbcdefghix");
+    REQUIRE(ustr1.length() == 21);
+
+    ustr1.replace_all('1', 'w');
+    REQUIRE(ustr1 == "yww23456789zbcdefghix");
+    REQUIRE(ustr1.length() == 21);
+}
+
+TEST_CASE("String::replace_all(StringViewLikeT &a, StringViewLikeT &b)", "[string]" ) {
+    String ustr1("0123456789");
+
+    ustr1.replace_all("23", "AB");
+    REQUIRE(ustr1 == "01AB456789");
+    REQUIRE(ustr1.length() == 10);
+
+    ustr1.replace_all("7", "CDE");
+    REQUIRE(ustr1 == "01AB456CDE89");
+    REQUIRE(ustr1.length() == 12);
+
+    ustr1.replace_all("6CDE8", "");
+    REQUIRE(ustr1 == "01AB459");
+    REQUIRE(ustr1.length() == 7);
+
+    ustr1 = "01234567890123456789";
+    ustr1.replace_all("9", "Z");
+    REQUIRE(ustr1 == "012345678Z012345678Z");
+    REQUIRE(ustr1.length() == 20);
+}

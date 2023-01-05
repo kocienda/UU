@@ -1651,6 +1651,93 @@ public:
         }
     }
 
+    // extensions =================================================================================
+
+    constexpr BasicString &replace_all(CharT a, CharT b) {
+        SizeType pos = find(a);
+        while (pos < length()) {
+            m_ptr[pos] = b;
+            pos = find(a, pos + 1);
+        }
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &replace_all(const CharT *a, const CharT *b) {
+        BasicStringView av = BasicStringView(a, Traits::length(a));
+        BasicStringView bv = BasicStringView(b, Traits::length(b));
+        return replace_all(av, bv);
+    }
+
+    constexpr BasicString &replace_all(BasicString &a, BasicString &b) {
+        return replace_all(a, b);
+    }
+
+    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+    constexpr BasicString &replace_all(StringViewLikeT &a, StringViewLikeT &b) {
+        SizeType len = a.length();
+        SizeType pos = find(a);
+        while (pos < length()) {
+            replace(pos, len, b);
+            pos = find(a, pos + b.length());
+        }
+        null_terminate();
+        return *this;
+    }
+
+    constexpr BasicString &chop() {
+        if (length() > 0) {
+            m_length--;
+            null_terminate();
+        }
+        return *this;
+    }
+
+    template <bool B = true, class CharX = CharT, std::enable_if_t<IsByteSized<CharX>, int> = 0>
+    bool is_whitespace(CharT c) { return std::isspace(c) == B; }
+    
+    template <bool B = true, class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    bool is_whitespace(CharT c) { 
+        switch (c) {
+            case L'\u0009':
+            case L'\u000A':
+            case L'\u000B':
+            case L'\u000C':
+            case L'\u000D':
+            case L'\u0020':
+            case L'\u1680':
+            case L'\u180E':
+            case L'\u2000':
+            case L'\u2001':
+            case L'\u2002':
+            case L'\u2003':
+            case L'\u2004':
+            case L'\u2005':
+            case L'\u2006':
+            case L'\u2008':
+            case L'\u2009':
+            case L'\u200A':
+            case L'\u2028':
+            case L'\u2029':
+            case L'\u205F':
+            case L'\u3000':
+                return true;
+        }
+        return false;
+    }
+
+    constexpr BasicString &chomp() {
+        if (length() > 0) {
+            if (is_whitespace(back())) {
+                chop();
+                UU_STRING_ASSERT_NULL_TERMINATED;
+            }
+        }
+        return *this;
+    }
+
+
 private:
     void grow(SizeType new_capacity) {
         while (m_capacity < new_capacity) {
