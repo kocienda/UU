@@ -43,7 +43,7 @@ TextRef TextRef::from_rune_string(const RuneString &str)
     return from_string(UU::to_string(str));
 }
 
-TextRef TextRef::from_string(const std::string &str)
+TextRef TextRef::from_string(const String &str)
 {
     size_t index = Invalid;
     fs::path path;
@@ -53,11 +53,14 @@ TextRef TextRef::from_string(const std::string &str)
     UU::Span<size_t> span;
     std::string message;
 
+    String estr = str;
+    estr.chomp();
+
     std::cmatch match;
 
     // optional index:filename:line
     static std::regex rx1("([0-9]+[)][ ]+)?([^:]+):([0-9]+)");        
-    if (regex_match(str.c_str(), match, rx1)) {
+    if (regex_match(estr.c_str(), match, rx1)) {
         // std::cout << "*** match rx1: " << str.length() << ":" << match.length() << std::endl;
         auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
         if (pindex.second) {
@@ -73,7 +76,7 @@ TextRef TextRef::from_string(const std::string &str)
 
     // optional index:filename:line:span:optional message
     static std::regex rx2("([0-9]+[)][ ]+)?([^:]+):([0-9]+):([0-9]+((\\.{2}|,)[0-9]+)+)(:(.+))?");        
-    if (regex_match(str.c_str(), match, rx2)) {
+    if (regex_match(estr.c_str(), match, rx2)) {
         // std::cout << "*** match rx2" << std::endl;
         auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
         if (pindex.second) {
@@ -92,7 +95,7 @@ TextRef TextRef::from_string(const std::string &str)
 
     // optional index:filename:optional line:optional column:optional column end:optional message
     static std::regex rx3("([0-9]+[)][ ]+)?([^:]+)(:([0-9]+))?(:([0-9]+))?(:([0-9]+))?(:(.+))?");        
-    if (regex_match(str.c_str(), match, rx3)) {
+    if (regex_match(estr.c_str(), match, rx3)) {
         // std::cout << "*** match rx3" << std::endl;
         auto pindex = UU::parse_uint<UU::UInt32>(match[1]);
         if (pindex.second) {

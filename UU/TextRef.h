@@ -58,7 +58,7 @@ public:
     static constexpr size_t Invalid = UU::SizeTypeMax;
 
     static TextRef from_rune_string(const RuneString &str);
-    static TextRef from_string(const std::string &str);
+    static TextRef from_string(const UU::String &str);
 
     TextRef() {}
     
