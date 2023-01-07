@@ -53,7 +53,7 @@ public:
     static constexpr int ExtendedFeatures = Index | Filename | Line | Span | Message;
 
 
-    enum class FilenameFormat { RELATIVE, ABSOLUTE };
+    enum class FilenameFormat { RELATIVE, ABSOLUTE, TERSE };
 
     static constexpr size_t Invalid = UU::SizeTypeMax;
 

@@ -173,13 +173,23 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
 
     if (has_filename() && (flags & TextRef::Filename)) {
         String path = filename().string();
-        if (filename_format == FilenameFormat::ABSOLUTE) {
-            path = fs::absolute(filename()).string();
-        }
-        else if (!reference_path.empty()) {
-            fs::path absolute_reference_path = fs::absolute(reference_path);
-            fs::path absolute_filename_path = fs::absolute(filename());
-            path = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
+        switch (filename_format) {
+            case FilenameFormat::RELATIVE:
+                if (reference_path.empty()) {
+                    path = filename();
+                }
+                else {
+                    fs::path absolute_reference_path = fs::absolute(reference_path);
+                    fs::path absolute_filename_path = fs::absolute(filename());
+                    path = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
+                }
+                break;
+            case FilenameFormat::ABSOLUTE:
+                path = fs::absolute(filename()).string();
+                break;
+            case FilenameFormat::TERSE:
+                path = filename().filename();
+                break;
         }
         String escaped_path = shell_escaped_string(path.c_str());
         if (highlight_color == 0 || ((flags & HighlightFilename) == 0) || !has_span()) {
