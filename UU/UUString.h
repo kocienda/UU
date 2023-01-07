@@ -106,7 +106,8 @@ constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, Traits> &&
 // BasicString class
 //
 
-template <typename CharT, Size S = BasicStringDefaultInlineCapacity, typename Traits = std::char_traits<CharT>>
+template <typename CharT, Size S = BasicStringDefaultInlineCapacity, 
+    typename Traits = std::char_traits<CharT>>
 class BasicString
 {
 public:

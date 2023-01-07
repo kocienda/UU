@@ -25,6 +25,7 @@
 #ifndef UU_STRING_LIKE_H
 #define UU_STRING_LIKE_H
 
+#include "UU/Assertions.h"
 #include <codecvt>
 #include <limits>
 #include <locale>
@@ -45,18 +46,19 @@ STATIC_INLINE std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> &utf8_
 }
 #pragma clang diagnostic pop
 
-STATIC_INLINE std::string to_string(const RuneString &str) {
+UU_ALWAYS_INLINE std::string to_string(const RuneString &str) {
     return utf8_char32_conv().to_bytes(str);
 }
 
-STATIC_INLINE std::string to_string(const RuneStringView &str) {
+UU_ALWAYS_INLINE std::string to_string(const RuneStringView &str) {
     return to_string(RuneString(str));
 }
-STATIC_INLINE RuneString to_rune_string(const std::string &str) {
+
+UU_ALWAYS_INLINE RuneString to_rune_string(const std::string &str) {
     return utf8_char32_conv().from_bytes(str);
 }
 
-STATIC_INLINE RuneString to_rune_string(const std::string_view &str) {
+UU_ALWAYS_INLINE RuneString to_rune_string(const std::string_view &str) {
     return utf8_char32_conv().from_bytes(str.data(), str.data() + str.length());
 }
 
