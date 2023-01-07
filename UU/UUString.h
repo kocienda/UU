@@ -1476,24 +1476,8 @@ public:
         return Traits::compare(a.data(), b.data(), a.length()) == 0;
     }
 
-    friend constexpr bool operator!=(const BasicString &a, const BasicString &b) {
-        return !(a == b);
-    }
-
-    friend constexpr bool operator<(const BasicString &a, const BasicString &b) {
-        return Traits::compare(a.data(), b.data(), std::min(a.length(), b.length())) < 0;
-    }
-
-    friend constexpr bool operator<=(const BasicString &a, const BasicString &b) {
-        return operator==(a, b) || operator<(a, b); 
-    }
-
-    friend constexpr bool operator>(const BasicString &a, const BasicString &b) {
-        return !(a < b); 
-    }
-
-    friend constexpr bool operator>=(const BasicString &a, const BasicString &b) {
-        return operator==(a, b) || operator>(a, b); 
+    friend constexpr int operator<=>(const BasicString &a, const BasicString &b) noexcept {
+        return Traits::compare(a.data(), b.data(), std::min(a.length(), b.length()));
     }
 
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>

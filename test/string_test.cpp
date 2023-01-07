@@ -3200,7 +3200,6 @@ TEST_CASE("String::shrink() 1", "[string]" ) {
     REQUIRE(str2.capacity() == String::InlineCapacity);
 }
 
-
 // replace_all =====================================================================================
 
 TEST_CASE("String::replace_all(CharT a, CharT b)", "[string]" ) {
@@ -3244,6 +3243,8 @@ TEST_CASE("String::replace_all(StringViewLikeT &a, StringViewLikeT &b)", "[strin
     REQUIRE(ustr1.length() == 20);
 }
 
+// chomp & chop ===================================================================================
+
 TEST_CASE("String::chomp(", "[string]" ) {
     String ustr1("0123456789\n");
 
@@ -3252,11 +3253,15 @@ TEST_CASE("String::chomp(", "[string]" ) {
     REQUIRE(ustr1.length() == 10);
 }
 
+// constexpr ======================================================================================
+
 TEST_CASE("String constexpr", "[string]" ) {
     static constexpr String ustr("0123456789");
     REQUIRE(ustr == "0123456789");
     REQUIRE(ustr.length() == 10);
 }
+
+// whitespace =====================================================================================
 
 TEST_CASE("String::is_whitespace 1", "[string]" ) {
     static constexpr String ustr("0123456789 ");
@@ -3283,3 +3288,37 @@ TEST_CASE("String::is_whitespace 2", "[string]" ) {
     REQUIRE(y2);
     REQUIRE(ustr.length() == 11);
 }
+
+// comparisons ====================================================================================
+
+TEST_CASE("String comparisons" ) {
+    std::string sstr1("abcdefghij");
+    std::string sstr2("bcdefghij");
+    std::string sstr3 = sstr1;
+
+    String ustr1("abcdefghij");
+    String ustr2("bcdefghij");
+    String ustr3 = ustr1;
+
+    REQUIRE(sstr1 < sstr2);
+    REQUIRE(ustr1 < ustr2);
+
+    REQUIRE(sstr1 <= sstr2);
+    REQUIRE(ustr1 <= ustr2);
+
+    REQUIRE(sstr2 > sstr1);
+    REQUIRE(ustr2 > ustr1);
+
+    REQUIRE(sstr2 >= sstr1);
+    REQUIRE(ustr2 >= ustr1);
+
+    REQUIRE(sstr1 == sstr3);
+    REQUIRE(ustr1 == ustr3);
+
+    REQUIRE(sstr1 == sstr1);
+    REQUIRE(ustr1 == ustr1);
+
+    REQUIRE(sstr1 != sstr2);
+    REQUIRE(ustr1 != ustr2);
+}
+
