@@ -145,18 +145,19 @@ static void add_highlight(String &output, const String &str, const Span<size_t> 
         const auto first = range.first();
         const auto last = range.last();
         if (first - 1 > idx) {
-            std::string_view chunk = str.substr(idx, first - 1 - idx);
+            StringView chunk = str.substrview(idx, first - 1 - idx);
             output += chunk;
         }
         output += "\033[";
         output.append_as_string(highlight_color);
         output += 'm';
-        output += str.substr(first - 1, last - first);
+        StringView chunk = str.substrview(first - 1, last - first);
+        output += chunk;
         output += "\033[0m";
         idx = last - 1;
     }
     if (span.last() - 1 < str.length()) {
-        std::string_view chunk = str.substr(span.last() - 1);
+        StringView chunk = str.substrview(span.last() - 1);
         output += chunk;
     }
 }
