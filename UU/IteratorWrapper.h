@@ -64,11 +64,12 @@ public:
     IteratorWrapper operator++(int) noexcept { auto tmp(*this); ++(*this); return tmp; }
     IteratorWrapper &operator--() noexcept { --m_it; return *this; }
     IteratorWrapper operator--(int) noexcept { auto tmp(*this); --(*this); return tmp; }
-    IteratorWrapper operator+(difference_type n) noexcept { auto it(*this); it += n; return it; }
-    IteratorWrapper operator-(difference_type n) noexcept { auto it(*this); it -= n; return it; }
+    IteratorWrapper operator+(difference_type n) const noexcept { auto it(*this); it += n; return it; }
+    IteratorWrapper operator-(difference_type n) const noexcept { auto it(*this); it -= n; return it; }
     IteratorWrapper &operator+=(difference_type n) noexcept { m_it += n; return *this; }
     IteratorWrapper &operator-=(difference_type n) noexcept { m_it -= n; return *this; }
     reference operator[](difference_type n) noexcept { return m_it[n]; }
+    reference operator[](difference_type n) const noexcept { return m_it[n]; }
 
     iterator_type base() const noexcept { return m_it; }
 

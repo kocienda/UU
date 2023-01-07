@@ -33,8 +33,8 @@
 
 namespace UU {
 
-int launch(const std::filesystem::path &program, const std::vector<std::string> &args);
-UU::String shell_escaped_string(const UU::String &str);
+int launch(const std::filesystem::path &program, const std::vector<String> &args);
+String shell_escaped_string(const String &str);
 
 int get_sysctl_logicalcpu();
 int get_good_concurrency_count();

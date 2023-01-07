@@ -1513,6 +1513,10 @@ public:
         return BasicStringView(data(), length());
     }
 
+    operator std::filesystem::path() const {
+        return std::filesystem::path(BasicStringView(data(), length()));
+    }
+
     // substrings =================================================================================
 
     constexpr BasicString substr(Size pos = 0, Size count = npos) const {

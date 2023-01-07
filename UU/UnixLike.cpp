@@ -28,13 +28,12 @@
 
 #include "Assertions.h"
 #include "UnixLike.h"
-#include "UUString.h"
 
 namespace fs = std::filesystem;
 
 namespace UU {
 
-int launch(const fs::path &program, const std::vector<std::string> &args)
+int launch(const fs::path &program, const std::vector<String> &args)
 {
         size_t size = args.size() + 2;
         char *exec_args[size];
