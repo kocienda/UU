@@ -153,7 +153,7 @@ private:
     }
 
     UU_ALWAYS_INLINE 
-    void ensure_capacity(Size new_capacity) {
+    constexpr void ensure_capacity(Size new_capacity) {
         new_capacity++; // room for null termination
         if (new_capacity <= InlineCapacity) {
             m_capacity = InlineCapacity;
@@ -230,7 +230,7 @@ public:
 
     constexpr BasicString() noexcept { null_terminate(); }
     
-    explicit BasicString(Size capacity) {
+    constexpr explicit BasicString(Size capacity) {
         ensure_capacity(capacity);
         null_terminate();
     }
@@ -268,23 +268,23 @@ public:
     }
 
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    BasicString(const std::string &str) {
+    constexpr BasicString(const std::string &str) {
         assign(str.data(), str.length());
     }
 
-    BasicString(const std::basic_string<CharT> &str) {
+    constexpr BasicString(const std::basic_string<CharT> &str) {
         assign(str.data(), str.length());
     }
 
-    BasicString(const BasicString &other) {
+    constexpr BasicString(const BasicString &other) {
         assign(other.data(), other.length());
     }
 
-    BasicString(const std::filesystem::path &path) {
+    constexpr BasicString(const std::filesystem::path &path) {
         assign(path.string());
     }
 
-    BasicString(BasicString &&other) {
+    constexpr BasicString(BasicString &&other) {
         if (other.is_using_allocated_buffer()) {
             m_ptr = other.m_ptr;
             m_length = other.length();
@@ -296,25 +296,25 @@ public:
         }
     }
 
-    BasicString(std::initializer_list<CharT> ilist) {
+    constexpr BasicString(std::initializer_list<CharT> ilist) {
         assign(ilist);
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    BasicString(const StringViewLikeT &str) {
+    constexpr BasicString(const StringViewLikeT &str) {
         assign(str);
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
-    BasicString(const StringViewLikeT &str, Size pos, Size count = npos) {
+    constexpr BasicString(const StringViewLikeT &str, Size pos, Size count = npos) {
         assign(str, pos, count);
     }
 
     // destructor =================================================================================
 
-    ~BasicString() {
+    constexpr ~BasicString() {
         if (is_using_allocated_buffer()) {
             free(m_ptr);
         }
@@ -1701,10 +1701,23 @@ public:
     }
 
     template <bool B = true, class CharX = CharT, std::enable_if_t<IsByteSized<CharX>, int> = 0>
-    bool is_whitespace(CharT c) { return std::isspace(c) == B; }
+    static constexpr bool is_whitespace(CharT c) {
+        bool result = false;
+        switch (c) {
+            case ' ':
+            case '\f':
+            case '\r':
+            case '\n':
+            case '\t':
+            case '\v':
+                result = true;
+                break;
+        }
+        return result == B;
+    }
 
     template <bool B = true, class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
-    bool is_whitespace(CharT c) { 
+    static constexpr bool is_whitespace(CharT c) { 
         bool result = false;
         switch (c) {
             case L'\u0009':
@@ -1762,7 +1775,7 @@ private:
         null_terminate();
     }
 
-    CharT m_buf[InlineCapacity];
+    CharT m_buf[InlineCapacity] = { '\0' };
     CharT *m_ptr = m_buf;
     Size m_length = 0;
     Size m_capacity = InlineCapacity;

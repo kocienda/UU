@@ -3251,3 +3251,35 @@ TEST_CASE("String::chomp(", "[string]" ) {
     REQUIRE(ustr1 == "0123456789");
     REQUIRE(ustr1.length() == 10);
 }
+
+TEST_CASE("String constexpr", "[string]" ) {
+    static constexpr String ustr("0123456789");
+    REQUIRE(ustr == "0123456789");
+    REQUIRE(ustr.length() == 10);
+}
+
+TEST_CASE("String::is_whitespace 1", "[string]" ) {
+    static constexpr String ustr("0123456789 ");
+    static constexpr bool n1 = String::is_whitespace(ustr[0]);
+    static constexpr bool y1 = String::is_whitespace<false>(ustr[0]);
+    static constexpr bool n2 = String::is_whitespace<false>(ustr[10]);
+    static constexpr bool y2 = String::is_whitespace(ustr[10]);
+    REQUIRE_FALSE(n1);
+    REQUIRE_FALSE(n2);
+    REQUIRE(y1);
+    REQUIRE(y2);
+    REQUIRE(ustr.length() == 11);
+}
+
+TEST_CASE("String::is_whitespace 2", "[string]" ) {
+    static constexpr BasicString<char32_t> ustr(U"0123456789 ");
+    static constexpr bool n1 = String::is_whitespace(ustr[0]);
+    static constexpr bool y1 = String::is_whitespace<false>(ustr[0]);
+    static constexpr bool n2 = String::is_whitespace<false>(ustr[10]);
+    static constexpr bool y2 = String::is_whitespace(ustr[10]);
+    REQUIRE_FALSE(n1);
+    REQUIRE_FALSE(n2);
+    REQUIRE(y1);
+    REQUIRE(y2);
+    REQUIRE(ustr.length() == 11);
+}

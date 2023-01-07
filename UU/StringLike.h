@@ -25,16 +25,17 @@
 #ifndef UU_STRING_LIKE_H
 #define UU_STRING_LIKE_H
 
-#include "UU/Assertions.h"
 #include <codecvt>
 #include <limits>
 #include <locale>
 #include <string>
 #include <string_view>
 
+#include <UU/Assertions.h>
 #include <UU/Compiler.h>
 #include <UU/MathLike.h>
 #include <UU/Types.h>
+#include <UU/UUString.h>
 
 namespace UU {
 

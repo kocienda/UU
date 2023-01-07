@@ -37,25 +37,31 @@ std::ostream &operator<<(std::ostream &os, const Span<char32_t> &span)
         }
         if (r.first() == r.last()) {
             if (r.first() < 256) {
-                os << '\'' << (unsigned char)r.first() << '\'';
+                unsigned char c = r.first() & 0xff;
+                os << '\'' << c << '\'';
             }
             else {
-                os << std::hex << r.first();
+                uint32_t c = r.first();
+                os << std::hex << c;
             }
         }
         else {
             if (r.first() < 256) {
-                os << '\'' << (unsigned char)r.first() << '\'';
+                unsigned char c = r.first() & 0xff;
+                os << '\'' << c << '\'';
             }
             else {
-                os << std::hex << r.first();
+                uint32_t c = r.first();
+                os << std::hex << c;
             }
             os << "..";
             if (r.last() < 256) {
-                os << '\'' << (unsigned char)r.last() << '\'';
+                unsigned char c = r.last() & 0xff;
+                os << '\'' << c << '\'';
             }
             else {
-                os << std::hex << r.last();
+                uint32_t c = r.last();
+                os << std::hex << c;
             }
         }
         first = false;
