@@ -165,7 +165,7 @@ static void add_highlight(String &output, const String &str, const Span<size_t> 
 String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
 {
     String output;
-    output.reserve(m_filename.string().length() + m_message.length() + 32); // estimate
+    output.reserve(m_filename.length() + m_message.length() + 32); // estimate
 
     if (has_index() && (flags & TextRef::Index)) {
         output.append_as_string(index());
@@ -173,31 +173,31 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
     }
 
     if (has_filename() && (flags & TextRef::Filename)) {
-        String path = filename().string();
+        String output_filename = filename();
         switch (filename_format) {
             case FilenameFormat::RELATIVE:
                 if (reference_path.empty()) {
-                    path = filename();
+                    output_filename = filename();
                 }
                 else {
                     fs::path absolute_reference_path = fs::absolute(reference_path);
                     fs::path absolute_filename_path = fs::absolute(filename());
-                    path = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
+                    output_filename = absolute_filename_path.string().substr(absolute_reference_path.string().length() + 1);
                 }
                 break;
             case FilenameFormat::ABSOLUTE:
-                path = fs::absolute(filename()).string();
+                output_filename = fs::absolute(filename()).string();
                 break;
             case FilenameFormat::TERSE:
-                path = filename().filename();
+                output_filename = fs::path(output_filename).filename();
                 break;
         }
-        String escaped_path = shell_escaped_string(path.c_str());
+        String escaped_path = shell_escaped_string(output_filename.c_str());
         if (highlight_color == 0 || ((flags & HighlightFilename) == 0) || !has_span()) {
-            output += path;
+            output += output_filename;
         }
         else {
-            add_highlight(output, path, span(), highlight_color);
+            add_highlight(output, output_filename, span(), highlight_color);
         }
     }
     if (has_line() && (flags & TextRef::Line)) {

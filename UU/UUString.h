@@ -1481,9 +1481,7 @@ public:
     }
 
     friend constexpr bool operator<(const BasicString &a, const BasicString &b) {
-        Size len = std::min(a.length(), b.length());
-        int cmp = Traits::compare(a.data(), b.data(), len);
-        return cmp != 0 ? cmp : (a.length() < b.length());
+        return Traits::compare(a.data(), b.data(), std::min(a.length(), b.length())) < 0;
     }
 
     friend constexpr bool operator<=(const BasicString &a, const BasicString &b) {

@@ -29,9 +29,9 @@
 #include <string>
 #include <vector>
 
-#include <UU/UUString.h>
 #include <UU/Span.h>
 #include <UU/Types.h>
+#include <UU/UUString.h>
 
 namespace UU {
 
@@ -62,14 +62,14 @@ public:
 
     TextRef() {}
     
-    TextRef(const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, const std::string &message = std::string()) :
+    TextRef(const String &filename, size_t line = Invalid, size_t column = Invalid, const std::string &message = std::string()) :
         m_index(NotAnIndex), m_filename(filename), m_line(line), m_message(message) {
         if (column != Invalid) {
             m_span.add(column);
         }
     }
     
-    TextRef(size_t index, const std::filesystem::path &filename, size_t line = Invalid, size_t column = Invalid, size_t end_column = Invalid,
+    TextRef(size_t index, const String &filename, size_t line = Invalid, size_t column = Invalid, size_t end_column = Invalid,
         const std::string &message = std::string()) :
         m_index(index), m_filename(filename), m_line(line), m_message(message) {
         if (column != Invalid && end_column != Invalid) {
@@ -80,13 +80,13 @@ public:
         }
     }
 
-    TextRef(size_t index, const std::filesystem::path &filename, size_t line, const UU::Span<size_t> span = UU::Span<size_t>(), 
+    TextRef(size_t index, const String &filename, size_t line, const UU::Span<size_t> span = UU::Span<size_t>(), 
         const std::string &message = std::string()) :
         m_index(index), m_filename(filename), m_line(line), m_span(span), m_message(message) {}
 
     size_t index() const { return m_index; }
     void set_index(size_t index) { m_index = index; }
-    const std::filesystem::path &filename() const { return m_filename; }
+    const String &filename() const { return m_filename; }
     size_t line() const { return m_line; }
     size_t column() const { return m_span.is_empty() ? Invalid : m_span.first(); }
     const UU::Span<size_t> &span() const { return m_span; }
@@ -106,7 +106,7 @@ public:
 
 private:
     size_t m_index = Invalid;
-    std::filesystem::path m_filename;
+    UU::String m_filename;
     size_t m_line = Invalid;
     UU::Span<size_t> m_span;
     String m_message;
