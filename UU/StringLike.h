@@ -88,9 +88,9 @@ template <typename I> std::pair<int, bool> parse_int(const std::string &s, std::
     }
 }
 
-std::vector<SizeType> find_line_end_offsets(const std::string_view &str, SizeType max_string_index = SizeTypeMax, SizeType max_line = SizeTypeMax);
-std::string_view string_view_for_line(const std::string_view &str, const std::vector<SizeType> &line_end_offsets, SizeType line);
-std::string_view string_view_for_line(const std::string_view &str, SizeType line);
+std::vector<Size> find_line_end_offsets(const std::string_view &str, Size max_string_index = SizeMax, Size max_line = SizeMax);
+std::string_view string_view_for_line(const std::string_view &str, const std::vector<Size> &line_end_offsets, Size line);
+std::string_view string_view_for_line(const std::string_view &str, Size line);
 
 template <bool B = true> bool is_gremlin(char c) { return (c < 32) == B; }
 template <bool B = true> bool contains_gremlins(const std::string_view &str) { 

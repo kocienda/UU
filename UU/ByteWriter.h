@@ -39,9 +39,9 @@ public:
     virtual ~ByteWriter() {}
 
     virtual void write(const std::string &) = 0;
-    virtual void write(const Byte *, SizeType) = 0;
+    virtual void write(const Byte *, Size) = 0;
     virtual void write(Byte) = 0;
-    virtual SizeType size() const = 0;
+    virtual Size size() const = 0;
 };
 
 }  // namespace UU

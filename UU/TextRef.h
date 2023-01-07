@@ -55,7 +55,7 @@ public:
 
     enum class FilenameFormat { RELATIVE, ABSOLUTE, TERSE };
 
-    static constexpr size_t Invalid = UU::SizeTypeMax;
+    static constexpr size_t Invalid = UU::SizeMax;
 
     static TextRef from_rune_string(const RuneString &str);
     static TextRef from_string(const UU::String &str);

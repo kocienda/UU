@@ -210,7 +210,7 @@ void integer_to_string(N n, char *c)
 
     int sign = -(n < 0);
     UInt64 val = (n ^ sign) - sign;
-    SizeType size = number_of_digits(val);
+    Size size = number_of_digits(val);
     size -= sign;
     if (sign) {
         *c = '-';

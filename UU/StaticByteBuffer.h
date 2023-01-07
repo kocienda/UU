@@ -35,22 +35,22 @@ namespace UU {
 class StaticByteBuffer : public ByteWriter, public ByteReader
 {
 public:
-    static constexpr const SizeType nidx = -1;
+    static constexpr const Size nidx = -1;
     static constexpr Byte empty_value = 0;
 
     constexpr StaticByteBuffer() {}
-    StaticByteBuffer(Byte *ptr, SizeType size) : m_ptr(ptr), m_size(size), m_writable(true) {}
-    StaticByteBuffer(const Byte *ptr, SizeType size) : m_ptr((Byte *)ptr), m_size(size), m_writable(false) {}
+    StaticByteBuffer(Byte *ptr, Size size) : m_ptr(ptr), m_size(size), m_writable(true) {}
+    StaticByteBuffer(const Byte *ptr, Size size) : m_ptr((Byte *)ptr), m_size(size), m_writable(false) {}
     virtual ~StaticByteBuffer() {}
 
     bool is_writable() const { return m_writable; }
 
     Byte *bytes() const override { return m_ptr; }
-    SizeType size() const override { return m_size; }
+    Size size() const override { return m_size; }
 
-    void write(const std::string &str) override { write((const Byte *)str.c_str(), (SizeType)str.length()); }
+    void write(const std::string &str) override { write((const Byte *)str.c_str(), (Size)str.length()); }
 
-    void write(const Byte *bytes, SizeType size) override {
+    void write(const Byte *bytes, Size size) override {
         if (can_write(size)) {
             memcpy((void *)(m_ptr + m_write_offset), bytes, size);
             m_write_offset += size;
@@ -64,7 +64,7 @@ public:
         }
     }
 
-    Byte at(SizeType index) {
+    Byte at(Size index) {
         if (m_size > index) {
             return m_ptr[index];
         }
@@ -73,7 +73,7 @@ public:
         }
     }
     
-    const Byte &at(SizeType index) const {
+    const Byte &at(Size index) const {
         if (m_size > index) {
             return m_ptr[index];
         }
@@ -82,7 +82,7 @@ public:
         }
     }
     
-    const Byte &operator[](SizeType index) const {
+    const Byte &operator[](Size index) const {
         return m_ptr[index];
     }
     
@@ -101,13 +101,13 @@ public:
     }
 
 private:
-    bool can_write(SizeType size_to_write) {
+    bool can_write(Size size_to_write) {
         return m_writable && (m_write_offset + size_to_write < m_size);
     }
 
     Byte *m_ptr = nullptr;
-    SizeType m_size = 0;
-    SizeType m_write_offset = 0;
+    Size m_size = 0;
+    Size m_write_offset = 0;
     bool m_writable = false;
 };
 

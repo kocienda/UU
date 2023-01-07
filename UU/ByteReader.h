@@ -37,7 +37,7 @@ public:
     virtual ~ByteReader() {}
 
     virtual Byte *bytes() const = 0;
-    virtual SizeType size() const = 0;
+    virtual Size size() const = 0;
 };
 
 }  // namespace UU

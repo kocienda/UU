@@ -15,7 +15,7 @@ using namespace UU;
 
 // constructing ===================================================================================
 
-TEST_CASE("String(SizeType count, CharT c)", "[string]" ) {
+TEST_CASE("String(Size count, CharT c)", "[string]" ) {
     std::string sstr(16, 'g');
     String ustr(16, 'g');
     REQUIRE(sstr == ustr);
@@ -24,7 +24,7 @@ TEST_CASE("String(SizeType count, CharT c)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
-TEST_CASE("String(const BasicString &other, SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String(const BasicString &other, Size pos, Size count)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
 
@@ -37,7 +37,7 @@ TEST_CASE("String(const BasicString &other, SizeType pos, SizeType count)", "[st
     REQUIRE(strlen(ustr2.c_str()) == 5);
 }
 
-TEST_CASE("String(const CharT *ptr, SizeType length)", "[string]" ) {
+TEST_CASE("String(const CharT *ptr, Size length)", "[string]" ) {
     std::string sstr("0123456789", 5);
     String ustr("0123456789", 5);
 
@@ -47,7 +47,7 @@ TEST_CASE("String(const CharT *ptr, SizeType length)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 5);
 }
 
-TEST_CASE("BasicString<char32_t>(const CharT *ptr, SizeType length)", "[string]" ) {
+TEST_CASE("BasicString<char32_t>(const CharT *ptr, Size length)", "[string]" ) {
     std::basic_string<char32_t> sstr(U"0123456789", 5);
     BasicString<char32_t> ustr(U"0123456789", 5);
 
@@ -57,7 +57,7 @@ TEST_CASE("BasicString<char32_t>(const CharT *ptr, SizeType length)", "[string]"
     REQUIRE(ustr.length() == 5);
 }
 
-TEST_CASE("BasicString<char32_t>(const char *ptr, SizeType length)", "[string]" ) {
+TEST_CASE("BasicString<char32_t>(const char *ptr, Size length)", "[string]" ) {
     BasicString<char32_t> ustr("0123456789", 5);
 
     REQUIRE(ustr == "01234");
@@ -128,7 +128,7 @@ TEST_CASE("String(const StringViewLikeT &t)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 3);
 }
 
-TEST_CASE("String(const StringViewLikeT &t, SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String(const StringViewLikeT &t, Size pos, Size count)", "[string]" ) {
     std::string_view vstr("abcdefghij");
     std::string_view vstr_view(vstr);
     std::string sstr(vstr_view, 3, 4);
@@ -307,7 +307,7 @@ TEST_CASE("String::contains(const CharT *s)", "[string]" ) {
 
 // find ===========================================================================================
 
-TEST_CASE("String::find(const String &s, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find(const String &s, Size pos)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -432,7 +432,7 @@ TEST_CASE("String::find(const CharT *s)", "[string]" ) {
     REQUIRE(str1.find("k") == String::npos);
 }
 
-TEST_CASE("String::find(const CharT *s, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find(const CharT *s, Size pos)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -498,7 +498,7 @@ TEST_CASE("String::find(const CharT *s, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find("k", 2) == String::npos);
 }
 
-TEST_CASE("String::find(const CharT *s, SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String::find(const CharT *s, Size pos, Size count)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -570,7 +570,7 @@ TEST_CASE("String::find(const CharT *s, SizeType pos, SizeType count)", "[string
     REQUIRE(ustr1.find("k", 2, 1) == String::npos);
 }
 
-TEST_CASE("String::find(CharT c, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find(CharT c, Size pos)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
     
@@ -600,7 +600,7 @@ TEST_CASE("String::find(CharT c, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find('a', 5) == String::npos);
 }
 
-TEST_CASE("String::find_boyer_moore(const String &s, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_boyer_moore(const String &s, Size pos)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -668,7 +668,7 @@ TEST_CASE("String::find_boyer_moore(const String &s, SizeType pos)", "[string]" 
 
 // rfind ==========================================================================================
 
-TEST_CASE("String::rfind(CharT c, SizeType pos)", "[string]" ) {
+TEST_CASE("String::rfind(CharT c, Size pos)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
     
@@ -700,7 +700,7 @@ TEST_CASE("String::rfind(CharT c, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.rfind('a', 5) == String::npos);
 }
 
-TEST_CASE("String::rfind(const CharT *s, SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String::rfind(const CharT *s, Size pos, Size count)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -791,7 +791,7 @@ TEST_CASE("String::rfind(const CharT *s, SizeType pos, SizeType count)", "[strin
 
 // find_first_of ==================================================================================
 
-TEST_CASE("String::find_first_of(CharT c, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_first_of(CharT c, Size pos)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
     
@@ -821,7 +821,7 @@ TEST_CASE("String::find_first_of(CharT c, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find_first_of("a", 5) == String::npos);
 }
 
-TEST_CASE("String::find_first_of(const String &s, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_first_of(const String &s, Size pos)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -899,7 +899,7 @@ TEST_CASE("String::find_first_of(const String &s, SizeType pos)", "[string]" ) {
 
 // find_first_not_of ==============================================================================
 
-TEST_CASE("String::find_first_not_of(CharT c, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_first_not_of(CharT c, Size pos)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
     
@@ -929,7 +929,7 @@ TEST_CASE("String::find_first_not_of(CharT c, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find_first_not_of("a", 5) == 5);
 }
 
-TEST_CASE("String::find_first_not_of(const String &s, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_first_not_of(const String &s, Size pos)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -1007,7 +1007,7 @@ TEST_CASE("String::find_first_not_of(const String &s, SizeType pos)", "[string]"
 
 // find_last_of ==================================================================================
 
-TEST_CASE("String::find_last_of(CharT c, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_last_of(CharT c, Size pos)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
     
@@ -1039,7 +1039,7 @@ TEST_CASE("String::find_last_of(CharT c, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find_last_of('a', 5) == String::npos);
 }
 
-TEST_CASE("String::find_last_of(const String &s, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_last_of(const String &s, Size pos)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -1119,7 +1119,7 @@ TEST_CASE("String::find_last_of(const String &s, SizeType pos)", "[string]" ) {
 
 // find_last_not_of ==================================================================================
 
-TEST_CASE("String::find_last_not_of(CharT c, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_last_not_of(CharT c, Size pos)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
     
@@ -1155,7 +1155,7 @@ TEST_CASE("String::find_last_not_of(CharT c, SizeType pos)", "[string]" ) {
     REQUIRE(ustr1.find_last_not_of('a', 5) == 5);
 }
 
-TEST_CASE("String::find_last_not_of(const String &s, SizeType pos)", "[string]" ) {
+TEST_CASE("String::find_last_not_of(const String &s, Size pos)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
     
@@ -1237,7 +1237,7 @@ TEST_CASE("String::find_last_not_of(const String &s, SizeType pos)", "[string]" 
 
 // replace ===========================================================================================
 
-TEST_CASE("String::replace(SizeType pos, SizeType count, const CharT *cstr)", "[string::replace]" ) {
+TEST_CASE("String::replace(Size pos, Size count, const CharT *cstr)", "[string::replace]" ) {
     std::string sstr0("0123456789");
     std::string sstr1;
 
@@ -1345,7 +1345,7 @@ TEST_CASE("String::replace(SizeType pos, SizeType count, const CharT *cstr)", "[
     REQUIRE(ustr1.length() == 6);
 }
 
-TEST_CASE("String::replace(SizeType pos, SizeType count, BasicString &str)", "[string::replace]" ) {
+TEST_CASE("String::replace(Size pos, Size count, BasicString &str)", "[string::replace]" ) {
     std::string sstr0("0123456789");
     std::string sstr1;
 
@@ -1609,7 +1609,7 @@ TEST_CASE("String::replace(const_iterator first, const_iterator last, const Char
     REQUIRE(ustr1.length() == 6);
 }
 
-TEST_CASE("String::replace(SizeType pos, SizeType count, const BasicString &str, SizeType pos2, SizeType count2)", "[string::replace]" ) {
+TEST_CASE("String::replace(Size pos, Size count, const BasicString &str, Size pos2, Size count2)", "[string::replace]" ) {
     std::string sstr0("0123456789");
     std::string sstr1;
 
@@ -1647,7 +1647,7 @@ TEST_CASE("String::replace(SizeType pos, SizeType count, const BasicString &str,
     REQUIRE(ustr1.length() == 7);
 }
 
-TEST_CASE("String::replace(SizeType pos, SizeType count, SizeType count2, CharT c)", "[string::replace]" ) {
+TEST_CASE("String::replace(Size pos, Size count, Size count2, CharT c)", "[string::replace]" ) {
     std::string sstr0("0123456789");
     std::string sstr1;
 
@@ -1665,7 +1665,7 @@ TEST_CASE("String::replace(SizeType pos, SizeType count, SizeType count2, CharT 
     REQUIRE(ustr1.length() == 13);
 }
 
-TEST_CASE("String::replace(const_iterator first, const_iterator last, SizeType count2, CharT c)", "[string::replace]" ) {
+TEST_CASE("String::replace(const_iterator first, const_iterator last, Size count2, CharT c)", "[string::replace]" ) {
     std::string sstr0("0123456789");
     std::string sstr1;
 
@@ -1721,7 +1721,7 @@ TEST_CASE("String::replace(const_iterator first, const_iterator last, const_iter
     REQUIRE(ustr1.length() == 9);
 }
 
-TEST_CASE("String::replace(SizeType pos, SizeType count, const StringViewLikeT &t)", "[string::replace]" ) {
+TEST_CASE("String::replace(Size pos, Size count, const StringViewLikeT &t)", "[string::replace]" ) {
     std::string sstr0("0123456789");
     std::string sstr1;
     std::string sstr2("abcdefghij");
@@ -1745,19 +1745,19 @@ TEST_CASE("String::replace(SizeType pos, SizeType count, const StringViewLikeT &
 
 // copy ===========================================================================================
 
-TEST_CASE("String::copy(CharT* dst, SizeType count, SizeType pos)", "[string]" ) {
+TEST_CASE("String::copy(CharT* dst, Size count, Size pos)", "[string]" ) {
     char buf[32];
     String str("0123456789abcdefghij");
     
-    SizeType c1 = str.copy(buf, 10);
+    Size c1 = str.copy(buf, 10);
     REQUIRE(memcmp(buf, "0123456789", 10) == 0);
     REQUIRE(c1 == 10);
 
-    SizeType c2 = str.copy(buf, 10, 5);
+    Size c2 = str.copy(buf, 10, 5);
     REQUIRE(memcmp(buf, "56789abcde", 10) == 0);
     REQUIRE(c2 == 10);
 
-    SizeType c3 = str.copy(buf, 4, 16);
+    Size c3 = str.copy(buf, 4, 16);
     REQUIRE(memcmp(buf, "ghij", 4) == 0);
     REQUIRE(c3 == 4);
 }
@@ -1787,7 +1787,7 @@ TEST_CASE("String push and pop", "[string]" ) {
 
 // assigning ======================================================================================
 
-TEST_CASE("String::assign(SizeType count, CharT c)", "[string]" ) {
+TEST_CASE("String::assign(Size count, CharT c)", "[string]" ) {
     std::string sstr("hello");
     String ustr("hello");
 
@@ -1831,7 +1831,7 @@ TEST_CASE("String::assign(BasicString &&str)", "[string]" ) {
     REQUIRE(strlen(ustr1.c_str()) == 10);
 }
 
-TEST_CASE("String::assign(const CharT *ptr, SizeType length)", "[string]" ) {
+TEST_CASE("String::assign(const CharT *ptr, Size length)", "[string]" ) {
     const char *cstr("world!");
     std::string sstr("hello ");
     String ustr("hello ");
@@ -1907,7 +1907,7 @@ TEST_CASE("String::assign(const StringViewLikeT &t)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 3);
 }
 
-TEST_CASE("String::assign(const StringViewLikeT &t, SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String::assign(const StringViewLikeT &t, Size pos, Size count)", "[string]" ) {
     std::string_view vstr("abcdefghij");
     std::string_view vstr_view(vstr);
     std::string sstr("0123456789");
@@ -2002,7 +2002,7 @@ TEST_CASE("String::operator=(const StringViewLikeT &t)", "[string]" ) {
 
 // appending ======================================================================================
 
-TEST_CASE("String::append(SizeType count, CharT c)", "[string]" ) {
+TEST_CASE("String::append(Size count, CharT c)", "[string]" ) {
     std::string sstr("hello");
     String ustr("hello");
 
@@ -2063,7 +2063,7 @@ TEST_CASE("BasicString<char32_t>::append(const std::string &str)", "[string]" ) 
     REQUIRE(ustr1.length() == 12);
 }
 
-TEST_CASE("String::append(const BasicString &str, SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String::append(const BasicString &str, Size pos, Size count)", "[string]" ) {
     std::string sstr1("0123456789");
     std::string sstr2("abcdefghij");
     String ustr1("0123456789");
@@ -2079,7 +2079,7 @@ TEST_CASE("String::append(const BasicString &str, SizeType pos, SizeType count)"
     REQUIRE(strlen(ustr1.c_str()) == 15);
 }
 
-TEST_CASE("String::append(const CharT *ptr, SizeType length)", "[string]" ) {
+TEST_CASE("String::append(const CharT *ptr, Size length)", "[string]" ) {
     const char *cstr("world!");
     std::string sstr("hello ");
     String ustr("hello ");
@@ -2094,7 +2094,7 @@ TEST_CASE("String::append(const CharT *ptr, SizeType length)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 12);
 }
 
-TEST_CASE("BasicString<char32_t>::append(const CharT *ptr, SizeType length)", "[string]" ) {
+TEST_CASE("BasicString<char32_t>::append(const CharT *ptr, Size length)", "[string]" ) {
     const char *cstr("world!");
     std::basic_string<char32_t> sstr(U"hello world!");
     BasicString<char32_t> ustr(U"hello ");
@@ -2167,7 +2167,7 @@ TEST_CASE("String::append(const StringViewLikeT &t)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 13);
 }
 
-TEST_CASE("String::append(const StringViewLikeT &t, SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String::append(const StringViewLikeT &t, Size pos, Size count)", "[string]" ) {
     std::string_view vstr("abcdefghij");
     std::string_view vstr_view(vstr);
     std::string sstr("0123456789");
@@ -2455,7 +2455,7 @@ TEST_CASE("String::operator+(CharT a, const String &&b)", "[string]" ) {
 
 // inserting ======================================================================================
 
-TEST_CASE("String::insert(SizeType index, SizeType count, CharT c)", "[string]" ) {
+TEST_CASE("String::insert(Size index, Size count, CharT c)", "[string]" ) {
     std::string sstr("0123456789");
     String ustr("0123456789");
     
@@ -2474,7 +2474,7 @@ TEST_CASE("String::insert(SizeType index, SizeType count, CharT c)", "[string]" 
     REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
-TEST_CASE("String::insert(SizeType index, const CharT *s)", "[string]" ) {
+TEST_CASE("String::insert(Size index, const CharT *s)", "[string]" ) {
     std::string sstr("0123456789");
     String ustr("0123456789");
     
@@ -2493,7 +2493,7 @@ TEST_CASE("String::insert(SizeType index, const CharT *s)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
-TEST_CASE("String::insert(SizeType index, const CharT *s, SizeType count)", "[string]" ) {
+TEST_CASE("String::insert(Size index, const CharT *s, Size count)", "[string]" ) {
     std::string sstr("0123456789");
     String ustr("0123456789");
     
@@ -2512,7 +2512,7 @@ TEST_CASE("String::insert(SizeType index, const CharT *s, SizeType count)", "[st
     REQUIRE(strlen(ustr.c_str()) == 16);
 }
 
-TEST_CASE("String::insert(SizeType index, const BasicString& str)", "[string]" ) {
+TEST_CASE("String::insert(Size index, const BasicString& str)", "[string]" ) {
     std::string sstr1("0123456789");
     std::string sstr2("abcdefghij");
     String ustr1("0123456789");
@@ -2526,7 +2526,7 @@ TEST_CASE("String::insert(SizeType index, const BasicString& str)", "[string]" )
     REQUIRE(strlen(ustr1.c_str()) == 20);
 }
 
-TEST_CASE("String::insert(SizeType index, const BasicString &str, SizeType index_str, SizeType count)", "[string]" ) {
+TEST_CASE("String::insert(Size index, const BasicString &str, Size index_str, Size count)", "[string]" ) {
     std::string sstr1("0123456789");
     std::string sstr2("abcdefghij");
     String ustr1("0123456789");
@@ -2566,7 +2566,7 @@ TEST_CASE("String::insert(const_iterator pos, CharT ch)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 12);
 }
 
-TEST_CASE("String::insert(const_iterator pos, SizeType count, CharT ch)", "[string]" ) {
+TEST_CASE("String::insert(const_iterator pos, Size count, CharT ch)", "[string]" ) {
     std::string sstr("0123456789");
     String ustr("0123456789");
 
@@ -2604,7 +2604,7 @@ TEST_CASE("String::insert(const_iterator pos, std::initializer_list<CharT> ilist
     REQUIRE(strlen(ustr1.c_str()) == 13);
 }
 
-TEST_CASE("String::insert(SizeType index, const StringViewLikeT &t)", "[string]" ) {
+TEST_CASE("String::insert(Size index, const StringViewLikeT &t)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
 
@@ -2618,7 +2618,7 @@ TEST_CASE("String::insert(SizeType index, const StringViewLikeT &t)", "[string]"
     REQUIRE(strlen(ustr1.c_str()) == 13);
 }
 
-TEST_CASE("String::insert(SizeType index, const StringViewLikeT &t, SizeType index_str, SizeType count)", "[string]" ) {
+TEST_CASE("String::insert(Size index, const StringViewLikeT &t, Size index_str, Size count)", "[string]" ) {
     std::string sstr1("0123456789");
     String ustr1("0123456789");
 
@@ -3026,7 +3026,7 @@ TEST_CASE("String::swap 4", "[string]" ) {
 
 // erasing ======================================================================================
 
-TEST_CASE("String::erase(SizeType index, SizeType count)", "[string]" ) {
+TEST_CASE("String::erase(Size index, Size count)", "[string]" ) {
     std::string sstr("0123456789abcdefghij");
     String ustr("0123456789abcdefghij");
 
@@ -3130,7 +3130,7 @@ TEST_CASE("String::erase(const_iterator first, const_iterator last) check", "[st
 
 // substrings =====================================================================================
 
-TEST_CASE("String::substr(SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String::substr(Size pos, Size count)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
 
@@ -3156,7 +3156,7 @@ TEST_CASE("String::substr(SizeType pos, SizeType count)", "[string]" ) {
     REQUIRE(ustr2.length() == 10);
 }
 
-TEST_CASE("String::substrview(SizeType pos, SizeType count)", "[string]" ) {
+TEST_CASE("String::substrview(Size pos, Size count)", "[string]" ) {
     std::string sstr1("0123456789abcdefghij");
     String ustr1("0123456789abcdefghij");
 
