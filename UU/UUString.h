@@ -25,12 +25,6 @@
 #ifndef UU_STRING_H
 #define UU_STRING_H
 
-#include "UU/Compiler.h"
-#include <UU/Assertions.h>
-#include <UU/IteratorWrapper.h>
-#include <UU/MathLike.h>
-#include <UU/Types.h>
-
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
@@ -47,6 +41,12 @@
 
 #include <stdlib.h>
 
+#include <UU/Assertions.h>
+#include <UU/Compiler.h>
+#include <UU/IteratorWrapper.h>
+#include <UU/MathLike.h>
+#include <UU/Types.h>
+
 #define UU_STRING_THROWS_EXCEPTIONS 0
 
 namespace UU {
@@ -56,9 +56,9 @@ namespace UU {
 template <typename T> class Span;
 class TextRef;
 
-// constants ======================================================================================
+// string size ====================================================================================
 
-static constexpr SizeType BasicStringDefaultSize = 256;
+static constexpr SizeType BasicStringDefaultInlineCapacity = 72;
 
 // template metaprogramming =======================================================================
 
@@ -106,7 +106,7 @@ constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, Traits> &&
 // BasicString class
 //
 
-template <typename CharT, SizeType S = BasicStringDefaultSize, typename Traits = std::char_traits<CharT>>
+template <typename CharT, SizeType S = BasicStringDefaultInlineCapacity, typename Traits = std::char_traits<CharT>>
 class BasicString
 {
 public:
@@ -1866,8 +1866,8 @@ BasicString<CharT, S, Traits> operator+(CharT lhs,
 
 // String =========================================================================================
 
-using String = BasicString<char, BasicStringDefaultSize>;
-using StringView = BasicString<char, BasicStringDefaultSize>::BasicStringView;
+using String = BasicString<char, BasicStringDefaultInlineCapacity>;
+using StringView = BasicString<char, BasicStringDefaultInlineCapacity>::BasicStringView;
 
 }  // namespace UU
 
