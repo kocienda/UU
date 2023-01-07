@@ -91,6 +91,7 @@ template <typename I> std::pair<int, bool> parse_int(const std::string &s, std::
 }
 
 std::vector<Size> find_line_end_offsets(const std::string_view &str, Size max_string_index = SizeMax, Size max_line = SizeMax);
+std::pair<Size, Size> offsets_for_line(const std::string_view &str, const std::vector<Size> &line_end_offsets, Size line);
 std::string_view string_view_for_line(const std::string_view &str, const std::vector<Size> &line_end_offsets, Size line);
 std::string_view string_view_for_line(const std::string_view &str, Size line);
 

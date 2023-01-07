@@ -96,3 +96,31 @@ TEST_CASE( "line end offsets 3MIX", "[string_like]" ) {
     std::string line = std::string(string_view_for_line(string, line_end_offsets, 1));
     REQUIRE(line == "foo");
 }
+
+TEST_CASE( "line end offsets 4LF", "[string_like]" ) {
+    std::string string("foo\nbar\nbaz\n\n\na longer line\nthe end");
+    std::vector<Size> line_end_offsets = find_line_end_offsets(string);
+    std::string line = std::string(string_view_for_line(string, line_end_offsets, 6));
+    REQUIRE(line == "a longer line");
+}
+
+TEST_CASE( "line end offsets 4CR", "[string_like]" ) {
+    std::string string("foo\rbar\rbaz\r\r\ra longer line\rthe end");
+    std::vector<Size> line_end_offsets = find_line_end_offsets(string);
+    std::string line = std::string(string_view_for_line(string, line_end_offsets, 6));
+    REQUIRE(line == "a longer line");
+}
+
+TEST_CASE( "line end offsets 4CRLF", "[string_like]" ) {
+    std::string string("foo\r\nbar\r\nbaz\r\n\r\n\r\na longer line\r\nthe end");
+    std::vector<Size> line_end_offsets = find_line_end_offsets(string);
+    std::string line = std::string(string_view_for_line(string, line_end_offsets, 6));
+    REQUIRE(line == "a longer line");
+}
+
+TEST_CASE( "line end offsets 4MIX", "[string_like]" ) {
+    std::string string("foo\nbar\rbaz\r\n\r\n\r\na longer line\nthe end");
+    std::vector<Size> line_end_offsets = find_line_end_offsets(string);
+    std::string line = std::string(string_view_for_line(string, line_end_offsets, 6));
+    REQUIRE(line == "a longer line");
+}

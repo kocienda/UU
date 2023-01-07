@@ -23,6 +23,7 @@
 // SOFTWARE.
 
 #include <limits>
+#include <utility>
 
 #include "Compiler.h"
 #include "StringLike.h"
@@ -63,9 +64,15 @@ std::vector<Size> find_line_end_offsets(const std::string_view &str, Size max_st
             added_last_line_ending = true;
             break;
         }
-        pos = str.find_first_not_of("\r\n", pos);
-        if (pos == std::string_view::npos) {
-            break;
+        if (str[pos] == '\r') {
+            pos++;
+            if (pos < str.length() && str[pos] == '\n') {
+                pos++;
+            }
+        }
+        else {
+            ASSERT(str[pos] == '\n');
+            pos++;
         }
     }
     // add the line end after the last match, or if there is none, the last index in the file
@@ -83,9 +90,9 @@ std::vector<Size> find_line_end_offsets(const std::string_view &str, Size max_st
     return result;
 }
 
-std::string_view string_view_for_line(const std::string_view &str, const std::vector<Size> &line_end_offsets, Size line)
+std::pair<Size, Size> offsets_for_line(const std::string_view &str, const std::vector<Size> &line_end_offsets, Size line)
 {
-    std::string_view result;
+    std::pair<Size, Size> result = std::make_pair(std::string_view::npos, std::string_view::npos);
     if (line == 0 || line > line_end_offsets.size()) {
         return result;
     }
@@ -99,8 +106,18 @@ std::string_view string_view_for_line(const std::string_view &str, const std::ve
     }
     Size line_end_offset = line_end_offsets[line - 1];
     line_end_offset = std::max(line_start_offset, line_end_offset);
-    Size line_length = line_end_offset - line_start_offset;
-    return str.substr(line_start_offset, line_length);
+    return std::make_pair(line_start_offset, line_end_offset);
+}
+
+std::string_view string_view_for_line(const std::string_view &str, const std::vector<Size> &line_end_offsets, Size line)
+{
+    std::string_view result;
+    auto offsets = offsets_for_line(str, line_end_offsets, line);
+    if (offsets.first != std::string_view::npos) {
+        Size length = std::min(offsets.second, str.length()) - offsets.first;
+        result = str.substr(offsets.first, length);
+    }
+    return result;
 }
 
 std::string_view string_view_for_line(const std::string_view &str, Size line)
