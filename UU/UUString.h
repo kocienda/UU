@@ -88,33 +88,33 @@ struct IsInputIteratorCategory_ :
 
 template <typename T> constexpr bool IsInputIteratorCategory = IsInputIteratorCategory_<T>::value;
 
-template <typename T, typename CharT, typename Traits>
-using IsConvertibleToStringView_ = std::is_convertible<T, std::basic_string_view<CharT, Traits>>;
-template <typename T, typename CharT, typename Traits> 
-    constexpr bool IsConvertibleToStringView = IsConvertibleToStringView_<T, CharT, Traits>::value;
+template <typename T, typename CharT, typename TraitsT>
+using IsConvertibleToStringView_ = std::is_convertible<T, std::basic_string_view<CharT, TraitsT>>;
+template <typename T, typename CharT, typename TraitsT> 
+    constexpr bool IsConvertibleToStringView = IsConvertibleToStringView_<T, CharT, TraitsT>::value;
 
 template <typename T, typename CharT>
 using IsConvertibleToConstCharTStar_ = std::is_convertible<T, const CharT *>;
 template <typename T, typename CharT> 
     constexpr bool IsConvertibleToConstCharTStar = IsConvertibleToConstCharTStar_<T, CharT>::value;
 
-template <typename T, typename CharT, typename Traits>
-constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, Traits> && 
+template <typename T, typename CharT, typename TraitsT>
+constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, TraitsT> && 
     !IsConvertibleToConstCharTStar<T, CharT>;
 
 // ================================================================================================
 // BasicString class
 //
 
-template <typename CharT, Size S = BasicStringDefaultInlineCapacity, 
-    typename Traits = std::char_traits<CharT>>
+template <typename CharT, Size SizeT = BasicStringDefaultInlineCapacity, 
+    typename TraitsT = std::char_traits<CharT>>
 class BasicString
 {
 public:
     // using ======================================================================================
 
     using CharType = CharT;
-    using TraitsType = Traits;
+    using TraitsType = TraitsT;
     using iterator = IteratorWrapper<CharT *>;
     using const_iterator = IteratorWrapper<const CharT *>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -123,7 +123,7 @@ public:
 
     // constants ==================================================================================
 
-    static constexpr Size InlineCapacity = S;
+    static constexpr Size InlineCapacity = SizeT;
     static constexpr const Size npos = SizeMax;
     static constexpr CharT empty_value = 0;
 
@@ -144,8 +144,6 @@ private:
     do { \
         ASSERT_WITH_MESSAGE(m_ptr[m_length] == '\0', "string not null terminated"); \
     } while (0)
-
-    UU_ALWAYS_INLINE CharT *ptr() const { return m_ptr; }
 
     UU_ALWAYS_INLINE constexpr void null_terminate() {
         ensure_capacity(m_length);
@@ -207,6 +205,8 @@ private:
 #endif
     }
 
+    UU_ALWAYS_INLINE CharT *ptr() const { return m_ptr; }
+
     template <bool B = true> constexpr bool is_same_string(const BasicString &other) const { 
         return (ptr() == other.ptr()) == B; 
     }
@@ -258,7 +258,7 @@ public:
     }
 
     constexpr BasicString(const CharT *ptr) {
-        assign(ptr, Traits::length(ptr));
+        assign(ptr, TraitsT::length(ptr));
     }
 
     template <typename InputIt, typename MaybeT = InputIt, 
@@ -301,13 +301,13 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString(const StringViewLikeT &str) {
         assign(str);
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString(const StringViewLikeT &str, Size pos, Size count = npos) {
         assign(str, pos, count);
     }
@@ -385,7 +385,7 @@ public:
         if (length() < InlineCapacity) {
             CharT *old_ptr = m_ptr;
             m_ptr = m_buf;
-            Traits::copy(m_ptr, old_ptr, length());
+            TraitsT::copy(m_ptr, old_ptr, length());
             free(old_ptr);
             null_terminate();
             ASSERT(is_using_inline_buffer());
@@ -399,7 +399,7 @@ public:
         CharT *old_ptr = m_ptr;
         Size amt = (shrink_length * sizeof(CharT)) + 1;
         m_ptr = static_cast<CharT *>(malloc(amt));
-        Traits::copy(m_ptr, old_ptr, length());
+        TraitsT::copy(m_ptr, old_ptr, length());
         free(old_ptr);
         null_terminate();
         ASSERT(is_using_allocated_buffer());
@@ -525,7 +525,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &assign(const StringViewLikeT &t) {
         clear();
         append(t);
@@ -534,7 +534,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &assign(const StringViewLikeT &t, Size pos, Size count = npos) {
         clear();
         append(t, pos, count);
@@ -587,7 +587,7 @@ public:
     
     constexpr BasicString &append(const CharT *ptr, Size length) {
         ensure_capacity(m_length + length);
-        Traits::copy(m_ptr + m_length, ptr, length);
+        TraitsT::copy(m_ptr + m_length, ptr, length);
         m_length += length;
         null_terminate();
         return *this;
@@ -606,9 +606,9 @@ public:
     }
 
     constexpr BasicString &append(const CharT *ptr) {
-        Size length = Traits::length(ptr);
+        Size length = TraitsT::length(ptr);
         ensure_capacity(m_length + length);
-        Traits::copy(m_ptr + m_length, ptr, length);
+        TraitsT::copy(m_ptr + m_length, ptr, length);
         m_length += length;
         null_terminate();
         return *this;
@@ -637,14 +637,14 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &append(const StringViewLikeT &t) {
         append(t.data(), t.length());
         return *this;
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &append(const StringViewLikeT &t, Size pos, Size count = npos) {
         BasicStringView v(t.substr(pos, count));
         append(v.data(), v.length());
@@ -692,7 +692,7 @@ public:
         ensure_capacity(m_length + count);
         iterator pos = begin() + index;
         iterator dst = pos + count;
-        Traits::move(dst, pos, end() - pos);
+        TraitsT::move(dst, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
         for (Size idx = 0; idx < count; idx++) {
             m_ptr[diff + idx] = c;
@@ -710,8 +710,8 @@ public:
         ensure_capacity(m_length + count);
         iterator pos = begin() + index;
         iterator dst = pos + count;
-        Traits::move(dst, pos, end() - pos);
-        Traits::copy(pos, s, count);
+        TraitsT::move(dst, pos, end() - pos);
+        TraitsT::copy(pos, s, count);
         m_length += count;
         null_terminate();
         return *this;
@@ -728,8 +728,8 @@ public:
         ensure_capacity(m_length + ecount);
         iterator pos = begin() + index;
         iterator dst = pos + ecount;
-        Traits::move(dst, pos, end() - pos);
-        Traits::copy(pos, str.begin() + index_str, ecount);
+        TraitsT::move(dst, pos, end() - pos);
+        TraitsT::copy(pos, str.begin() + index_str, ecount);
         m_length += ecount;
         null_terminate();
         return *this;
@@ -738,7 +738,7 @@ public:
     constexpr iterator insert(const_iterator pos, CharT c) {
         ensure_capacity(m_length);
         iterator dst = unconst_copy(pos);
-        Traits::move(dst + 1, pos, end() - pos);
+        TraitsT::move(dst + 1, pos, end() - pos);
         m_ptr[pos - begin()] = c;
         m_length++;
         null_terminate();
@@ -748,7 +748,7 @@ public:
     constexpr iterator insert(const_iterator pos, Size count, CharT c) {
         ensure_capacity(m_length + count);
         iterator dst = unconst_copy(pos);
-        Traits::move(dst + count, pos, end() - pos);
+        TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
         for (Size idx = 0; idx < count; idx++) {
             m_ptr[diff + idx] = c;
@@ -764,7 +764,7 @@ public:
         ptrdiff_t count = last - first;
         ensure_capacity(m_length + count);
         iterator dst = unconst_copy(pos);
-        Traits::move(dst + count, pos, end() - pos);
+        TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
         for (Size idx = 0; idx < count; idx++) {
             m_ptr[offset + idx] = *(first + idx);
@@ -778,7 +778,7 @@ public:
         ptrdiff_t count = ilist.size();
         ensure_capacity(m_length + count);
         iterator dst = unconst_copy(pos);
-        Traits::move(dst + count, pos, end() - pos);
+        TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
         for (Size idx = 0; idx < count; idx++) {
             m_ptr[offset + idx] = *(ilist.begin() + idx);
@@ -789,7 +789,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &insert(Size index, const StringViewLikeT &t) {
         insert(index, t.data(), t.length());
         UU_STRING_ASSERT_NULL_TERMINATED;
@@ -797,7 +797,7 @@ public:
     }
 
     template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &insert(Size index, const StringViewLikeT &t, Size index_str, Size count = npos) {
         insert(index, t.data(), index_str, count);
         UU_STRING_ASSERT_NULL_TERMINATED;
@@ -812,7 +812,7 @@ public:
         }
         Size amt = std::min(count, length() - index);
         Size rem = length() - amt;
-        Traits::move(m_ptr + index, m_ptr + index + amt, rem);
+        TraitsT::move(m_ptr + index, m_ptr + index + amt, rem);
         m_length -= amt;
         null_terminate();
         return *this;
@@ -824,7 +824,7 @@ public:
         }
         Size rem = end() - pos - 1;
         ptrdiff_t diff = pos - begin();
-        Traits::move(begin() + diff, begin() + diff + 1, rem);
+        TraitsT::move(begin() + diff, begin() + diff + 1, rem);
         m_length -= 1;
         null_terminate();
         return begin() + diff;
@@ -841,7 +841,7 @@ public:
         ptrdiff_t last_idx = last - begin();
         Size amt = last_idx - first_idx;
         ptrdiff_t rem = length() - last_idx;
-        Traits::move(begin() + first_idx, begin() + last_idx, rem);
+        TraitsT::move(begin() + first_idx, begin() + last_idx, rem);
         m_length -= amt;
         null_terminate();
         return unconst_copy(first);
@@ -850,7 +850,7 @@ public:
     // starts_with ================================================================================
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr bool starts_with(const StringViewLikeT &t) const {
         if (t.length() == 0) {
             return true;
@@ -858,22 +858,22 @@ public:
         if (t.length() > length()) {
             return false;
         }
-        return Traits::compare(data(), t.data(), t.length()) == 0;
+        return TraitsT::compare(data(), t.data(), t.length()) == 0;
     }
 
     constexpr bool starts_with(CharT c) const noexcept {
-        return length() > 0 && Traits::eq(m_ptr[0], c);
+        return length() > 0 && TraitsT::eq(m_ptr[0], c);
     }
 
     constexpr bool starts_with(const CharT *s) const {
-        Size len = Traits::length(s);
-        return length() >= len && Traits::compare(data(), s, len) == 0;
+        Size len = TraitsT::length(s);
+        return length() >= len && TraitsT::compare(data(), s, len) == 0;
     }
 
     // ends_with ==================================================================================
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr bool ends_with(const StringViewLikeT &t) const {
         if (t.length() == 0) {
             return true;
@@ -882,23 +882,23 @@ public:
             return false;
         }
         Size pos = length() - t.length();
-        return Traits::compare(data() + pos, t.data(), t.length()) == 0;
+        return TraitsT::compare(data() + pos, t.data(), t.length()) == 0;
     }
 
     constexpr bool ends_with(CharT c) const noexcept {
-        return length() > 0 && Traits::eq(m_ptr[length() - 1], c);
+        return length() > 0 && TraitsT::eq(m_ptr[length() - 1], c);
     }
 
     constexpr bool ends_with(const CharT *s) const {
-        Size len = Traits::length(s);
+        Size len = TraitsT::length(s);
         Size pos = length() - len;
-        return length() >= len && Traits::compare(data() + pos, s, len) == 0;
+        return length() >= len && TraitsT::compare(data() + pos, s, len) == 0;
     }
 
     // contains ===================================================================================
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr bool contains(const StringViewLikeT &t) const noexcept {
         return find(t) != npos;
     }
@@ -922,12 +922,12 @@ public:
     }
 
     constexpr Size find(const CharT *s, Size pos = 0) const {
-        return find(BasicStringView(s, Traits::length(s)), pos);
+        return find(BasicStringView(s, TraitsT::length(s)), pos);
     }
 
     constexpr Size find(CharT c, Size pos = 0) const noexcept {
         for (Size idx = pos; idx < length(); idx++) {
-            if (Traits::eq(m_ptr[idx], c)) {
+            if (TraitsT::eq(m_ptr[idx], c)) {
                 return idx;
             }
         }
@@ -935,7 +935,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr Size find(const StringViewLikeT &t, Size pos = 0) const noexcept {
         if (t.length() == 0) {
             return pos;
@@ -950,7 +950,7 @@ public:
             const CharT a = t[0];
             const CharT b = t[1];
             for (Size idx = pos; idx < length() - 1; idx++) {
-                if (Traits::eq(m_ptr[idx], a) && Traits::eq(m_ptr[idx + 1], b)) {
+                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::eq(m_ptr[idx + 1], b)) {
                     return idx;
                 }
             }
@@ -959,7 +959,7 @@ public:
         else {
             const CharT a = t[0];
             for (Size idx = pos; idx <= length() - t.length(); idx++) {
-                if (Traits::eq(m_ptr[idx], a) && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::compare(m_ptr + idx, t.data(), t.length()) == 0) {
                     return idx;
                 }
             }
@@ -976,11 +976,11 @@ public:
     }
 
     constexpr Size find_boyer_moore(const CharT *s, Size pos = 0) const {
-        return find_boyer_moore(BasicStringView(s, Traits::length(s)), pos);
+        return find_boyer_moore(BasicStringView(s, TraitsT::length(s)), pos);
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr Size find_boyer_moore(const StringViewLikeT &t, Size pos = 0) const {
         if (t.length() == 0) {
             return pos;
@@ -995,7 +995,7 @@ public:
             const CharT a = t[0];
             const CharT b = t[1];
             for (Size idx = pos; idx < length() - 1; idx++) {
-                if (Traits::eq(m_ptr[idx], a) && Traits::eq(m_ptr[idx + 1], b)) {
+                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::eq(m_ptr[idx + 1], b)) {
                     return idx;
                 }
             }
@@ -1019,7 +1019,7 @@ public:
     }
 
     constexpr Size rfind(const CharT *s, Size pos = npos) const {
-        Size len = Traits::length(s);
+        Size len = TraitsT::length(s);
         return len == 0 ? std::min(pos, length()) : rfind(BasicStringView(s, len), pos);
     }
 
@@ -1029,7 +1029,7 @@ public:
         }
         Size idx = std::min(pos, length() - 1);
         for (;;) {
-            if (Traits::eq(m_ptr[idx], c)) {
+            if (TraitsT::eq(m_ptr[idx], c)) {
                 return idx;
             }
             if (idx == 0) {
@@ -1041,7 +1041,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr Size rfind(const StringViewLikeT &t, Size pos = npos) const noexcept {
         if (length() == 0) {
             return npos;
@@ -1060,7 +1060,7 @@ public:
             const CharT b = t[1];
             Size idx = std::min(pos, length() - t.length());
             for (;;) {
-                if (Traits::eq(m_ptr[idx], a) && Traits::eq(m_ptr[idx + 1], b)) {
+                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::eq(m_ptr[idx + 1], b)) {
                     return idx;
                 }
                 if (idx == 0) {
@@ -1074,7 +1074,7 @@ public:
             const CharT a = t[0];
             Size idx = std::min(pos, length() - t.length());
             for (;;) {
-                if (Traits::eq(m_ptr[idx], a) && Traits::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::compare(m_ptr + idx, t.data(), t.length()) == 0) {
                     return idx;
                 }
                 if (idx == 0) {
@@ -1097,7 +1097,7 @@ public:
     }
 
     constexpr Size find_first_of(const CharT *s, Size pos = 0) const {
-        return find_first_of(BasicStringView(s, Traits::length(s)), pos);
+        return find_first_of(BasicStringView(s, TraitsT::length(s)), pos);
     }
 
     constexpr Size find_first_of(CharT c, Size pos = 0) const noexcept {
@@ -1105,14 +1105,14 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr Size find_first_of(const StringViewLikeT &t, Size pos = 0) const noexcept {
         if (pos > length()) {
             return npos;
         }
         for (Size idx = pos; idx < length(); idx++) {
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (Traits::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
                     return idx;
                 }
             }
@@ -1131,7 +1131,7 @@ public:
     }
 
     constexpr Size find_first_not_of(const CharT *s, Size pos = 0) const {
-        return find_first_not_of(BasicStringView(s, Traits::length(s)), pos);
+        return find_first_not_of(BasicStringView(s, TraitsT::length(s)), pos);
     }
 
     constexpr Size find_first_not_of(CharT c, Size pos = 0) const noexcept {
@@ -1139,7 +1139,7 @@ public:
             return npos;
         }
         for (Size idx = pos; idx < length(); idx++) {
-            if (!Traits::eq(m_ptr[idx], c)) {
+            if (!TraitsT::eq(m_ptr[idx], c)) {
                 return idx;
             }
         }
@@ -1147,7 +1147,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr Size find_first_not_of(const StringViewLikeT &t, Size pos = 0) const noexcept {
         if (pos > length()) {
             return npos;
@@ -1155,7 +1155,7 @@ public:
         for (Size idx = pos; idx < length(); idx++) {
             bool match = false;
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (Traits::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
                     match = true;
                     break;
                 }
@@ -1178,7 +1178,7 @@ public:
     }
 
     constexpr Size find_last_of(const CharT *s, Size pos = npos) const {
-        return find_last_of(BasicStringView(s, Traits::length(s)), pos);
+        return find_last_of(BasicStringView(s, TraitsT::length(s)), pos);
     }
 
     constexpr Size find_last_of(CharT c, Size pos = npos) const noexcept {
@@ -1186,7 +1186,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr Size find_last_of(const StringViewLikeT &t, Size pos = npos) const noexcept {
         if (length() == 0) {
             return npos;
@@ -1197,7 +1197,7 @@ public:
         Size idx = std::min(pos, length() - 1);
         for (;;) {
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (Traits::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
                     return idx;
                 }
             }
@@ -1220,13 +1220,13 @@ public:
     }
 
     constexpr Size find_last_not_of(const CharT *s, Size pos = npos) const {
-        return find_last_not_of(BasicStringView(s, Traits::length(s)), pos);
+        return find_last_not_of(BasicStringView(s, TraitsT::length(s)), pos);
     }
 
     constexpr Size find_last_not_of(CharT c, Size pos = npos) const noexcept {
         Size idx = std::min(pos, length() - 1);
         for (;;) {
-            if (!Traits::eq(m_ptr[idx], c)) {
+            if (!TraitsT::eq(m_ptr[idx], c)) {
                 return idx;
             }
             if (idx == 0) {
@@ -1238,7 +1238,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr Size find_last_not_of(const StringViewLikeT& t, Size pos = npos) const noexcept {
         if (length() == 0) {
             return npos;
@@ -1250,7 +1250,7 @@ public:
         for (;;) {
             bool match = false;
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (Traits::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
                     match = true;
                     break;
                 }
@@ -1301,14 +1301,14 @@ public:
     }
 
     constexpr BasicString &replace(Size pos, Size count, const CharT *cstr) {
-        Size len = Traits::length(cstr);
+        Size len = TraitsT::length(cstr);
         return replace(pos, count, BasicStringView(cstr, len), 0, len);
     }
 
     constexpr BasicString &replace(const_iterator first, const_iterator last, const CharT *cstr) {
         Size pos = first - begin();
         Size count = last - first;
-        Size len = Traits::length(cstr);
+        Size len = TraitsT::length(cstr);
         return replace(pos, count, BasicStringView(cstr, len), 0, len);
     }
 
@@ -1332,13 +1332,13 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &replace(Size pos, Size count, const StringViewLikeT &t) {
         return replace(pos, count, t, 0, t.length());
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &replace(const_iterator first, const_iterator last, const StringViewLikeT &t) {
         Size pos = first - begin();
         Size count = last - first;
@@ -1346,7 +1346,7 @@ public:
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &replace(Size pos, Size count, 
         const StringViewLikeT &t, Size pos2, Size count2 = npos) {
         StringViewLikeT et = t.substr(pos2, std::min(count2, t.length() - pos2));
@@ -1366,7 +1366,7 @@ public:
             erase(pos, count - et.length());
         }
         // overwrite
-        Traits::copy(begin() + pos, et.data(), et.length());
+        TraitsT::copy(begin() + pos, et.data(), et.length());
         null_terminate();
         return *this;
     }
@@ -1378,7 +1378,7 @@ public:
             return_zero_or_throw_out_of_range(pos);
         }
         Size ecount = std::min(count, length() - pos);
-        Traits::copy(dst, begin() + pos, ecount);
+        TraitsT::copy(dst, begin() + pos, ecount);
         return ecount;
     }
 
@@ -1431,7 +1431,7 @@ public:
     }
 
     template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &operator=(const StringViewLikeT &t) {
         return assign(t);
     }
@@ -1459,7 +1459,7 @@ public:
     }
 
     template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &operator+=(const StringViewLikeT &t) {
         return append(t.data(), t.length());
     }
@@ -1473,11 +1473,11 @@ public:
         if (a.length() == 0) {
             return true;
         }
-        return Traits::compare(a.data(), b.data(), a.length()) == 0;
+        return TraitsT::compare(a.data(), b.data(), a.length()) == 0;
     }
 
     friend constexpr int operator<=>(const BasicString &a, const BasicString &b) noexcept {
-        return Traits::compare(a.data(), b.data(), std::min(a.length(), b.length()));
+        return TraitsT::compare(a.data(), b.data(), std::min(a.length(), b.length()));
     }
 
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
@@ -1572,9 +1572,9 @@ public:
         if (is_using_inline_buffer() && other.is_using_inline_buffer()) {
             // m_buf
             CharT tmp_buf[InlineCapacity];
-            Traits::copy(tmp_buf, m_buf, InlineCapacity);
-            Traits::copy(m_buf, other.m_buf, InlineCapacity);
-            Traits::copy(other.m_buf, tmp_buf, InlineCapacity);
+            TraitsT::copy(tmp_buf, m_buf, InlineCapacity);
+            TraitsT::copy(m_buf, other.m_buf, InlineCapacity);
+            TraitsT::copy(other.m_buf, tmp_buf, InlineCapacity);
 
             // m_ptr
             // no-op
@@ -1590,7 +1590,7 @@ public:
         else if (is_using_inline_buffer() && other.is_using_allocated_buffer()) {
             // m_buf and m_ptr
             CharT *tmp_ptr = other.m_ptr;
-            Traits::copy(other.m_buf, m_buf, InlineCapacity);
+            TraitsT::copy(other.m_buf, m_buf, InlineCapacity);
             other.m_ptr = other.m_buf;
             m_ptr = tmp_ptr;
 
@@ -1607,7 +1607,7 @@ public:
         else if (is_using_allocated_buffer() && other.is_using_inline_buffer()) {
             // m_buf and m_ptr
             CharT *tmp_ptr = m_ptr;
-            Traits::copy(m_buf, other.m_buf, InlineCapacity);
+            TraitsT::copy(m_buf, other.m_buf, InlineCapacity);
             m_ptr = m_buf;
             other.m_ptr = tmp_ptr;
 
@@ -1654,8 +1654,8 @@ public:
     }
 
     constexpr BasicString &replace_all(const CharT *a, const CharT *b) {
-        BasicStringView av = BasicStringView(a, Traits::length(a));
-        BasicStringView bv = BasicStringView(b, Traits::length(b));
+        BasicStringView av = BasicStringView(a, TraitsT::length(a));
+        BasicStringView bv = BasicStringView(b, TraitsT::length(b));
         return replace_all(av, bv);
     }
 
@@ -1664,7 +1664,7 @@ public:
     }
 
     template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, Traits>, int> = 0>
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
     constexpr BasicString &replace_all(StringViewLikeT &a, StringViewLikeT &b) {
         Size len = a.length();
         Size pos = find(a);
@@ -1754,7 +1754,7 @@ private:
         }
         else {
             m_ptr = static_cast<CharT *>(malloc(amt));
-            Traits::copy(m_ptr, m_buf, length());
+            TraitsT::copy(m_ptr, m_buf, length());
         }
         null_terminate();
     }
@@ -1765,8 +1765,8 @@ private:
     Size m_capacity = InlineCapacity;
 };
 
-template <typename CharT, Size S, typename Traits>
-std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const BasicString<CharT, S, Traits> &str)
+template <typename CharT, Size S, typename TraitsT>
+std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const BasicString<CharT, S, TraitsT> &str)
 {
     os.write(str.data(), str.length());
     return os;
@@ -1774,95 +1774,95 @@ std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const Basic
 
 // operator+ ======================================================================================
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs,
-    const BasicString<CharT, S, Traits> &rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &lhs,
+    const BasicString<CharT, S, TraitsT> &rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs, 
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &lhs, 
     const CharT* rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs, CharT rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &lhs, CharT rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const CharT* lhs, 
-    const BasicString<CharT, S, Traits> &rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const CharT* lhs, 
+    const BasicString<CharT, S, TraitsT> &rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(CharT lhs, const BasicString<CharT, S, Traits> &rhs) {
-        BasicString<CharT, S, Traits> str(1, lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(CharT lhs, const BasicString<CharT, S, TraitsT> &rhs) {
+        BasicString<CharT, S, TraitsT> str(1, lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs,
-    const BasicString<CharT, S, Traits> &&rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &&lhs,
+    const BasicString<CharT, S, TraitsT> &&rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs,
-    const BasicString<CharT, S, Traits> &rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &&lhs,
+    const BasicString<CharT, S, TraitsT> &rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs,
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &&lhs,
     const CharT *rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &&lhs, CharT rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &&lhs, CharT rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const BasicString<CharT, S, Traits> &lhs,
-    const BasicString<CharT, S, Traits> &&rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const BasicString<CharT, S, TraitsT> &lhs,
+    const BasicString<CharT, S, TraitsT> &&rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(const CharT *lhs, 
-    const BasicString<CharT, S, Traits> &&rhs) {
-        BasicString<CharT, S, Traits> str(lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(const CharT *lhs, 
+    const BasicString<CharT, S, TraitsT> &&rhs) {
+        BasicString<CharT, S, TraitsT> str(lhs);
         str += rhs;
         return str;
 }
 
-template <typename CharT, Size S, typename Traits>
-BasicString<CharT, S, Traits> operator+(CharT lhs,
-    const BasicString<CharT, S, Traits> &&rhs) {
-        BasicString<CharT, S, Traits> str(1, lhs);
+template <typename CharT, Size S, typename TraitsT>
+BasicString<CharT, S, TraitsT> operator+(CharT lhs,
+    const BasicString<CharT, S, TraitsT> &&rhs) {
+        BasicString<CharT, S, TraitsT> str(1, lhs);
         str += rhs;
         return str;
 }
