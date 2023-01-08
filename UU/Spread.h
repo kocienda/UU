@@ -22,8 +22,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_SPAN_H
-#define UU_SPAN_H
+#ifndef UU_SPREAD_H
+#define UU_SPREAD_H
 
 #include <algorithm>
 #include <iostream>
@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-#include <UU/Range.h>
+#include <UU/Sweep.h>
 #include <UU/SmallVector.h>
 #include <UU/StringLike.h>
 
@@ -42,66 +42,66 @@ template <class ValueT> class Spread
 {
 public:
     using StringT = std::basic_string<ValueT>;
-    using RangeT = Range<ValueT>;
+    using SweepT = Sweep<ValueT>;
 
-    using RangeVector = SmallVector<RangeT, 2>;
+    using SweepVector = SmallVector<SweepT, 2>;
 
     static Spread all() {
-        return Spread(RangeT::MinValue, RangeT::MaxValue);
+        return Spread(SweepT::MinValue, SweepT::MaxValue);
     }
     
     constexpr Spread() {}
     explicit Spread(ValueT t) { add(t); };
     explicit Spread(ValueT first, ValueT last) { add(first, last); };
-    explicit Spread(const RangeVector &v) : m_ranges(v) {};
-    explicit Spread(RangeVector &&v) : m_ranges(std::move(v)) {};
+    explicit Spread(const SweepVector &v) : m_sweeps(v) {};
+    explicit Spread(SweepVector &&v) : m_sweeps(std::move(v)) {};
     explicit Spread(const std::string &s) { add(s); };
-    Spread(const Spread &spread) : m_ranges(spread.ranges()) {}
-    Spread(Spread &&spread) : m_ranges(std::move(spread.ranges())) {}
+    Spread(const Spread &spread) : m_sweeps(spread.sweeps()) {}
+    Spread(Spread &&spread) : m_sweeps(std::move(spread.sweeps())) {}
 
-    Spread &operator=(const Spread &spread) { m_ranges = spread.ranges(); return *this; }
-    Spread &operator=(Spread &&spread) { m_ranges = std::move(spread.ranges()); return *this; }
+    Spread &operator=(const Spread &spread) { m_sweeps = spread.sweeps(); return *this; }
+    Spread &operator=(Spread &&spread) { m_sweeps = std::move(spread.sweeps()); return *this; }
 
     explicit Spread(const std::vector<ValueT> &v) {
         ValueT prev = 0;
-        bool new_range = true;
+        bool new_sweep = true;
         
-        RangeT range;
+        SweepT sweep;
         
         for (const auto n : v) {
-            if (new_range) {
-                new_range = false;
-                range.set_first(n);
+            if (new_sweep) {
+                new_sweep = false;
+                sweep.set_first(n);
             }
             else if (n != prev + 1) {
-                range.set_last(prev);
-                m_ranges.push_back(range);
-                range.set_first(n);
-                range.set_last(n);
+                sweep.set_last(prev);
+                m_sweeps.push_back(sweep);
+                sweep.set_first(n);
+                sweep.set_last(n);
             }
             prev = n;
         }
-        if (!new_range) {
-            range.set_last(prev);
-            m_ranges.push_back(range);
+        if (!new_sweep) {
+            sweep.set_last(prev);
+            m_sweeps.push_back(sweep);
         }
     }
     
     size_t size() const {
         size_t result = 0;
-        for (const auto &range : m_ranges) {
-            result += 1 + (range.last() - range.first());
+        for (const auto &sweep : m_sweeps) {
+            result += 1 + (sweep.last() - sweep.first());
         }
         return result;
     }
     
-    void add(ValueT t) { m_ranges.emplace_back(t, t); }
+    void add(ValueT t) { m_sweeps.emplace_back(t, t); }
     void add(ValueT first, ValueT last) {
-            m_ranges.emplace_back(std::min(first, last), std::max(first, last));
+            m_sweeps.emplace_back(std::min(first, last), std::max(first, last));
     }
-    void add(const RangeT &range) { m_ranges.push_back(range); }
-    void add(RangeT &&range) { m_ranges.emplace_back(std::move(range)); }
-    void add(const Spread &spread) { add_ranges(spread.ranges()); }
+    void add(const SweepT &sweep) { m_sweeps.push_back(sweep); }
+    void add(SweepT &&sweep) { m_sweeps.emplace_back(std::move(sweep)); }
+    void add(const Spread &spread) { add_sweeps(spread.sweeps()); }
     void add(const StringT &string) {
         for (const ValueT &t : string) {
             add(t);
@@ -131,19 +131,19 @@ public:
         }
     }
 
-    ValueT first() const { return m_ranges.size() ? m_ranges.front().first() : std::numeric_limits<ValueT>::max(); }
-    ValueT last() const { return m_ranges.size() ? m_ranges.back().last() : std::numeric_limits<ValueT>::max(); }
+    ValueT first() const { return m_sweeps.size() ? m_sweeps.front().first() : std::numeric_limits<ValueT>::max(); }
+    ValueT last() const { return m_sweeps.size() ? m_sweeps.back().last() : std::numeric_limits<ValueT>::max(); }
 
-    const RangeVector &ranges() const { return m_ranges; }
-    void set_ranges(const RangeVector &ranges) { m_ranges = ranges; }
-    void add_ranges(const RangeVector &ranges) { m_ranges.insert(m_ranges.end(), ranges.begin(), ranges.end()); }
+    const SweepVector &sweeps() const { return m_sweeps; }
+    void set_sweeps(const SweepVector &sweeps) { m_sweeps = sweeps; }
+    void add_sweeps(const SweepVector &sweeps) { m_sweeps.insert(m_sweeps.end(), sweeps.begin(), sweeps.end()); }
     
-    void clear() { m_ranges.clear(); }
-    template <bool B=true> bool is_empty() const { return (m_ranges.size() == 0) == B; }
+    void clear() { m_sweeps.clear(); }
+    template <bool B=true> bool is_empty() const { return (m_sweeps.size() == 0) == B; }
 
     template <bool B=true> bool contains(ValueT t) const {
-        for (const RangeT &range : m_ranges) {
-            if (range.contains(t)) {
+        for (const SweepT &sweep : m_sweeps) {
+            if (sweep.contains(t)) {
                 return true;
             }
         }
@@ -151,17 +151,17 @@ public:
     }
 
     void simplify() {
-        if (m_ranges.size() < 2) {
+        if (m_sweeps.size() < 2) {
             return;
         }
-        std::sort(m_ranges.begin(), m_ranges.end(), RangeT::compare);
-        RangeVector simplified;
-        simplified.reserve(m_ranges.size());
-        simplified.push_back(m_ranges[0]);
-        for (size_t idx = 1; idx < m_ranges.size(); idx++) {
-            RangeT &r1 = simplified.back();
-            const RangeT &r2 = m_ranges[idx];
-            if (RangeT::overlap(r1, r2)) {
+        std::sort(m_sweeps.begin(), m_sweeps.end(), SweepT::compare);
+        SweepVector simplified;
+        simplified.reserve(m_sweeps.size());
+        simplified.push_back(m_sweeps[0]);
+        for (size_t idx = 1; idx < m_sweeps.size(); idx++) {
+            SweepT &r1 = simplified.back();
+            const SweepT &r2 = m_sweeps[idx];
+            if (SweepT::overlap(r1, r2)) {
                 // overlap, collapse
                 r1.set_first(std::min(r1.first(), r2.first()));
                 r1.set_last(std::max(r1.last(), r2.last()));
@@ -171,7 +171,7 @@ public:
                 simplified.push_back(r2);
             }
         }
-        m_ranges = simplified;
+        m_sweeps = simplified;
     }
     
     class iterator : public std::input_iterator_tag {
@@ -183,19 +183,19 @@ public:
         using reference = ValueT &;
         
         iterator(const Spread *spread) :
-            m_spread(spread && spread->ranges().size() ? spread : nullptr),
-            m_range_idx(0), m_range_val(has_ranges() ? current_range_first() : 0) {}
+            m_spread(spread && spread->sweeps().size() ? spread : nullptr),
+            m_sweep_idx(0), m_sweep_val(has_sweeps() ? current_sweep_first() : 0) {}
       
-        const value_type &operator *() const { return m_range_val; }
+        const value_type &operator *() const { return m_sweep_val; }
 
         iterator &operator++() {
             if (m_spread) {
-                if (m_range_val + 1 <= current_range_last()) {
-                    m_range_val++;
+                if (m_sweep_val + 1 <= current_sweep_last()) {
+                    m_sweep_val++;
                 }
-                else if (m_range_idx + 1 < ValueT(m_spread->ranges().size())) {
-                    m_range_idx++;
-                    m_range_val = current_range_first();
+                else if (m_sweep_idx + 1 < ValueT(m_spread->sweeps().size())) {
+                    m_sweep_idx++;
+                    m_sweep_val = current_sweep_first();
                 }
                 else {
                     m_spread = nullptr;
@@ -212,13 +212,13 @@ public:
         }
 
     private:
-        bool has_ranges() const { return m_spread && m_spread->ranges().size(); }
-        value_type current_range_first() const { return m_spread->ranges()[m_range_idx].first(); }
-        value_type current_range_last() const { return m_spread->ranges()[m_range_idx].last(); }
+        bool has_sweeps() const { return m_spread && m_spread->sweeps().size(); }
+        value_type current_sweep_first() const { return m_spread->sweeps()[m_sweep_idx].first(); }
+        value_type current_sweep_last() const { return m_spread->sweeps()[m_sweep_idx].last(); }
 
         const Spread *m_spread = nullptr;
-        value_type m_range_idx = 0;
-        value_type m_range_val = 0;
+        value_type m_sweep_idx = 0;
+        value_type m_sweep_val = 0;
     };
 
     iterator begin() const {
@@ -238,7 +238,7 @@ public:
     }
 
     friend bool operator==(const Spread &a, const Spread &b) {
-        return a.ranges() == b.ranges();
+        return a.sweeps() == b.sweeps();
     };
 
     friend bool operator!=(const Spread &a, const Spread &b) {
@@ -246,14 +246,14 @@ public:
     };
 
 private:
-    RangeVector m_ranges;
+    SweepVector m_sweeps;
 };
 
 template <class T>
 std::ostream &operator<<(std::ostream &os, const Spread<T> &spread)
 {
     bool initial = true;
-    for (const auto &r : spread.ranges()) {
+    for (const auto &r : spread.sweeps()) {
         if (!initial) {
             os << ",";
         }
@@ -276,13 +276,13 @@ std::string to_string(const Spread<T> &c)
 
 template <class D, class S> Spread<D> convert(const Spread<S> &src) {
     Spread<D> dst;
-    for (const auto &range : src.ranges()) {
-        dst.add(convert<D, S>(range));
+    for (const auto &sweep : src.sweeps()) {
+        dst.add(convert<D, S>(sweep));
     }
     return dst;
 }
 
 }  // namespace UU
 
-#endif  // UU_SPAN_H
+#endif  // UU_SPREAD_H
 

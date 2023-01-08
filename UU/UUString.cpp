@@ -31,7 +31,7 @@ namespace UU {
 template <> String & String::append(const Spread<int> &spread)
 {
     bool first = true;
-    for (const auto &r : spread.ranges()) {
+    for (const auto &r : spread.sweeps()) {
         if (!first) {
             append(",");
         }
@@ -50,7 +50,7 @@ template <> String & String::append(const Spread<int> &spread)
 template <> String & String::append(const Spread<size_t> &spread)
 {
     bool first = true;
-    for (const auto &r : spread.ranges()) {
+    for (const auto &r : spread.sweeps()) {
         if (!first) {
             append(",");
         }
@@ -69,7 +69,7 @@ template <> String & String::append(const Spread<size_t> &spread)
 template <> String & String::append(const Spread<Int64> &spread)
 {
     bool first = true;
-    for (const auto &r : spread.ranges()) {
+    for (const auto &r : spread.sweeps()) {
         if (!first) {
             append(",");
         }

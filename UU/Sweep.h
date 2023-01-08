@@ -1,5 +1,5 @@
 //
-// Range.h
+// Sweep.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,8 +22,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_RANGE_H
-#define UU_RANGE_H
+#ifndef UU_SWEEP_H
+#define UU_SWEEP_H
 
 #include <algorithm>
 #include <iostream>
@@ -31,16 +31,16 @@
 
 namespace UU {
 
-template <class ValueT> class Range
+template <class ValueT> class Sweep
 {
 public:
     static constexpr ValueT MinValue = std::numeric_limits<ValueT>::min();
     static constexpr ValueT MaxValue = std::numeric_limits<ValueT>::max();
 
-    static Range full() { return Range(MinValue, MaxValue); }
+    static Sweep full() { return Sweep(MinValue, MaxValue); }
     
-    constexpr Range() {}
-    constexpr Range(ValueT first, ValueT last) :
+    constexpr Sweep() {}
+    constexpr Sweep(ValueT first, ValueT last) :
         m_first(std::min(first, last)), m_last(std::max(first, last)) {}
 
     ValueT first() const { return m_first; }
@@ -54,19 +54,19 @@ public:
     template <bool B=true> bool contains(ValueT t) const { return (t >= first() && t <= last()) == B; }
     template <bool B=true> bool empty() const { return (first() == last()) == B; }
 
-    friend bool operator==(const Range &a, const Range &b) {
+    friend bool operator==(const Sweep &a, const Sweep &b) {
         return a.first() == b.first() && a.last() == b.last();
     };
     
-    friend bool operator!=(const Range &a, const Range &b) {
+    friend bool operator!=(const Sweep &a, const Sweep &b) {
         return !(a==b);
     };
     
-    static bool compare(const Range &a, const Range &b) {
+    static bool compare(const Sweep &a, const Sweep &b) {
         return a.first() < b.first();
     }
     
-    static bool overlap(const Range &a, const Range &b) {
+    static bool overlap(const Sweep &a, const Sweep &b) {
         return !(a.last() < b.first() || a.first() > b.last());
     }
     
@@ -76,7 +76,7 @@ private:
 };
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Range<T> &r)
+std::ostream &operator<<(std::ostream &os, const Sweep<T> &r)
 {
     if (r.first() == r.last()) {
         os << r.first();
@@ -89,12 +89,12 @@ std::ostream &operator<<(std::ostream &os, const Range<T> &r)
     return os;
 }
 
-template <class D, class S> Range<D> convert(const Range<S> &range) {
-    const D &first = static_cast<D>(range.first());
-    const D &last = static_cast<D>(range.last());
-    return Range<D>(first, last);
+template <class D, class S> Sweep<D> convert(const Sweep<S> &sweep) {
+    const D &first = static_cast<D>(sweep.first());
+    const D &last = static_cast<D>(sweep.last());
+    return Sweep<D>(first, last);
 }
 
 }  // namespace UU
 
-#endif  // UU_RANGE_H
+#endif  // UU_SWEEP_H

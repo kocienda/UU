@@ -45,7 +45,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/MappedFile.h
   ${CODE_DIR}/MathLike.h
   ${CODE_DIR}/Platform.h
-  ${CODE_DIR}/Range.h
+  ${CODE_DIR}/Sweep.h
   ${CODE_DIR}/SmallMap.h
   ${CODE_DIR}/SmallVector.h
   ${CODE_DIR}/Spread.h
