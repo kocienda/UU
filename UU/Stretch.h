@@ -1,5 +1,5 @@
 //
-// Sweep.h
+// Stretch.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -31,16 +31,16 @@
 
 namespace UU {
 
-template <class ValueT> class Sweep
+template <class ValueT> class Stretch
 {
 public:
     static constexpr ValueT MinValue = std::numeric_limits<ValueT>::min();
     static constexpr ValueT MaxValue = std::numeric_limits<ValueT>::max();
 
-    static Sweep full() { return Sweep(MinValue, MaxValue); }
+    static Stretch full() { return Stretch(MinValue, MaxValue); }
     
-    constexpr Sweep() {}
-    constexpr Sweep(ValueT first, ValueT last) :
+    constexpr Stretch() {}
+    constexpr Stretch(ValueT first, ValueT last) :
         m_first(std::min(first, last)), m_last(std::max(first, last)) {}
 
     ValueT first() const { return m_first; }
@@ -54,19 +54,19 @@ public:
     template <bool B=true> bool contains(ValueT t) const { return (t >= first() && t <= last()) == B; }
     template <bool B=true> bool empty() const { return (first() == last()) == B; }
 
-    friend bool operator==(const Sweep &a, const Sweep &b) {
+    friend bool operator==(const Stretch &a, const Stretch &b) {
         return a.first() == b.first() && a.last() == b.last();
     };
     
-    friend bool operator!=(const Sweep &a, const Sweep &b) {
+    friend bool operator!=(const Stretch &a, const Stretch &b) {
         return !(a==b);
     };
     
-    static bool compare(const Sweep &a, const Sweep &b) {
+    static bool compare(const Stretch &a, const Stretch &b) {
         return a.first() < b.first();
     }
     
-    static bool overlap(const Sweep &a, const Sweep &b) {
+    static bool overlap(const Stretch &a, const Stretch &b) {
         return !(a.last() < b.first() || a.first() > b.last());
     }
     
@@ -76,7 +76,7 @@ private:
 };
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Sweep<T> &r)
+std::ostream &operator<<(std::ostream &os, const Stretch<T> &r)
 {
     if (r.first() == r.last()) {
         os << r.first();
@@ -89,10 +89,10 @@ std::ostream &operator<<(std::ostream &os, const Sweep<T> &r)
     return os;
 }
 
-template <class D, class S> Sweep<D> convert(const Sweep<S> &sweep) {
-    const D &first = static_cast<D>(sweep.first());
-    const D &last = static_cast<D>(sweep.last());
-    return Sweep<D>(first, last);
+template <class D, class S> Stretch<D> convert(const Stretch<S> &stretch) {
+    const D &first = static_cast<D>(stretch.first());
+    const D &last = static_cast<D>(stretch.last());
+    return Stretch<D>(first, last);
 }
 
 }  // namespace UU

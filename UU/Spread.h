@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-#include <UU/Sweep.h>
+#include <UU/Stretch.h>
 #include <UU/SmallVector.h>
 #include <UU/StringLike.h>
 
@@ -42,66 +42,66 @@ template <class ValueT> class Spread
 {
 public:
     using StringT = std::basic_string<ValueT>;
-    using SweepT = Sweep<ValueT>;
+    using StretchT = Stretch<ValueT>;
 
-    using SweepVector = SmallVector<SweepT, 2>;
+    using StretchVector = SmallVector<StretchT, 2>;
 
     static Spread all() {
-        return Spread(SweepT::MinValue, SweepT::MaxValue);
+        return Spread(StretchT::MinValue, StretchT::MaxValue);
     }
     
     constexpr Spread() {}
     explicit Spread(ValueT t) { add(t); };
     explicit Spread(ValueT first, ValueT last) { add(first, last); };
-    explicit Spread(const SweepVector &v) : m_sweeps(v) {};
-    explicit Spread(SweepVector &&v) : m_sweeps(std::move(v)) {};
+    explicit Spread(const StretchVector &v) : m_stretches(v) {};
+    explicit Spread(StretchVector &&v) : m_stretches(std::move(v)) {};
     explicit Spread(const std::string &s) { add(s); };
-    Spread(const Spread &spread) : m_sweeps(spread.sweeps()) {}
-    Spread(Spread &&spread) : m_sweeps(std::move(spread.sweeps())) {}
+    Spread(const Spread &spread) : m_stretches(spread.stretches()) {}
+    Spread(Spread &&spread) : m_stretches(std::move(spread.stretches())) {}
 
-    Spread &operator=(const Spread &spread) { m_sweeps = spread.sweeps(); return *this; }
-    Spread &operator=(Spread &&spread) { m_sweeps = std::move(spread.sweeps()); return *this; }
+    Spread &operator=(const Spread &spread) { m_stretches = spread.stretches(); return *this; }
+    Spread &operator=(Spread &&spread) { m_stretches = std::move(spread.stretches()); return *this; }
 
     explicit Spread(const std::vector<ValueT> &v) {
         ValueT prev = 0;
-        bool new_sweep = true;
+        bool new_stretch = true;
         
-        SweepT sweep;
+        StretchT stretch;
         
         for (const auto n : v) {
-            if (new_sweep) {
-                new_sweep = false;
-                sweep.set_first(n);
+            if (new_stretch) {
+                new_stretch = false;
+                stretch.set_first(n);
             }
             else if (n != prev + 1) {
-                sweep.set_last(prev);
-                m_sweeps.push_back(sweep);
-                sweep.set_first(n);
-                sweep.set_last(n);
+                stretch.set_last(prev);
+                m_stretches.push_back(stretch);
+                stretch.set_first(n);
+                stretch.set_last(n);
             }
             prev = n;
         }
-        if (!new_sweep) {
-            sweep.set_last(prev);
-            m_sweeps.push_back(sweep);
+        if (!new_stretch) {
+            stretch.set_last(prev);
+            m_stretches.push_back(stretch);
         }
     }
     
     size_t size() const {
         size_t result = 0;
-        for (const auto &sweep : m_sweeps) {
-            result += 1 + (sweep.last() - sweep.first());
+        for (const auto &stretch : m_stretches) {
+            result += 1 + (stretch.last() - stretch.first());
         }
         return result;
     }
     
-    void add(ValueT t) { m_sweeps.emplace_back(t, t); }
+    void add(ValueT t) { m_stretches.emplace_back(t, t); }
     void add(ValueT first, ValueT last) {
-            m_sweeps.emplace_back(std::min(first, last), std::max(first, last));
+            m_stretches.emplace_back(std::min(first, last), std::max(first, last));
     }
-    void add(const SweepT &sweep) { m_sweeps.push_back(sweep); }
-    void add(SweepT &&sweep) { m_sweeps.emplace_back(std::move(sweep)); }
-    void add(const Spread &spread) { add_sweeps(spread.sweeps()); }
+    void add(const StretchT &stretch) { m_stretches.push_back(stretch); }
+    void add(StretchT &&stretch) { m_stretches.emplace_back(std::move(stretch)); }
+    void add(const Spread &spread) { add_stretches(spread.stretches()); }
     void add(const StringT &string) {
         for (const ValueT &t : string) {
             add(t);
@@ -131,19 +131,19 @@ public:
         }
     }
 
-    ValueT first() const { return m_sweeps.size() ? m_sweeps.front().first() : std::numeric_limits<ValueT>::max(); }
-    ValueT last() const { return m_sweeps.size() ? m_sweeps.back().last() : std::numeric_limits<ValueT>::max(); }
+    ValueT first() const { return m_stretches.size() ? m_stretches.front().first() : std::numeric_limits<ValueT>::max(); }
+    ValueT last() const { return m_stretches.size() ? m_stretches.back().last() : std::numeric_limits<ValueT>::max(); }
 
-    const SweepVector &sweeps() const { return m_sweeps; }
-    void set_sweeps(const SweepVector &sweeps) { m_sweeps = sweeps; }
-    void add_sweeps(const SweepVector &sweeps) { m_sweeps.insert(m_sweeps.end(), sweeps.begin(), sweeps.end()); }
+    const StretchVector &stretches() const { return m_stretches; }
+    void set_stretches(const StretchVector &stretches) { m_stretches = stretches; }
+    void add_stretches(const StretchVector &stretches) { m_stretches.insert(m_stretches.end(), stretches.begin(), stretches.end()); }
     
-    void clear() { m_sweeps.clear(); }
-    template <bool B=true> bool is_empty() const { return (m_sweeps.size() == 0) == B; }
+    void clear() { m_stretches.clear(); }
+    template <bool B=true> bool is_empty() const { return (m_stretches.size() == 0) == B; }
 
     template <bool B=true> bool contains(ValueT t) const {
-        for (const SweepT &sweep : m_sweeps) {
-            if (sweep.contains(t)) {
+        for (const StretchT &stretch : m_stretches) {
+            if (stretch.contains(t)) {
                 return true;
             }
         }
@@ -151,17 +151,17 @@ public:
     }
 
     void simplify() {
-        if (m_sweeps.size() < 2) {
+        if (m_stretches.size() < 2) {
             return;
         }
-        std::sort(m_sweeps.begin(), m_sweeps.end(), SweepT::compare);
-        SweepVector simplified;
-        simplified.reserve(m_sweeps.size());
-        simplified.push_back(m_sweeps[0]);
-        for (size_t idx = 1; idx < m_sweeps.size(); idx++) {
-            SweepT &r1 = simplified.back();
-            const SweepT &r2 = m_sweeps[idx];
-            if (SweepT::overlap(r1, r2)) {
+        std::sort(m_stretches.begin(), m_stretches.end(), StretchT::compare);
+        StretchVector simplified;
+        simplified.reserve(m_stretches.size());
+        simplified.push_back(m_stretches[0]);
+        for (size_t idx = 1; idx < m_stretches.size(); idx++) {
+            StretchT &r1 = simplified.back();
+            const StretchT &r2 = m_stretches[idx];
+            if (StretchT::overlap(r1, r2)) {
                 // overlap, collapse
                 r1.set_first(std::min(r1.first(), r2.first()));
                 r1.set_last(std::max(r1.last(), r2.last()));
@@ -171,7 +171,7 @@ public:
                 simplified.push_back(r2);
             }
         }
-        m_sweeps = simplified;
+        m_stretches = simplified;
     }
     
     class iterator : public std::input_iterator_tag {
@@ -183,19 +183,19 @@ public:
         using reference = ValueT &;
         
         iterator(const Spread *spread) :
-            m_spread(spread && spread->sweeps().size() ? spread : nullptr),
-            m_sweep_idx(0), m_sweep_val(has_sweeps() ? current_sweep_first() : 0) {}
+            m_spread(spread && spread->stretches().size() ? spread : nullptr),
+            m_stretch_idx(0), m_stretch_val(has_stretches() ? current_stretch_first() : 0) {}
       
-        const value_type &operator *() const { return m_sweep_val; }
+        const value_type &operator *() const { return m_stretch_val; }
 
         iterator &operator++() {
             if (m_spread) {
-                if (m_sweep_val + 1 <= current_sweep_last()) {
-                    m_sweep_val++;
+                if (m_stretch_val + 1 <= current_stretch_last()) {
+                    m_stretch_val++;
                 }
-                else if (m_sweep_idx + 1 < ValueT(m_spread->sweeps().size())) {
-                    m_sweep_idx++;
-                    m_sweep_val = current_sweep_first();
+                else if (m_stretch_idx + 1 < ValueT(m_spread->stretches().size())) {
+                    m_stretch_idx++;
+                    m_stretch_val = current_stretch_first();
                 }
                 else {
                     m_spread = nullptr;
@@ -212,13 +212,13 @@ public:
         }
 
     private:
-        bool has_sweeps() const { return m_spread && m_spread->sweeps().size(); }
-        value_type current_sweep_first() const { return m_spread->sweeps()[m_sweep_idx].first(); }
-        value_type current_sweep_last() const { return m_spread->sweeps()[m_sweep_idx].last(); }
+        bool has_stretches() const { return m_spread && m_spread->stretches().size(); }
+        value_type current_stretch_first() const { return m_spread->stretches()[m_stretch_idx].first(); }
+        value_type current_stretch_last() const { return m_spread->stretches()[m_stretch_idx].last(); }
 
         const Spread *m_spread = nullptr;
-        value_type m_sweep_idx = 0;
-        value_type m_sweep_val = 0;
+        value_type m_stretch_idx = 0;
+        value_type m_stretch_val = 0;
     };
 
     iterator begin() const {
@@ -238,7 +238,7 @@ public:
     }
 
     friend bool operator==(const Spread &a, const Spread &b) {
-        return a.sweeps() == b.sweeps();
+        return a.stretches() == b.stretches();
     };
 
     friend bool operator!=(const Spread &a, const Spread &b) {
@@ -246,14 +246,14 @@ public:
     };
 
 private:
-    SweepVector m_sweeps;
+    StretchVector m_stretches;
 };
 
 template <class T>
 std::ostream &operator<<(std::ostream &os, const Spread<T> &spread)
 {
     bool initial = true;
-    for (const auto &r : spread.sweeps()) {
+    for (const auto &r : spread.stretches()) {
         if (!initial) {
             os << ",";
         }
@@ -276,8 +276,8 @@ std::string to_string(const Spread<T> &c)
 
 template <class D, class S> Spread<D> convert(const Spread<S> &src) {
     Spread<D> dst;
-    for (const auto &sweep : src.sweeps()) {
-        dst.add(convert<D, S>(sweep));
+    for (const auto &stretch : src.stretches()) {
+        dst.add(convert<D, S>(stretch));
     }
     return dst;
 }

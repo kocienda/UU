@@ -31,7 +31,7 @@ template <>
 std::ostream &operator<<(std::ostream &os, const Spread<char32_t> &spread)
 {
     bool first = true;
-    for (const auto &r : spread.sweeps()) {
+    for (const auto &r : spread.stretches()) {
         if (!first) {
             os << ",";
         }

@@ -141,9 +141,9 @@ TextRef TextRef::from_string(const String &str)
 static void add_highlight(String &output, const String &str, const Spread<size_t> &spread, int highlight_color) 
 {
     size_t idx = 0;
-    for (const auto &sweep : spread.sweeps()) {
-        const auto first = sweep.first();
-        const auto last = sweep.last();
+    for (const auto &stretch : spread.stretches()) {
+        const auto first = stretch.first();
+        const auto last = stretch.last();
         if (first - 1 > idx) {
             StringView chunk = str.substrview(idx, first - 1 - idx);
             output += chunk;

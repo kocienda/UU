@@ -7,7 +7,7 @@ For some of these, I started by cribbing from open source code from other projec
 For other parts, I started from scratch and wrote code that seemed like it would be useful to me. Some of these include:
 
 * __Any__: a neat (I think) implementation of the notion
-* __Spread__: a class that maintains a set of numbers that represents sweeps and individual elements, like 1..5,7,9..11
+* __Spread__: a class that maintains a set of numbers that represents stretches and individual elements, like 1..5,7,9..11
 * __TextRef__: a class that models a reference to a line in text file.
 * The __Like__ set of utilities that offer pleasant functions for doing tedious business, with examples in __FileLike__, __MathLike__, __StringLike__, and __UnixLike__.
 
