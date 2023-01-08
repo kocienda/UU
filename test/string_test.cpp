@@ -2196,13 +2196,13 @@ TEST_CASE("String::append(CharT c)", "[string]" ) {
     REQUIRE(strlen(ustr.c_str()) == 11);
 }
 
-TEST_CASE("String::append(const Span &)", "[string]" ) {
+TEST_CASE("String::append(const Spread &)", "[string]" ) {
     String str;
-    Span<int> span;
-    span.add(1,3);
-    span.add(5,7);
-    span.add(11);
-    str.append(span);
+    Spread<int> spread;
+    spread.add(1,3);
+    spread.add(5,7);
+    spread.add(11);
+    str.append(spread);
     REQUIRE(str == "1..3,5..7,11");
 }
 

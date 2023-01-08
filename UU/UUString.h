@@ -53,7 +53,7 @@ namespace UU {
 
 // forward declarations ===========================================================================
 
-template <typename T> class Span;
+template <typename T> class Spread;
 class TextRef;
 
 // string size ====================================================================================
@@ -668,9 +668,9 @@ public:
         return *this;
     }
 
-    BasicString &append(const Span<int> &);
-    BasicString &append(const Span<Size> &);
-    BasicString &append(const Span<Int64> &);
+    BasicString &append(const Spread<int> &);
+    BasicString &append(const Spread<Size> &);
+    BasicString &append(const Spread<Int64> &);
     BasicString &append(const TextRef &);
 
     template <typename N>

@@ -48,7 +48,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Range.h
   ${CODE_DIR}/SmallMap.h
   ${CODE_DIR}/SmallVector.h
-  ${CODE_DIR}/Span.h
+  ${CODE_DIR}/Spread.h
   ${CODE_DIR}/StackTrace.h
   ${CODE_DIR}/StaticByteBuffer.h
   ${CODE_DIR}/StringLike.h
@@ -64,7 +64,7 @@ set(SOURCES
   ${CODE_DIR}/FileLike.cpp
   ${CODE_DIR}/MappedFile.cpp
   ${CODE_DIR}/SmallVector.cpp
-  ${CODE_DIR}/Span.cpp
+  ${CODE_DIR}/Spread.cpp
   ${CODE_DIR}/StackTrace.cpp
   ${CODE_DIR}/StringLike.cpp
   ${CODE_DIR}/TextRef.cpp
@@ -119,7 +119,7 @@ endfunction()
 UU_TEST(smoke_test)
 UU_TEST(file_like_test)
 UU_TEST(math_like_test)
-UU_TEST(span_test)
+UU_TEST(spread_test)
 UU_TEST(string_test)
 UU_TEST(string_like_test)
 UU_TEST(textref_test)

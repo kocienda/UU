@@ -43,7 +43,7 @@ static constexpr int UU_FIXES_VERSION = 0;
 #include <UU/Platform.h>
 #include <UU/Range.h>
 #include <UU/SmallVector.h>
-#include <UU/Span.h>
+#include <UU/Spread.h>
 #include <UU/StackTrace.h>
 #include <UU/StringLike.h>
 #include <UU/TextRef.h>

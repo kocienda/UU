@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-#include <UU/Span.h>
+#include <UU/Spread.h>
 #include <UU/Types.h>
 #include <UU/UUString.h>
 
@@ -42,7 +42,7 @@ public:
     static constexpr int Filename =          0x0002;
     static constexpr int Line =              0x0004;
     static constexpr int Column =            0x0008;
-    static constexpr int Span =              0x0010; 
+    static constexpr int Spread =              0x0010; 
     static constexpr int Extent =            0x0020; 
     static constexpr int Message =           0x0040;
     static constexpr int HighlightFilename = 0x1000;
@@ -50,7 +50,7 @@ public:
 
     static constexpr int CompactFeatures = Index | Filename | Line | Message;
     static constexpr int StandardFeatures = Index | Filename | Line | Column | Message;
-    static constexpr int ExtendedFeatures = Index | Filename | Line | Span | Message;
+    static constexpr int ExtendedFeatures = Index | Filename | Line | Spread | Message;
 
 
     enum class FilenameFormat { RELATIVE, ABSOLUTE, TERSE };
@@ -65,7 +65,7 @@ public:
     TextRef(const String &filename, size_t line = Invalid, size_t column = Invalid, const std::string &message = std::string()) :
         m_index(NotAnIndex), m_filename(filename), m_line(line), m_message(message) {
         if (column != Invalid) {
-            m_span.add(column);
+            m_spread.add(column);
         }
     }
     
@@ -73,25 +73,25 @@ public:
         const std::string &message = std::string()) :
         m_index(index), m_filename(filename), m_line(line), m_message(message) {
         if (column != Invalid && end_column != Invalid) {
-            m_span.add(column, end_column);
+            m_spread.add(column, end_column);
         }
         else if (column != Invalid) {
-            m_span.add(column);
+            m_spread.add(column);
         }
     }
 
-    TextRef(size_t index, const String &filename, size_t line, const UU::Span<size_t> span = UU::Span<size_t>(), 
+    TextRef(size_t index, const String &filename, size_t line, const UU::Spread<size_t> spread = UU::Spread<size_t>(), 
         const std::string &message = std::string()) :
-        m_index(index), m_filename(filename), m_line(line), m_span(span), m_message(message) {}
+        m_index(index), m_filename(filename), m_line(line), m_spread(spread), m_message(message) {}
 
     size_t index() const { return m_index; }
     void set_index(size_t index) { m_index = index; }
     const String &filename() const { return m_filename; }
     size_t line() const { return m_line; }
-    size_t column() const { return m_span.is_empty() ? Invalid : m_span.first(); }
-    const UU::Span<size_t> &span() const { return m_span; }
-    void add_span(const UU::Span<size_t> &span) { m_span.add(span); }
-    void simplify_span() { m_span.simplify(); }
+    size_t column() const { return m_spread.is_empty() ? Invalid : m_spread.first(); }
+    const UU::Spread<size_t> &spread() const { return m_spread; }
+    void add_spread(const UU::Spread<size_t> &spread) { m_spread.add(spread); }
+    void simplify_spread() { m_spread.simplify(); }
     const String &message() const { return m_message; }
     void set_message(const std::string &message) { m_message = message; }
 
@@ -101,14 +101,14 @@ public:
     template <bool B = true> bool has_index() const { return (m_index != Invalid) == B; }
     template <bool B = true> bool has_filename() const { return (!m_filename.empty()) == B; }
     template <bool B = true> bool has_line() const { return (m_line != Invalid) == B; }
-    template <bool B = true> bool has_span() const { return (m_span.is_empty<false>()) == B; }
+    template <bool B = true> bool has_spread() const { return (m_spread.is_empty<false>()) == B; }
     template <bool B = true> bool has_message() const { return (m_message.length() > 0) == B; }
 
 private:
     size_t m_index = Invalid;
     UU::String m_filename;
     size_t m_line = Invalid;
-    UU::Span<size_t> m_span;
+    UU::Spread<size_t> m_spread;
     String m_message;
 };
 
@@ -128,8 +128,8 @@ namespace std
             if (lhs.line() != rhs.line()) {
                 return lhs.line() < rhs.line();
             }
-            if (lhs.span() != rhs.span()) {
-                return lhs.span().first() < rhs.span().first();
+            if (lhs.spread() != rhs.spread()) {
+                return lhs.spread().first() < rhs.spread().first();
             }
             return lhs.message() < rhs.message();
         }

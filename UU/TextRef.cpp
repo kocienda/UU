@@ -31,7 +31,7 @@
 #include "Assertions.h"
 #include "StringLike.h"
 #include "TextRef.h"
-#include "Span.h"
+#include "Spread.h"
 #include "UnixLike.h"
 
 namespace fs = std::filesystem;
@@ -50,7 +50,7 @@ TextRef TextRef::from_string(const String &str)
     size_t line = Invalid;
     size_t column = Invalid;
     size_t end_column = Invalid;
-    UU::Span<size_t> span;
+    UU::Spread<size_t> spread;
     std::string message;
 
     String estr = str;
@@ -74,7 +74,7 @@ TextRef TextRef::from_string(const String &str)
         return TextRef(index, path, line, Invalid);
     }
 
-    // optional index:filename:line:span:optional message
+    // optional index:filename:line:spread:optional message
     static std::regex rx2("([0-9]+[)][ ]+)?([^:]+):([0-9]+):([0-9]+((\\.{2}|,)[0-9]+)+)(:(.+))?");        
     if (regex_match(estr.c_str(), match, rx2)) {
         // std::cout << "*** match rx2" << std::endl;
@@ -87,10 +87,10 @@ TextRef TextRef::from_string(const String &str)
         if (pline.second) {
             line = pline.first;
         }
-        span = UU::Span<size_t>(match[4]);
+        spread = UU::Spread<size_t>(match[4]);
         message = match[8];
  
-        return TextRef(index, path, line, span, message);
+        return TextRef(index, path, line, spread, message);
     }
 
     // optional index:filename:optional line:optional column:optional column end:optional message
@@ -138,10 +138,10 @@ TextRef TextRef::from_string(const String &str)
 //     }
 // }
 
-static void add_highlight(String &output, const String &str, const Span<size_t> &span, int highlight_color) 
+static void add_highlight(String &output, const String &str, const Spread<size_t> &spread, int highlight_color) 
 {
     size_t idx = 0;
-    for (const auto &range : span.ranges()) {
+    for (const auto &range : spread.ranges()) {
         const auto first = range.first();
         const auto last = range.last();
         if (first - 1 > idx) {
@@ -156,8 +156,8 @@ static void add_highlight(String &output, const String &str, const Span<size_t> 
         output += "\033[0m";
         idx = last - 1;
     }
-    if (span.last() - 1 < str.length()) {
-        StringView chunk = str.substrview(span.last() - 1);
+    if (spread.last() - 1 < str.length()) {
+        StringView chunk = str.substrview(spread.last() - 1);
         output += chunk;
     }
 }
@@ -193,11 +193,11 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
                 break;
         }
         String escaped_path = shell_escaped_string(output_filename.c_str());
-        if (highlight_color == 0 || ((flags & HighlightFilename) == 0) || !has_span()) {
+        if (highlight_color == 0 || ((flags & HighlightFilename) == 0) || !has_spread()) {
             output += output_filename;
         }
         else {
-            add_highlight(output, output_filename, span(), highlight_color);
+            add_highlight(output, output_filename, spread(), highlight_color);
         }
     }
     if (has_line() && (flags & TextRef::Line)) {
@@ -206,18 +206,18 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
         }
         output.append_as_string(line());
     }
-    if (has_span()) {
-        if ((flags & TextRef::Column) && (flags & TextRef::Span) == 0) {
+    if (has_spread()) {
+        if ((flags & TextRef::Column) && (flags & TextRef::Spread) == 0) {
             if (output.length()) {
                 output += ':';
             }
             output.append_as_string(column());
         }
-        else if (flags & TextRef::Span) {
+        else if (flags & TextRef::Spread) {
             if (output.length()) {
                 output += ':';
             }
-            output.append(span());
+            output.append(spread());
         }
     }
     if (has_message() && (flags & TextRef::Message)) {
@@ -225,11 +225,11 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
             output += ':';
         }
         std::string_view msg(message());
-        if (highlight_color == 0 || ((flags & HighlightMessage) == 0) || !has_span()) {
+        if (highlight_color == 0 || ((flags & HighlightMessage) == 0) || !has_spread()) {
             output += msg;
         }
         else {
-            add_highlight(output, msg, span(), highlight_color);
+            add_highlight(output, msg, spread(), highlight_color);
         }
     }
 

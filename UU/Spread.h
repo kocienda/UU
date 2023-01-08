@@ -1,5 +1,5 @@
 //
-//  Span.h
+//  Spread.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -38,7 +38,7 @@
 
 namespace UU {
 
-template <class ValueT> class Span
+template <class ValueT> class Spread
 {
 public:
     using StringT = std::basic_string<ValueT>;
@@ -46,23 +46,23 @@ public:
 
     using RangeVector = SmallVector<RangeT, 2>;
 
-    static Span all() {
-        return Span(RangeT::MinValue, RangeT::MaxValue);
+    static Spread all() {
+        return Spread(RangeT::MinValue, RangeT::MaxValue);
     }
     
-    constexpr Span() {}
-    explicit Span(ValueT t) { add(t); };
-    explicit Span(ValueT first, ValueT last) { add(first, last); };
-    explicit Span(const RangeVector &v) : m_ranges(v) {};
-    explicit Span(RangeVector &&v) : m_ranges(std::move(v)) {};
-    explicit Span(const std::string &s) { add(s); };
-    Span(const Span &span) : m_ranges(span.ranges()) {}
-    Span(Span &&span) : m_ranges(std::move(span.ranges())) {}
+    constexpr Spread() {}
+    explicit Spread(ValueT t) { add(t); };
+    explicit Spread(ValueT first, ValueT last) { add(first, last); };
+    explicit Spread(const RangeVector &v) : m_ranges(v) {};
+    explicit Spread(RangeVector &&v) : m_ranges(std::move(v)) {};
+    explicit Spread(const std::string &s) { add(s); };
+    Spread(const Spread &spread) : m_ranges(spread.ranges()) {}
+    Spread(Spread &&spread) : m_ranges(std::move(spread.ranges())) {}
 
-    Span &operator=(const Span &span) { m_ranges = span.ranges(); return *this; }
-    Span &operator=(Span &&span) { m_ranges = std::move(span.ranges()); return *this; }
+    Spread &operator=(const Spread &spread) { m_ranges = spread.ranges(); return *this; }
+    Spread &operator=(Spread &&spread) { m_ranges = std::move(spread.ranges()); return *this; }
 
-    explicit Span(const std::vector<ValueT> &v) {
+    explicit Spread(const std::vector<ValueT> &v) {
         ValueT prev = 0;
         bool new_range = true;
         
@@ -101,7 +101,7 @@ public:
     }
     void add(const RangeT &range) { m_ranges.push_back(range); }
     void add(RangeT &&range) { m_ranges.emplace_back(std::move(range)); }
-    void add(const Span &span) { add_ranges(span.ranges()); }
+    void add(const Spread &spread) { add_ranges(spread.ranges()); }
     void add(const StringT &string) {
         for (const ValueT &t : string) {
             add(t);
@@ -182,41 +182,41 @@ public:
         using pointer = ValueT *;
         using reference = ValueT &;
         
-        iterator(const Span *span) :
-            m_span(span && span->ranges().size() ? span : nullptr),
+        iterator(const Spread *spread) :
+            m_spread(spread && spread->ranges().size() ? spread : nullptr),
             m_range_idx(0), m_range_val(has_ranges() ? current_range_first() : 0) {}
       
         const value_type &operator *() const { return m_range_val; }
 
         iterator &operator++() {
-            if (m_span) {
+            if (m_spread) {
                 if (m_range_val + 1 <= current_range_last()) {
                     m_range_val++;
                 }
-                else if (m_range_idx + 1 < ValueT(m_span->ranges().size())) {
+                else if (m_range_idx + 1 < ValueT(m_spread->ranges().size())) {
                     m_range_idx++;
                     m_range_val = current_range_first();
                 }
                 else {
-                    m_span = nullptr;
+                    m_spread = nullptr;
                 }
             }
             return *this;
         }
 
         friend bool operator==(const iterator &lhs, const iterator &rhs) {
-            return lhs.m_span == rhs.m_span;
+            return lhs.m_spread == rhs.m_spread;
         }
         friend bool operator!=(const iterator &lhs, const iterator &rhs) {
             return !(lhs==rhs);
         }
 
     private:
-        bool has_ranges() const { return m_span && m_span->ranges().size(); }
-        value_type current_range_first() const { return m_span->ranges()[m_range_idx].first(); }
-        value_type current_range_last() const { return m_span->ranges()[m_range_idx].last(); }
+        bool has_ranges() const { return m_spread && m_spread->ranges().size(); }
+        value_type current_range_first() const { return m_spread->ranges()[m_range_idx].first(); }
+        value_type current_range_last() const { return m_spread->ranges()[m_range_idx].last(); }
 
-        const Span *m_span = nullptr;
+        const Spread *m_spread = nullptr;
         value_type m_range_idx = 0;
         value_type m_range_val = 0;
     };
@@ -237,11 +237,11 @@ public:
         return iterator(nullptr);
     }
 
-    friend bool operator==(const Span &a, const Span &b) {
+    friend bool operator==(const Spread &a, const Spread &b) {
         return a.ranges() == b.ranges();
     };
 
-    friend bool operator!=(const Span &a, const Span &b) {
+    friend bool operator!=(const Spread &a, const Spread &b) {
         return !(a==b);
     };
 
@@ -250,10 +250,10 @@ private:
 };
 
 template <class T>
-std::ostream &operator<<(std::ostream &os, const Span<T> &span)
+std::ostream &operator<<(std::ostream &os, const Spread<T> &spread)
 {
     bool initial = true;
-    for (const auto &r : span.ranges()) {
+    for (const auto &r : spread.ranges()) {
         if (!initial) {
             os << ",";
         }
@@ -264,18 +264,18 @@ std::ostream &operator<<(std::ostream &os, const Span<T> &span)
 }
 
 template <>
-std::ostream &operator<<(std::ostream &os, const Span<char32_t> &span);
+std::ostream &operator<<(std::ostream &os, const Spread<char32_t> &spread);
 
 template <class T>
-std::string to_string(const Span<T> &c)
+std::string to_string(const Spread<T> &c)
 {
     std::stringstream ss;
     ss << c;
     return ss.str();
 }
 
-template <class D, class S> Span<D> convert(const Span<S> &src) {
-    Span<D> dst;
+template <class D, class S> Spread<D> convert(const Spread<S> &src) {
+    Spread<D> dst;
     for (const auto &range : src.ranges()) {
         dst.add(convert<D, S>(range));
     }

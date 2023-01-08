@@ -1,5 +1,5 @@
 //
-// Span.cpp
+// Spread.cpp
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,16 +22,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "Span.h"
+#include "Spread.h"
 #include "UUString.h"
 
 namespace UU {
 
 template <>
-std::ostream &operator<<(std::ostream &os, const Span<char32_t> &span)
+std::ostream &operator<<(std::ostream &os, const Spread<char32_t> &spread)
 {
     bool first = true;
-    for (const auto &r : span.ranges()) {
+    for (const auto &r : spread.ranges()) {
         if (!first) {
             os << ",";
         }
