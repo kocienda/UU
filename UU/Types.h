@@ -25,11 +25,13 @@
 #ifndef UU_TYPES_H
 #define UU_TYPES_H
 
+#include <concepts>
 #include <iostream>
 #include <limits>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 namespace UU {
 
@@ -78,8 +80,17 @@ using UInt64 = uint64_t;
 static constexpr UInt64 UInt64Min = std::numeric_limits<UInt64>::min();
 static constexpr UInt64 UInt64Max = std::numeric_limits<UInt64>::max();
 
-using Index = uint32_t;
-static constexpr Index NotAnIndex = std::numeric_limits<Index>::max();
+using Char8 = char;
+static constexpr Char8 Char8Min = std::numeric_limits<Char8>::min();
+static constexpr Char8 Char8Max = std::numeric_limits<Char8>::max();
+
+using Char16 = char16_t;
+static constexpr Char16 Char16Min = std::numeric_limits<Char16>::min();
+static constexpr Char16 Char16Max = std::numeric_limits<Char16>::max();
+
+using Char32 = char32_t;
+static constexpr Char32 Char32Min = std::numeric_limits<Char32>::min();
+static constexpr Char32 Char32Max = std::numeric_limits<Char32>::max();
 
 using Byte = UInt8;
 using BytePtr = Byte *;
@@ -89,6 +100,18 @@ static constexpr Byte ByteMax = UInt8Max;
 using Size = size_t;
 static constexpr Size SizeMin = std::numeric_limits<Size>::min();
 static constexpr Size SizeMax = std::numeric_limits<Size>::max();
+static constexpr Size NotASize = SizeMax;
+
+using Index = size_t;
+static constexpr Index IndexMin = std::numeric_limits<Index>::min();
+static constexpr Index IndexMax = std::numeric_limits<Index>::max();
+static constexpr Index NotAnIndex = IndexMax;
+
+template <typename T> concept IsCharType = 
+    std::is_same_v<T, Char8> || std::is_same_v<T, Char16> || std::is_same_v<T, Char32>;
+
+template <Size S> concept IsNonZeroSize = (S > 0);
+template <Size S> concept IsDivisibleByChar32Size = (S % sizeof(Char32) == 0);
 
 }  // namespace UU
 

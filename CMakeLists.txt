@@ -57,6 +57,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/UTF8.h
   ${CODE_DIR}/UnixLike.h
   ${CODE_DIR}/UUString.h
+  ${CODE_DIR}/UUText.h
 )
 
 set(SOURCES
@@ -122,6 +123,7 @@ UU_TEST(math_like_test)
 UU_TEST(spread_test)
 UU_TEST(string_test)
 UU_TEST(string_like_test)
+UU_TEST(text_test)
 UU_TEST(textref_test)
 UU_TEST(unix_like_test)
 
