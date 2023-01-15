@@ -58,6 +58,24 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) t
     }
 }
 
+TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) two byte maybe", "[text]" ) {
+    // Code Points:  U+0080..U+07FF
+    // First Byte:   C2..DF
+    // Second Byte:  80..BF
+    Char32 offset = 0x80;
+    Char32 idx = 0;
+    for (Char8 b1 = 0xC2; b1 <= 0xDF; b1++) {
+        for (Char8 b2 = 0x80; b2 <= 0xBF; b2++) {
+            const Char8 str[2] = { b1, b2 };
+            Char32 c = UTF8TextEncodingTraits::decode_check(str, sizeof(str), 0);
+            Char32 e = offset + idx;
+            REQUIRE(c == e);
+            idx++;
+        }
+    }
+}
+
+
 TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) three byte 1", "[text]" ) {
     // Code Points:  U+0800..U+0FFF
     // First Byte:   E0

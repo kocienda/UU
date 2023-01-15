@@ -100,15 +100,23 @@ public:
     // case functions
 };
 
-class UTF8TextEncodingTraits : public TextEncodingTraits<Char8> {
+class UTF8TextEncodingTraits {
 public:
     using CharT = Char8;
     using CodePointT = Char32;
-    using Traits = TextEncodingTraits<Char8>;
+    using CharTraits = std::char_traits<Char8>;
+
+    enum class WellFormed { MAYBE = 0, YES = 1 };
+
+    template <WellFormed W = WellFormed::YES> 
+    static constexpr bool is_well_formed() { return W == WellFormed::YES; }
+
+    static constexpr CodePointT Sentinel = 0xFFFD;
+    static constexpr Size npos = SizeMax;
 
 private:
     UU_ALWAYS_INLINE
-    static constexpr CodePointT decode_two_byte_char(CodePointT b1, CodePointT b2) {
+    static constexpr CodePointT decode_two_byte_code_point(CodePointT b1, CodePointT b2) {
         // Code point value: 00000yyy yyxxxxxx
         // First byte mask:  110yyyyy
         // Second byte mask: 10xxxxxx
@@ -118,7 +126,7 @@ private:
     }
 
     UU_ALWAYS_INLINE
-    static constexpr CodePointT decode_three_byte_char(CodePointT b1, CodePointT b2, CodePointT b3) {
+    static constexpr CodePointT decode_three_byte_code_point(CodePointT b1, CodePointT b2, CodePointT b3) {
         // Code point value: zzzzyyyy yyxxxxxx
         // First byte mask:  1110zzzz
         // Second byte mask: 10yyyyyy
@@ -129,7 +137,7 @@ private:
     }
 
     UU_ALWAYS_INLINE
-    static constexpr CodePointT decode_four_byte_char(CodePointT b1, CodePointT b2, CodePointT b3, CodePointT b4) {
+    static constexpr CodePointT decode_four_byte_code_point(CodePointT b1, CodePointT b2, CodePointT b3, CodePointT b4) {
         // Code point value: 000uuuuu zzzzyyyy yyxxxxxx
         // First byte mask:  11110uuu
         // Second byte mask: 10uuzzzz
@@ -140,6 +148,12 @@ private:
         CodePointT s3 = ((b3 & 0b00000011) << 6) | ((b4 & 0b00111111));
         return (s1 << 16) | (s2 << 8) | s3;
     }
+
+    template <bool B = true> 
+    static constexpr bool is_in_range(CodePointT c, CodePointT lo, CodePointT hi) noexcept {
+        return ((c >= lo) && (c <= hi)) == B;
+    }
+
 
 public:
     template <bool B = true> 
@@ -160,123 +174,179 @@ public:
     template <bool B = true> 
     static constexpr bool is_trail(const CharT *ptr, Size bpos) noexcept { return is_trail(ptr[bpos]) == B; }
 
+    template <WellFormed W = WellFormed::YES> 
     static constexpr CodePointT decode(const CharT *ptr, Size len, Size bpos) noexcept { 
         if (UNLIKELY(bpos >= len)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(false); 
+            }
             return Sentinel;
         }
-        CodePointT b1 = ptr[bpos];
+        Size idx = bpos;
+        CodePointT b1 = ptr[idx];
         
-        // one-byte char
+        // one-byte code point
         if (is_single(b1)) {
             return b1;
         }
 
-        // two-byte chars
-        if (bpos + 1 == len) {
+        // two-byte code point
+        idx++;
+        if (UNLIKELY(idx == len)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(false); 
+            }
             return Sentinel;
         }
-        CodePointT b2 = ptr[bpos + 1];
+        CodePointT b2 = ptr[idx];
 
         // Code Points:  U+0080..U+07FF
         // First Byte:   C2..DF
         // Second Byte:  80..BF
-        if (b1 >= 0xC2 && b1 <= 0xDF) {
-            ASSERT(b2 >= 0x80 && b2 <= 0xBF);
-            return decode_two_byte_char(b1, b2);
+        if (is_in_range(b1, 0xC2, 0xDF)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0x80, 0xBF)); 
+                return decode_two_byte_code_point(b1, b2);
+            }
+            if (LIKELY(is_in_range(b2, 0x80, 0xBF))) {
+                return decode_two_byte_code_point(b1, b2);
+            }
         }
 
-        // three-byte chars
-        if (bpos + 2 == len) {
+        // three-byte code point
+        idx++;
+        if (UNLIKELY(idx == len)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(false); 
+            }
             return Sentinel;
         }
-        CodePointT b3 = ptr[bpos + 2];
+        CodePointT b3 = ptr[idx];
 
         // Code Points:  U+0800..U+0FFF
         // First Byte:   E0
         // Second Byte:  A0..BF
         // Third Byte:   80..BF
-        if (b1 == 0xE0) {
-            ASSERT(b2 >= 0xA0 && b2 <= 0xBF);
-            ASSERT(b3 >= 0x80 && b3 <= 0xBF);
-            return decode_three_byte_char(b1, b2, b3);
-        }
-
+        // or
         // Code Points:  U+1000..U+CFFF
         // First Byte:   E1..EC
         // Second Byte:  80..BF
         // Third Byte:   80..BF
-        if (b1 >= 0xE1 && b1 <= 0xEC) {
-            ASSERT(b2 >= 0x80 && b2 <= 0xBF);
-            ASSERT(b3 >= 0x80 && b3 <= 0xBF);
-            return decode_three_byte_char(b1, b2, b3);
-        }
-        
+        // or
         // Code Points:  U+D000..U+D7FF
         // First Byte:   ED
         // Second Byte:  80..9F
         // Third Byte:   80..BF
-        if (b1 == 0xED) {
-            ASSERT(b2 >= 0x80 && b2 <= 0x9F);
-            ASSERT(b3 >= 0x80 && b3 <= 0xBF);
-            return decode_three_byte_char(b1, b2, b3);
-        }
-        
+        // or
         // Code Points:  U+E000..U+FFFF
         // First Byte:   EE..EF
         // Second Byte:  80..BF
         // Third Byte:   80..BF
-        if (b1 == 0xEE || b1 == 0xEF) {
-            ASSERT(b2 >= 0x80 && b2 <= 0xBF);
-            ASSERT(b3 >= 0x80 && b3 <= 0xBF);
-            return decode_three_byte_char(b1, b2, b3);
+        if (b1 == 0xE0) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0xA0, 0xBF) && is_in_range(b3, 0x80, 0xBF));
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
+            if (LIKELY(is_in_range(b2, 0xA0, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
         }
-    
-        // four-byte chars
-        if (bpos + 3 == len) {
+        if (is_in_range(b1, 0xE1, 0xEC)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0xA0, 0xBF) && is_in_range(b3, 0x80, 0xBF));
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
+            if (LIKELY(is_in_range(b2, 0xA0, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
+        }
+        if (b1 == 0xED) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0x80, 0x9F) && is_in_range(b3, 0x80, 0xBF));
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
+            if (LIKELY(is_in_range(b2, 0x80, 0x9F) && is_in_range(b3, 0x80, 0xBF))) {
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
+        }
+        if (is_in_range(b1, 0xEE, 0xEF)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF));
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
+            if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
+                return decode_three_byte_code_point(b1, b2, b3);
+            }
+        }
+
+
+        // four-byte code point
+        idx++;
+        if (UNLIKELY(idx == len)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(false);
+            }
             return Sentinel;
         }
-        CodePointT b4 = ptr[bpos + 3];
+        CodePointT b4 = ptr[idx];
 
         // Code Points:  U+10000..U+3FFFF
         // First Byte:   F0
         // Second Byte:  90..BF
         // Third Byte:   80..BF
         // Fourth Byte:  80..BF
-        if (b1 == 0xF0) {
-            ASSERT(b2 >= 0x90 && b2 <= 0xBF);
-            ASSERT(b3 >= 0x80 && b3 <= 0xBF);
-            ASSERT(b4 >= 0x80 && b3 <= 0xBF);
-            return decode_four_byte_char(b1, b2, b3, b4);
-        }
-        
+        // or
         // Code Points:  U+40000..U+FFFFF
         // First Byte:   F1..F3
         // Second Byte:  80..BF
         // Third Byte:   80..BF
         // Fourth Byte:  80..BF
-        if (b1 >= 0xF1 && b1 <= 0xF3) {
-            ASSERT(b2 >= 0x80 && b2 <= 0xBF);
-            ASSERT(b3 >= 0x80 && b3 <= 0xBF);
-            ASSERT(b4 >= 0x80 && b3 <= 0xBF);
-            return decode_four_byte_char(b1, b2, b3, b4);
-        }
-        
+        // or
         // Code Points:  U+100000..U+10FFFF
         // First Byte:   F4
         // Second Byte:  80..8F
         // Third Byte:   80..BF
         // Fourth Byte:  80..BF
-        if (b1 == 0xF4) {
-            ASSERT(b2 >= 0x80 && b2 <= 0x8F);
-            ASSERT(b3 >= 0x80 && b3 <= 0xBF);
-            ASSERT(b4 >= 0x80 && b3 <= 0xBF);
-            return decode_four_byte_char(b1, b2, b3, b4);
+        if (b1 == 0xF0) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0x90, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF));
+                return decode_four_byte_code_point(b1, b2, b3, b4);
+            }
+            if (LIKELY(is_in_range(b2, 0x90, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
+                return decode_four_byte_code_point(b1, b2, b3, b4);;
+            }
         }
-    
+        if (is_in_range(b1, 0xF1, 0xF3)) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF));
+                return decode_four_byte_code_point(b1, b2, b3, b4);
+            }
+            if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
+                return decode_four_byte_code_point(b1, b2, b3, b4);;
+            }
+        }
+        if (b1 == 0xF4) {
+            if constexpr (W == WellFormed::YES) {
+                ASSERT(is_in_range(b2, 0x80, 0x8F) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF));
+                return decode_four_byte_code_point(b1, b2, b3, b4);
+            }
+            if (LIKELY(is_in_range(b2, 0x80, 0x8F) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
+                return decode_four_byte_code_point(b1, b2, b3, b4);;
+            }
+        }
+
+        if constexpr (W == WellFormed::YES) {
+            ASSERT(false);
+        }
+
         return Sentinel;
     }
 
-    static constexpr Size blength(CodePointT c) noexcept {
+    static constexpr CodePointT decode_check(const CharT *ptr, Size len, Size bpos) noexcept { 
+        return decode<WellFormed::MAYBE>(ptr, len, bpos);
+    }
+
+    static constexpr Size length_in_bytes(CodePointT c) noexcept {
         if (c <= 0x7f) {
             return 1;
         }
@@ -289,8 +359,8 @@ public:
         return 4;
     }
 
-    static constexpr Size clength(const CharT *ptr) noexcept { return length(ptr); }
-    static constexpr Size max_clength() noexcept { return 4; }
+    static constexpr Size length_in_code_points(const CharT *ptr) noexcept { return CharTraits::length(ptr); }
+    static constexpr Size max_code_point_length_in_bytes() noexcept { return 4; }
 
     static constexpr Size previous_cpos(const CharT *ptr, Size len, Size bpos) noexcept {
         return 0;
