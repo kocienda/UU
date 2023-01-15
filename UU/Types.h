@@ -80,7 +80,7 @@ using UInt64 = uint64_t;
 static constexpr UInt64 UInt64Min = std::numeric_limits<UInt64>::min();
 static constexpr UInt64 UInt64Max = std::numeric_limits<UInt64>::max();
 
-using Char8 = char;
+using Char8 = char8_t;
 static constexpr Char8 Char8Min = std::numeric_limits<Char8>::min();
 static constexpr Char8 Char8Max = std::numeric_limits<Char8>::max();
 

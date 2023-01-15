@@ -15,7 +15,7 @@ set(CXX_WARNING_FLAGS "-Werror -Wno-trigraphs -Wno-missing-field-initializers -W
 -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion \
 -Wshorten-64-to-32 -Wno-newline-eof -Wno-c++11-extensions -Wdeprecated-declarations -Winvalid-offsetof -Wno-sign-conversion \
 -Winfinite-recursion -Wmove -Wcomma -Wstrict-prototypes -Wrange-loop-analysis -Wunguarded-availability -Wno-nullability-completeness \
--fvisibility-inlines-hidden -fasm-blocks -fstrict-aliasing -fno-common")
+-fvisibility-inlines-hidden -fasm-blocks -fstrict-aliasing -fno-common -fexperimental-library")
 set(CMAKE_CXX_FLAGS "${CXX_VERSION_FLAGS} ${CXX_ARCH_FLAGS} ${CXX_WARNING_FLAGS}")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Os -DNDEBUG")
@@ -51,6 +51,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Spread.h
   ${CODE_DIR}/StackTrace.h
   ${CODE_DIR}/StaticByteBuffer.h
+  ${CODE_DIR}/Storage.h
   ${CODE_DIR}/StringLike.h
   ${CODE_DIR}/TextRef.h
   ${CODE_DIR}/Types.h

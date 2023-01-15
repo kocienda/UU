@@ -30,6 +30,7 @@
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
+#include <format>
 #include <functional>
 #include <initializer_list>
 #include <iostream>
@@ -1765,6 +1766,8 @@ private:
     Size m_capacity = InlineCapacity;
 };
 
+// output ======================================================================================---
+
 template <typename CharT, Size S, typename TraitsT>
 std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const BasicString<CharT, S, TraitsT> &str)
 {
@@ -1877,6 +1880,25 @@ using StringView = BasicString<char, BasicStringDefaultInlineCapacity>::BasicStr
 
 namespace std
 {
+    template <typename CharT, UU::Size S, typename TraitsT>
+    struct std::formatter<UU::BasicString<CharT, S, TraitsT>, CharT> : std::formatter<std::basic_string_view<CharT, TraitsT>, CharT> {
+        using SV = std::basic_string_view<CharT, TraitsT>;
+        template <class FormatContext>
+        auto format(UU::BasicString<CharT, S, TraitsT> str, FormatContext &fc) const {
+            SV sv(str.data(), str.length());
+            return std::formatter<SV>::format(sv, fc);
+        }
+    };
+
+    // template <typename CharT, UU::Size S, typename TraitsT>
+    // struct std::formatter<UU::BasicString<CharT, S, TraitsT>, CharT> : std::formatter<std::basic_string_view<CharT, TraitsT>, CharT>> {
+    //     template <class FormatContext>
+    //     auto format(UU::BasicString<CharT, S, TraitsT> str, FormatContext &fc) const {
+    //         std::basic_string_view<CharT, TraitsT> sv(str.data(), str.length());
+    //         return std::formatter<const CharT *>::format(sv, fc);
+    //     }
+    // };
+
     // Implement std::swap in terms of BasicString swap
     template <typename CharT, UU::Size S>
     UU_ALWAYS_INLINE void swap(UU::BasicString<CharT, S, std::char_traits<CharT>> &lhs, UU::BasicString<CharT, S, std::char_traits<CharT>> &rhs) {
