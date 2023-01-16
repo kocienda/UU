@@ -16,98 +16,76 @@
 #include <UU/Assertions.h>
 #include <UU/IteratorWrapper.h>
 #include <UU/Storage.h>
+#include <UU/Stretch.h>
 #include <UU/Types.h>
 
 namespace UU {
 
-template <typename T> requires IsCharType<T> class TextEncodingTraits : public std::char_traits<T> {
-public:
-    using CharT = T;
-    using CodePointT = Char32;
-    using Traits = std::char_traits<T>;
-
-    static constexpr CodePointT Sentinel = 0xFFFD;
-    static constexpr Size npos = SizeMax;
-    
-    template <bool B = true> 
-    static constexpr bool equal(CharT a, CharT b) noexcept { return (Traits::eq(a, b)) == B; }
-
-    template <bool B = true> 
-    static constexpr bool less(CharT a, CharT b) noexcept { return (Traits::lt(a, b)) == B; }
-
-    template <bool B = true> 
-    static constexpr bool is_single(CharT c) noexcept { return true == B; }
-
-    template <bool B = true> 
-    static constexpr bool is_single(const CharT *ptr, Size bpos) noexcept { return is_single(ptr[bpos]) == B; }
-    
-    template <bool B = true> 
-    static constexpr bool is_lead(CharT c) noexcept { return true == B; }
-
-    template <bool B = true> 
-    static constexpr bool is_lead(const CharT *ptr, Size bpos) noexcept { return is_lead(ptr[bpos]) == B; }
-    
-    template <bool B = true> 
-    static constexpr bool is_trail(CharT c) noexcept { return true == B; }
-
-    template <bool B = true> 
-    static constexpr bool is_trail(const CharT *ptr, Size bpos) noexcept { return is_trail(ptr[bpos]) == B; }
-
-    static constexpr CodePointT get(const CharT *ptr, Size len, Size bpos) noexcept { 
-        return LIKELY(bpos < len) ? ptr[bpos] : Sentinel;
-    }
-
-    static constexpr Size blength(CodePointT c) noexcept {
-        if (c <= 0xff) {
-            return 1;
-        }
-        if (c <= 0xffff) {
-            return 2;
-        }
-        if (c <= 0xffffff) {
-            return 3;
-        }
-        return 4;
-    }
-
-    static constexpr Size clength(const CharT *ptr) noexcept { return length(ptr); }
-    static constexpr Size max_clength() noexcept { return 1; }
-
-    static constexpr Size cpos_start(const CharT *ptr, Size len, Size bpos) noexcept { 
-        return bpos < len ? bpos : npos; 
-    }
-
-
-
-    static constexpr Size previous_cpos(const CharT *ptr, Size len, Size bpos) noexcept { 
-        return bpos > 0 ? --bpos : npos; 
-    }
-
-    static constexpr Size next_cpos(const CharT *ptr, Size len, Size bpos) noexcept {
-        return bpos + 1 < len ? bpos + 1 : npos; 
-    }
-
-    static constexpr std::pair<Size, bool> next_cpos_check(const CharT *ptr, Size len, Size bpos) noexcept {
-        auto result = std::make_pair<Size, bool>(bpos + 1, true);
-        if (result.first >= len) {
-            result = { npos, false };
-        }
-        return result;
-    }
-
-    template <bool B = true> 
-    static constexpr bool is_well_formed(const CharT *ptr, Size bpos) noexcept { return is_trail(ptr[bpos]) == B; }
-
-    // case functions
+enum class TextEncoding {
+    BASIC8 = 100,
+    UTF8 = 1000,
+    UTF16 = 1001,
+    UTF32 = 1002,
 };
 
-class UTF8TextEncodingTraits {
-public:
-    using CharT = Char8;
-    using CodePointT = Char32;
-    using CharTraits = std::char_traits<Char8>;
+template <TextEncoding TextEncodingV, typename CodePointT> requires IsCharType<CodePointT>
+struct TextEncodingAttributes {
+    static constexpr CodePointT sentinel_value = 0;
+};
 
-    static constexpr CodePointT Sentinel = 0xFFFD;
+template <typename CodePointT>
+struct TextEncodingAttributes<TextEncoding::UTF8, CodePointT> {
+    static constexpr CodePointT sentinel_value = 0xFFFD;
+};
+
+template <TextEncoding TextEncodingV, typename CodePointT> requires IsCharType<CodePointT>
+struct TextEncodingDecodeResult {
+    UU_ALWAYS_INLINE constexpr bool is_ok() noexcept { 
+        return code_point != TextEncodingAttributes<TextEncodingV, CodePointT>::sentinel_value(); 
+    }
+    CodePointT code_point;
+    Size advance;
+};
+
+struct TextEncodingWellFormedResult {
+    UU_ALWAYS_INLINE constexpr bool is_ok() noexcept { return count == bpos; }
+    Size count;
+    Size bpos;
+};
+
+template <TextEncoding TE, typename CT, typename CP> 
+requires IsCharType<CT> && IsCharType<CP>
+struct TextEncodingTraits {
+    static constexpr TextEncoding TextEncodingV = TE;
+    using CharT = CT;
+    using CodePointT = CP;
+    using CharTraits = std::char_traits<CharT>;
+    using TextEncodingAttrs = TextEncodingAttributes<TextEncodingV, CodePointT>;
+    using TextEncodingDecodeResult = TextEncodingDecodeResult<TextEncodingV, CodePointT>;
+
+    static constexpr CodePointT Sentinel = TextEncodingAttrs::sentinel_value;
+    static constexpr Byte BOM[] = {};
+    static constexpr Size npos = SizeMax;
+
+    static constexpr bool is_single(Byte b) noexcept { return true; }
+    static constexpr bool not_single(Byte b) noexcept { return !(is_single(b)); }
+    static constexpr bool is_lead(Byte b) noexcept { return false; }
+    static constexpr bool not_lead(Byte b) noexcept { return !(is_lead(b)); }
+    static constexpr bool is_trail(Byte b) noexcept { return false; }
+    static constexpr bool not_trail(Byte b) noexcept { return !(is_trail(b)); }
+
+    static constexpr bool is_well_formed(const CharT *ptr, Size bpos) noexcept { return true; }
+};
+
+template <typename CP> struct TextEncodingTraits<TextEncoding::UTF8, Char8, CP> {
+    static constexpr TextEncoding TextEncodingV = TextEncoding::UTF8;
+    using CharT = Char8;
+    using CodePointT = CP;
+    using CharTraits = std::char_traits<CharT>;
+    using TextEncodingAttrs = TextEncodingAttributes<TextEncodingV, CodePointT>;
+    using TextEncodingDecodeResult = TextEncodingDecodeResult<TextEncodingV, CodePointT>;
+
+    static constexpr CodePointT Sentinel = TextEncodingAttrs::sentinel_value;
     static constexpr Byte BOM[] = { 0xEF, 0xBB, 0xBF };
     static constexpr Size npos = SizeMax;
 
@@ -117,12 +95,6 @@ public:
     static constexpr bool not_lead(Byte b) noexcept { return !(is_lead(b)); }
     static constexpr bool is_trail(Byte b) noexcept { return (Int8(b) < -0x40); }
     static constexpr bool not_trail(Byte b) noexcept { return !(is_trail(b)); }
-
-    template <bool B = true> 
-    UU_ALWAYS_INLINE
-    static constexpr bool is_in_range(CodePointT c, CodePointT lo, CodePointT hi) noexcept {
-        return ((c >= lo) && (c <= hi)) == B;
-    }
 
     UU_ALWAYS_INLINE
     static constexpr CodePointT decode_two_byte_code_point(CodePointT b1, CodePointT b2) noexcept {
@@ -158,20 +130,14 @@ public:
         return (s1 << 16) | (s2 << 8) | s3;
     }
 
-    struct DecodeResult {
-        UU_ALWAYS_INLINE constexpr bool is_ok() noexcept { return code_point != Sentinel; }
-        CodePointT code_point;
-        Size advance;
-    };
-
-    static constexpr DecodeResult decode_bom(const CharT *ptr, Size len) noexcept {
+    static constexpr TextEncodingDecodeResult decode_bom(const CharT *ptr, Size len) noexcept {
         if (LIKELY(len >= sizeof(BOM)) && memcmp(ptr, BOM, sizeof(BOM)) == 0) {
             return { 0, sizeof(BOM) };
         }
         return { 0, 0 };
     }
 
-    static constexpr DecodeResult decode(const CharT *ptr, Size len, Size bpos) noexcept { 
+    static constexpr TextEncodingDecodeResult decode(const CharT *ptr, Size len, Size bpos) noexcept { 
         Size bmax = len - bpos - 1;
         if (LIKELY(bmax < len)) {
             bmax = std::min(bmax + 1, 4UL);
@@ -228,7 +194,9 @@ public:
         }
     }
 
-    static constexpr DecodeResult decode_check(const CharT *ptr, Size len, Size bpos) noexcept { 
+    static constexpr TextEncodingDecodeResult decode_check(const CharT *ptr, Size len, Size bpos) noexcept { 
+        using CPStretch = Stretch<CodePointT>;
+
         Size idx = bpos;
 
         if (UNLIKELY(idx >= len)) {
@@ -256,8 +224,8 @@ public:
         // Code Points:  U+0080..U+07FF
         // First Byte:   C2..DF
         // Second Byte:  80..BF
-        if (is_in_range(b1, 0xC2, 0xDF)) {
-            if (LIKELY(is_in_range(b2, 0x80, 0xBF))) {
+        if (CPStretch::contains(b1, 0xC2, 0xDF)) {
+            if (LIKELY(CPStretch::contains(b2, 0x80, 0xBF))) {
                 LOG(General, "decode_check [4]: two byte code point");
                 return { decode_two_byte_code_point(b1, b2), 2 };
             }
@@ -296,7 +264,7 @@ public:
         // Second Byte:  80..BF
         // Third Byte:   80..BF
         if (b1 == 0xE0) {
-            if (LIKELY(is_in_range(b2, 0xA0, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
+            if (LIKELY(CPStretch::contains(b2, 0xA0, 0xBF) && CPStretch::contains(b3, 0x80, 0xBF))) {
                 LOG(General, "decode_check [7]: three byte code point");
                 return { decode_three_byte_code_point(b1, b2, b3), 3 };
             }
@@ -305,8 +273,8 @@ public:
                 return { Sentinel, 0 };
             }
         }
-        if (is_in_range(b1, 0xE1, 0xEC)) {
-            if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
+        if (CPStretch::contains(b1, 0xE1, 0xEC)) {
+            if (LIKELY(CPStretch::contains(b2, 0x80, 0xBF) && CPStretch::contains(b3, 0x80, 0xBF))) {
                 LOG(General, "decode_check [9]: three byte code point");
                 return { decode_three_byte_code_point(b1, b2, b3), 3 };
             }
@@ -316,7 +284,7 @@ public:
             }
         }
         if (b1 == 0xED) {
-            if (LIKELY(is_in_range(b2, 0x80, 0x9F) && is_in_range(b3, 0x80, 0xBF))) {
+            if (LIKELY(CPStretch::contains(b2, 0x80, 0x9F) && CPStretch::contains(b3, 0x80, 0xBF))) {
                 LOG(General, "decode_check [11]: three byte code point");
                 return { decode_three_byte_code_point(b1, b2, b3), 3 };
             }
@@ -325,8 +293,8 @@ public:
                 return { Sentinel, 0 };
             }
         }
-        if (is_in_range(b1, 0xEE, 0xEF)) {
-            if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
+        if (CPStretch::contains(b1, 0xEE, 0xEF)) {
+            if (LIKELY(CPStretch::contains(b2, 0x80, 0xBF) && CPStretch::contains(b3, 0x80, 0xBF))) {
                 LOG(General, "decode_check [13]: three byte code point");
                 return { decode_three_byte_code_point(b1, b2, b3), 3 };
             }
@@ -363,7 +331,9 @@ public:
         // Third Byte:   80..BF
         // Fourth Byte:  80..BF
         if (b1 == 0xF0) {
-            if (LIKELY(is_in_range(b2, 0x90, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
+            if (LIKELY(CPStretch::contains(b2, 0x90, 0xBF) && 
+                       CPStretch::contains(b3, 0x80, 0xBF) && 
+                       CPStretch::contains(b4, 0x80, 0xBF))) {
                 LOG(General, "decode_check [16]: four byte code point");
                 return { decode_four_byte_code_point(b1, b2, b3, b4), 4 };
             }
@@ -372,8 +342,10 @@ public:
                 return { Sentinel, 0 };
             }
         }
-        if (is_in_range(b1, 0xF1, 0xF3)) {
-            if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
+        if (CPStretch::contains(b1, 0xF1, 0xF3)) {
+            if (LIKELY(CPStretch::contains(b2, 0x80, 0xBF) && 
+                       CPStretch::contains(b3, 0x80, 0xBF) && 
+                       CPStretch::contains(b4, 0x80, 0xBF))) {
                 LOG(General, "decode_check [18]: four byte code point");
                 return { decode_four_byte_code_point(b1, b2, b3, b4), 4 };
             }
@@ -383,7 +355,9 @@ public:
             }
         }
         if (b1 == 0xF4) {
-            if (LIKELY(is_in_range(b2, 0x80, 0x8F) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
+            if (LIKELY(CPStretch::contains(b2, 0x80, 0x8F) && 
+                       CPStretch::contains(b3, 0x80, 0xBF) && 
+                       CPStretch::contains(b4, 0x80, 0xBF))) {
                 LOG(General, "decode_check [20]: four byte code point");
                 return { decode_four_byte_code_point(b1, b2, b3, b4), 4 };
             }
@@ -397,13 +371,7 @@ public:
         return { Sentinel, 0 };
     }
 
-    struct WellFormedResult {
-        UU_ALWAYS_INLINE constexpr bool is_ok() noexcept { return count == bpos; }
-        Size count;
-        Size bpos;
-    };
-
-    static WellFormedResult is_well_formed(const CharT *ptr, Size len, Size count = npos) noexcept {
+    static TextEncodingWellFormedResult is_well_formed(const CharT *ptr, Size len, Size count = npos) noexcept {
         Size ecount = (count == npos) ? len : std::min(len, count);
         Size bpos = decode_bom(ptr, len).advance;
         while (bpos < ecount) {
@@ -418,9 +386,7 @@ public:
 
 };
 
-
-
-using UTF32TextEncodingTraits = TextEncodingTraits<Char32>;
+using UTF8TextEncodingTraits = TextEncodingTraits<TextEncoding::UTF8, Char8, Char32>;
 
 using StringStorage = Storage<48, Char32>;
 
@@ -516,7 +482,8 @@ public:
 
 };
 
-template <typename CharT, typename TraitsT = TextEncodingTraits<CharT>>
+#if 0
+template <typename CharT, typename TraitsT = ProtoTextEncodingTraits<CharT>>
 class ProtoString {
 private:
     static constexpr StringStorageActions _VoidStringStorageActions = StringStorageActions();
@@ -543,6 +510,7 @@ private:
 };
 
 using Text8 = ProtoString<Char8>;
+#endif
 
 }  // namespace UU
 

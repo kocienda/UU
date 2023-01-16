@@ -29,6 +29,8 @@
 #include <iostream>
 #include <limits>
 
+#include <UU/Assertions.h>
+
 namespace UU {
 
 template <class ValueT> class Stretch
@@ -69,7 +71,12 @@ public:
     static bool overlap(const Stretch &a, const Stretch &b) {
         return !(a.last() < b.first() || a.first() > b.last());
     }
-    
+
+    template <bool B=true>
+    UU_ALWAYS_INLINE static constexpr bool contains(ValueT c, ValueT lo, ValueT hi) noexcept {
+        return ((c >= lo) && (c <= hi)) == B;
+    }
+
 private:
     ValueT m_first = 0;
     ValueT m_last = 0;
