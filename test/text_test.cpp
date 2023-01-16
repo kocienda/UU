@@ -21,7 +21,7 @@ TEST_CASE( "text storage smoke", "[text]" ) {
 
 TEST_CASE( "UTF8TextEncodingTraits::is_single(CharT)", "[text]" ) {
     REQUIRE(UTF8TextEncodingTraits::is_single('c'));
-    REQUIRE_FALSE(UTF8TextEncodingTraits::is_single<false>('c'));
+    REQUIRE_FALSE(UTF8TextEncodingTraits::not_single('c'));
     REQUIRE(UTF8TextEncodingTraits::is_single('c'));
 }
 
@@ -41,7 +41,7 @@ TEST_CASE( "UTF8TextEncodingTraits::is_trail(CharT)", "[text]" ) {
     REQUIRE(UTF8TextEncodingTraits::is_trail(0x88));
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) two byte", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) two byte", "[text]" ) {
     // Code Points:  U+0080..U+07FF
     // First Byte:   C2..DF
     // Second Byte:  80..BF
@@ -58,7 +58,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) t
     }
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) two byte maybe", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) two byte maybe", "[text]" ) {
     // Code Points:  U+0080..U+07FF
     // First Byte:   C2..DF
     // Second Byte:  80..BF
@@ -76,7 +76,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) t
 }
 
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) three byte 1", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) three byte 1", "[text]" ) {
     // Code Points:  U+0800..U+0FFF
     // First Byte:   E0
     // Second Byte:  A0..BF
@@ -95,7 +95,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) t
     }
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) three byte 2", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) three byte 2", "[text]" ) {
     // Code Points:  U+1000..U+CFFF
     // First Byte:   E1..EC
     // Second Byte:  80..BF
@@ -115,7 +115,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) t
     }
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) three byte 3", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) three byte 3", "[text]" ) {
     // Code Points:  U+D000..U+D7FF
     // First Byte:   ED
     // Second Byte:  80..9F
@@ -135,7 +135,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) t
     }
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) three byte 4", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) three byte 4", "[text]" ) {
     // Code Points:  U+E000..U+FFFF
     // First Byte:   EE..EF
     // Second Byte:  80..BF
@@ -155,7 +155,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) t
     }
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) four byte 1", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) four byte 1", "[text]" ) {
     // Code Points:  U+10000..U+3FFFF
     // First Byte:   F0
     // Second Byte:  90..BF
@@ -178,7 +178,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) f
     }
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) four byte 2", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) four byte 2", "[text]" ) {
     // Code Points:  U+40000..U+FFFFF
     // First Byte:   F1..F3
     // Second Byte:  80..BF
@@ -201,7 +201,7 @@ TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) f
     }
 }
 
-TEST_CASE( "UTF8TextEncodingTraits::get(const CharT *ptr, Size len, Size bpos) four byte 3", "[text]" ) {
+TEST_CASE( "UTF8TextEncodingTraits::decode(const CharT *ptr, Size len, Size bpos) four byte 3", "[text]" ) {
     // Code Points:  U+100000..U+10FFFF
     // First Byte:   F4
     // Second Byte:  80..8F

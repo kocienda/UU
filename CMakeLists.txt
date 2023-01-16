@@ -130,6 +130,14 @@ UU_TEST(unix_like_test)
 
 ENDIF()
 
+function(UU_SCRATCH prog_name)
+add_executable(${prog_name} scratch/${prog_name}.cpp)
+target_include_directories(${prog_name} PRIVATE . /u/include)
+target_link_directories(${prog_name} PRIVATE build /u/lib)
+endfunction()
+
+UU_SCRATCH(scratch)
+
 # To use:
 # find_package(UU REQUIRED)
 # # Add the include directories for the library
