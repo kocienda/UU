@@ -8,6 +8,7 @@
 #include "UU/Compiler.h"
 #include <concepts>
 #include <cstring>
+#include <format>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -107,11 +108,24 @@ public:
     using CharTraits = std::char_traits<Char8>;
 
     static constexpr CodePointT Sentinel = 0xFFFD;
+    static constexpr Byte BOM[] = { 0xEF, 0xBB, 0xBF };
     static constexpr Size npos = SizeMax;
 
-private:
+    static constexpr bool is_single(Byte b) noexcept { return ((b & 0x80) == 0); }
+    static constexpr bool not_single(Byte b) noexcept { return !(is_single(b)); }
+    static constexpr bool is_lead(Byte b) noexcept { return (b - 0xc2 <= 0x32); }
+    static constexpr bool not_lead(Byte b) noexcept { return !(is_lead(b)); }
+    static constexpr bool is_trail(Byte b) noexcept { return (Int8(b) < -0x40); }
+    static constexpr bool not_trail(Byte b) noexcept { return !(is_trail(b)); }
+
+    template <bool B = true> 
     UU_ALWAYS_INLINE
-    static constexpr CodePointT decode_two_byte_code_point(CodePointT b1, CodePointT b2) {
+    static constexpr bool is_in_range(CodePointT c, CodePointT lo, CodePointT hi) noexcept {
+        return ((c >= lo) && (c <= hi)) == B;
+    }
+
+    UU_ALWAYS_INLINE
+    static constexpr CodePointT decode_two_byte_code_point(CodePointT b1, CodePointT b2) noexcept {
         // Code point value: 00000yyy yyxxxxxx
         // First byte mask:  110yyyyy
         // Second byte mask: 10xxxxxx
@@ -121,7 +135,7 @@ private:
     }
 
     UU_ALWAYS_INLINE
-    static constexpr CodePointT decode_three_byte_code_point(CodePointT b1, CodePointT b2, CodePointT b3) {
+    static constexpr CodePointT decode_three_byte_code_point(CodePointT b1, CodePointT b2, CodePointT b3) noexcept {
         // Code point value: zzzzyyyy yyxxxxxx
         // First byte mask:  1110zzzz
         // Second byte mask: 10yyyyyy
@@ -132,7 +146,7 @@ private:
     }
 
     UU_ALWAYS_INLINE
-    static constexpr CodePointT decode_four_byte_code_point(CodePointT b1, CodePointT b2, CodePointT b3, CodePointT b4) {
+    static constexpr CodePointT decode_four_byte_code_point(CodePointT b1, CodePointT b2, CodePointT b3, CodePointT b4) noexcept {
         // Code point value: 000uuuuu zzzzyyyy yyxxxxxx
         // First byte mask:  11110uuu
         // Second byte mask: 10uuzzzz
@@ -144,33 +158,33 @@ private:
         return (s1 << 16) | (s2 << 8) | s3;
     }
 
-    template <bool B = true> 
-    static constexpr bool is_in_range(CodePointT c, CodePointT lo, CodePointT hi) noexcept {
-        return ((c >= lo) && (c <= hi)) == B;
+    struct DecodeResult {
+        UU_ALWAYS_INLINE constexpr bool is_ok() noexcept { return code_point != Sentinel; }
+        CodePointT code_point;
+        Size advance;
+    };
+
+    static constexpr DecodeResult decode_bom(const CharT *ptr, Size len) noexcept {
+        if (LIKELY(len >= sizeof(BOM)) && memcmp(ptr, BOM, sizeof(BOM)) == 0) {
+            return { 0, sizeof(BOM) };
+        }
+        return { 0, 0 };
     }
 
-public:
-    static constexpr bool is_single(Byte b) noexcept { return ((b & 0x80) == 0); }
-    static constexpr bool not_single(Byte b) noexcept { return !(is_single(b)); }
-    static constexpr bool is_lead(Byte b) noexcept { return (b - 0xc2 <= 0x32); }
-    static constexpr bool not_lead(Byte b) noexcept { return !(is_lead(b)); }
-    static constexpr bool is_trail(Byte b) noexcept { return (Int8(b) < -0x40); }
-    static constexpr bool not_trail(Byte b) noexcept { return !(is_trail(b)); }
-
-    static constexpr CodePointT decode(const CharT *ptr, Size len, Size bpos) noexcept { 
+    static constexpr DecodeResult decode(const CharT *ptr, Size len, Size bpos) noexcept { 
         Size bmax = len - bpos - 1;
         if (LIKELY(bmax < len)) {
             bmax = std::min(bmax + 1, 4UL);
         }
         else {
-            return Sentinel;
+            return { Sentinel, 0 };
         }
 
         Byte first = ptr[bpos];
         
         // one-byte code point
         if (is_single(first)) {
-            return first;
+            return { first, 1 };
         }
         ASSERT(is_lead(first));
 
@@ -178,22 +192,22 @@ public:
         switch (bmax) {
             case 1: {
                 ASSERT(false);
-                return Sentinel;
+                return { Sentinel, 0 };
             }
             case 2: {
                 Byte second = ptr[bpos + 1];
                 ASSERT(is_trail(second));
-                return decode_two_byte_code_point(first, second);
+                return { decode_two_byte_code_point(first, second), 2 };
             }
             case 3: {
                 Byte second = ptr[bpos + 1];
                 ASSERT(is_trail(second));
                 Byte third = ptr[bpos + 2];
                 if (not_trail(third)) {
-                    return decode_two_byte_code_point(first, second);
+                    return { decode_two_byte_code_point(first, second), 2 };
                 }
                 else {
-                    return decode_three_byte_code_point(first, second, third);
+                    return { decode_three_byte_code_point(first, second, third), 3 };
                 }
             }
             default: {
@@ -201,38 +215,41 @@ public:
                 ASSERT(is_trail(second));
                 Byte third = ptr[bpos + 2];
                 if (not_trail(third)) {
-                    return decode_two_byte_code_point(first, second);
+                    return { decode_two_byte_code_point(first, second), 2 };
                 }
                 Byte fourth = ptr[bpos + 3];
                 if (not_trail(fourth)) {
-                    return decode_three_byte_code_point(first, second, third);
+                    return { decode_three_byte_code_point(first, second, third), 3 };
                 }
                 else {
-                    return decode_four_byte_code_point(first, second, third, fourth);
+                    return { decode_four_byte_code_point(first, second, third, fourth), 4 };
                 }
             }
         }
     }
 
-    static constexpr CodePointT decode_check(const CharT *ptr, Size len, Size bpos) noexcept { 
+    static constexpr DecodeResult decode_check(const CharT *ptr, Size len, Size bpos) noexcept { 
         Size idx = bpos;
 
         if (UNLIKELY(idx >= len)) {
+            LOG(General, "decode_check [1]: bad length");
             ASSERT(false); 
-            return Sentinel;
+            return { Sentinel, 0 };
         }
         CodePointT b1 = ptr[idx];
         
         // one-byte code point
         if (is_single(b1)) {
-            return b1;
+            LOG(General, "decode_check [2]: one byte code point");
+            return { b1, 1 };
         }
 
         // two-byte code point
         idx++;
         if (UNLIKELY(idx == len)) {
+            LOG(General, "decode_check [3]: bad length");
             ASSERT(false); 
-            return Sentinel;
+            return { Sentinel, 0 };
         }
         CodePointT b2 = ptr[idx];
 
@@ -241,15 +258,21 @@ public:
         // Second Byte:  80..BF
         if (is_in_range(b1, 0xC2, 0xDF)) {
             if (LIKELY(is_in_range(b2, 0x80, 0xBF))) {
-                return decode_two_byte_code_point(b1, b2);
+                LOG(General, "decode_check [4]: two byte code point");
+                return { decode_two_byte_code_point(b1, b2), 2 };
+            }
+            else {
+                LOG(General, "decode_check [5]: bad two byte code point");
+                return { Sentinel, 0 };
             }
         }
 
         // three-byte code point
         idx++;
         if (UNLIKELY(idx == len)) {
+            LOG(General, "decode_check [6]: bad length");
             ASSERT(false); 
-            return Sentinel;
+            return { Sentinel, 0 };
         }
         CodePointT b3 = ptr[idx];
 
@@ -274,30 +297,51 @@ public:
         // Third Byte:   80..BF
         if (b1 == 0xE0) {
             if (LIKELY(is_in_range(b2, 0xA0, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
-                return decode_three_byte_code_point(b1, b2, b3);
+                LOG(General, "decode_check [7]: three byte code point");
+                return { decode_three_byte_code_point(b1, b2, b3), 3 };
+            }
+            else {
+                LOG(General, "decode_check [8]: bad three byte code point");
+                return { Sentinel, 0 };
             }
         }
         if (is_in_range(b1, 0xE1, 0xEC)) {
-            if (LIKELY(is_in_range(b2, 0xA0, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
-                return decode_three_byte_code_point(b1, b2, b3);
+            if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
+                LOG(General, "decode_check [9]: three byte code point");
+                return { decode_three_byte_code_point(b1, b2, b3), 3 };
+            }
+            else {
+                LOG(General, "decode_check [10]: bad three byte code point");
+                return { Sentinel, 0 };
             }
         }
         if (b1 == 0xED) {
             if (LIKELY(is_in_range(b2, 0x80, 0x9F) && is_in_range(b3, 0x80, 0xBF))) {
-                return decode_three_byte_code_point(b1, b2, b3);
+                LOG(General, "decode_check [11]: three byte code point");
+                return { decode_three_byte_code_point(b1, b2, b3), 3 };
+            }
+            else {
+                LOG(General, "decode_check [12]: bad three byte code point");
+                return { Sentinel, 0 };
             }
         }
         if (is_in_range(b1, 0xEE, 0xEF)) {
             if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF))) {
-                return decode_three_byte_code_point(b1, b2, b3);
+                LOG(General, "decode_check [13]: three byte code point");
+                return { decode_three_byte_code_point(b1, b2, b3), 3 };
+            }
+            else {
+                LOG(General, "decode_check [14]: bad three byte code point");
+                return { Sentinel, 0 };
             }
         }
 
         // four-byte code point
         idx++;
         if (UNLIKELY(idx == len)) {
+            LOG(General, "decode_check [15]: bad length");
             ASSERT(false);
-            return Sentinel;
+            return { Sentinel, 0 };
         }
         CodePointT b4 = ptr[idx];
 
@@ -320,59 +364,58 @@ public:
         // Fourth Byte:  80..BF
         if (b1 == 0xF0) {
             if (LIKELY(is_in_range(b2, 0x90, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
-                return decode_four_byte_code_point(b1, b2, b3, b4);;
+                LOG(General, "decode_check [16]: four byte code point");
+                return { decode_four_byte_code_point(b1, b2, b3, b4), 4 };
+            }
+            else {
+                LOG(General, "decode_check [17]: bad three byte code point");
+                return { Sentinel, 0 };
             }
         }
         if (is_in_range(b1, 0xF1, 0xF3)) {
             if (LIKELY(is_in_range(b2, 0x80, 0xBF) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
-                return decode_four_byte_code_point(b1, b2, b3, b4);;
+                LOG(General, "decode_check [18]: four byte code point");
+                return { decode_four_byte_code_point(b1, b2, b3, b4), 4 };
+            }
+            else {
+                LOG(General, "decode_check [19]: bad three byte code point");
+                return { Sentinel, 0 };
             }
         }
         if (b1 == 0xF4) {
             if (LIKELY(is_in_range(b2, 0x80, 0x8F) && is_in_range(b3, 0x80, 0xBF) && is_in_range(b4, 0x80, 0xBF))) {
-                return decode_four_byte_code_point(b1, b2, b3, b4);;
+                LOG(General, "decode_check [20]: four byte code point");
+                return { decode_four_byte_code_point(b1, b2, b3, b4), 4 };
+            }
+            else {
+                LOG(General, "decode_check [21]: bad three byte code point");
+                return { Sentinel, 0 };
             }
         }
 
-        return Sentinel;
+        LOG(General, "decode_check [22]: fail");
+        return { Sentinel, 0 };
     }
 
-    static constexpr Size length_in_bytes(CodePointT c) noexcept {
-        if (c <= 0x7f) {
-            return 1;
+    struct WellFormedResult {
+        UU_ALWAYS_INLINE constexpr bool is_ok() noexcept { return count == bpos; }
+        Size count;
+        Size bpos;
+    };
+
+    static WellFormedResult is_well_formed(const CharT *ptr, Size len, Size count = npos) noexcept {
+        Size ecount = (count == npos) ? len : std::min(len, count);
+        Size bpos = decode_bom(ptr, len).advance;
+        while (bpos < ecount) {
+            auto r = decode_check(ptr, len, bpos);
+            if (r.code_point == Sentinel) {
+                break;
+            }
+            bpos += r.advance;
         }
-        if (c <= 0x7ff) {
-            return 2;
-        }
-        if (c <= 0xd7ff || c <= 0xdfff || c > 0x10ffff) {
-            return 3;
-        }
-        return 4;
+        return { ecount, bpos };
     }
 
-    static constexpr Size length_in_code_points(const CharT *ptr) noexcept { return CharTraits::length(ptr); }
-    static constexpr Size max_code_point_length_in_bytes() noexcept { return 4; }
-
-    static constexpr Size previous_cpos(const CharT *ptr, Size len, Size bpos) noexcept {
-        return 0;
-    }
-
-    static constexpr Size next_cpos(const CharT *ptr, Size bpos) noexcept {
-        return ptr[bpos + 1] == CharT(0) ? npos : bpos + 1; 
-    }
-
-    static constexpr std::pair<Size, bool> next_cpos_check(const CharT *ptr, Size len, Size bpos) noexcept {
-        auto result = std::make_pair<Size, bool>(bpos + 1, true);
-        if (bpos + 1 >= len) {
-            result = { npos, false };
-        }
-        else {
-
-        }
-        return result;
-    }
-
-    // case functions
 };
 
 

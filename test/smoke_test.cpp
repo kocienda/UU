@@ -20,12 +20,5 @@ TEST_CASE( "smoke test", "[smoke]" ) {
 }
 
 TEST_CASE( "smoke test fail", "[smoke]" ) {
-    String str = "& world!!";
-    Size s = EOF;
-    std::cout << "val: " << s << std::endl;
-    std::cout << "eq: " << ((s == SizeMax) ? "Y" : "N") << std::endl;
-
-     std::cout << std::format("Hello {0} : {1}", s, str);
-
-    CHECK(false);
+    CHECK_FALSE(false);
 }
