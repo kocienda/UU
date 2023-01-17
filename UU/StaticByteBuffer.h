@@ -25,75 +25,87 @@
 #ifndef UU_STATIC_BYTE_BUFFER_H
 #define UU_STATIC_BYTE_BUFFER_H
 
+#include <initializer_list>
+
 #include <UU/Assertions.h>
-#include <UU/ByteWriter.h>
-#include <UU/ByteReader.h>
 #include <UU/Types.h>
 
 namespace UU {
 
-class StaticByteBuffer : public ByteWriter, public ByteReader
-{
+template <Size S>
+class StaticByteBuffer {
 public:
-    static constexpr const Size nidx = -1;
+    static constexpr Size Capacity = S;
+    static constexpr const Size npos = SizeMax;
     static constexpr Byte empty_value = 0;
 
-    constexpr StaticByteBuffer() {}
-    StaticByteBuffer(Byte *ptr, Size size) : m_ptr(ptr), m_size(size), m_writable(true) {}
-    StaticByteBuffer(const Byte *ptr, Size size) : m_ptr((Byte *)ptr), m_size(size), m_writable(false) {}
-    virtual ~StaticByteBuffer() {}
-
-    bool is_writable() const { return m_writable; }
-
-    Byte *bytes() const override { return m_ptr; }
-    Size size() const override { return m_size; }
-
-    void write(const std::string &str) override { write((const Byte *)str.c_str(), (Size)str.length()); }
-
-    void write(const Byte *bytes, Size size) override {
-        if (can_write(size)) {
-            memcpy((void *)(m_ptr + m_write_offset), bytes, size);
-            m_write_offset += size;
+    constexpr StaticByteBuffer() {
+        for (Size pos = 0; pos < capacity(); ++pos) {
+            m_buf[pos] = empty_value;
         }
     }
-    
-    void write(Byte b) override {
-        if (can_write(1)) {
-            m_ptr[m_write_offset] = b;
-            m_write_offset++;
+    constexpr StaticByteBuffer(Byte *ptr, Size size) {
+        for (Size pos = 0; pos < std::min(size, capacity()); ++pos) {
+            m_buf[pos] = ptr[pos];
+        }
+        for (Size pos = std::min(size, capacity()); pos < capacity(); ++pos) {
+            m_buf[pos] = empty_value;
+        }
+    }
+    constexpr StaticByteBuffer(const Byte *ptr, Size size) { 
+        for (Size pos = 0; pos < std::min(size, capacity()); ++pos) {
+            m_buf[pos] = ptr[pos];
+        }
+        for (Size pos = std::min(size, capacity()); pos < capacity(); ++pos) {
+            m_buf[pos] = empty_value;
+        }
+    }
+    constexpr StaticByteBuffer(std::initializer_list<Byte> ilist) { 
+        Size idx = 0;
+        for (auto it = ilist.begin(); it != ilist.end(); ++it) {
+            m_buf[idx] = *it;
+            idx++;
+            if (idx == capacity()) {
+                break;
+            }
+        }
+        for (Size pos = std::min(idx, capacity()); pos < capacity(); ++pos) {
+            m_buf[pos] = empty_value;
         }
     }
 
-    Byte at(Size index) {
-        if (m_size > index) {
-            return m_ptr[index];
+    constexpr Size capacity() const { return Capacity; }
+
+    constexpr Byte &at(Size pos) const {
+        if (pos < capacity()) {
+            return m_buf[pos];
         }
         else {
-            return empty_value;
+            return m_buf[capacity() - 1];
         }
     }
     
-    const Byte &at(Size index) const {
-        if (m_size > index) {
-            return m_ptr[index];
-        }
-        else {
-            return empty_value;
-        }
+    constexpr Byte &operator[](Size index) const {
+        return m_buf[index];
     }
     
-    const Byte &operator[](Size index) const {
-        return m_ptr[index];
+    constexpr Byte &operator[](Size index) {
+        return m_buf[index];
     }
-    
-    friend bool operator==(const StaticByteBuffer &a, const StaticByteBuffer &b) {
-        if (a.size() != b.size()) {
+
+    constexpr friend bool operator==(const StaticByteBuffer &a, const StaticByteBuffer &b) {
+        if (a.capacity() != b.capacity()) {
             return false;
         }
-        if (a.size() == 0) {
+        if (a.capacity() == 0) {
             return true;
         }
-        return memcmp(a.bytes(), b.bytes(), a.size()) == 0;
+        for (Size pos = 0; pos < a.capacity(); pos++) {
+            if (a.m_buf[pos] != b.m_buf[pos]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     friend bool operator!=(const StaticByteBuffer &a, const StaticByteBuffer &b) {
@@ -101,14 +113,7 @@ public:
     }
 
 private:
-    bool can_write(Size size_to_write) {
-        return m_writable && (m_write_offset + size_to_write < m_size);
-    }
-
-    Byte *m_ptr = nullptr;
-    Size m_size = 0;
-    Size m_write_offset = 0;
-    bool m_writable = false;
+    Byte m_buf[Capacity] = {};
 };
 
 }  // namespace UU

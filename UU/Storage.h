@@ -48,17 +48,17 @@ public:
     constexpr Size capacity() const { return m_capacity; }
     constexpr UInt32 flags() const { return m_flags; }
 
-    constexpr void set_allocated_buffer(Byte *ptr) { m_ptr = ptr; set_using_allocated_buffer(); }
-    constexpr void clear_allocated_buffer() { m_ptr = buf_ptr(); set_using_inline_buffer(); }
+    constexpr void set_allocated_storage(Byte *ptr) { m_ptr = ptr; set_using_allocated_storage(); }
+    constexpr void clear_allocated_storage() { m_ptr = buf_ptr(); set_using_inline_storage(); }
     constexpr void set_length(Size length) { m_length = length; }
     constexpr void set_capacity(Size capacity) { m_capacity = capacity; }
     constexpr void set_flags(UInt32 flags) { m_flags = flags; }
 
-    template <bool B = true> constexpr bool is_using_allocated_buffer() const { 
+    template <bool B = true> constexpr bool is_using_allocated_storage() const { 
         return (m_flags & UsingAllocatedBuffer) == B; 
     }
 
-    template <bool B = true> constexpr void set_using_allocated_buffer() {
+    template <bool B = true> constexpr void set_using_allocated_storage() {
         if (B) {
             m_flags |= UsingAllocatedBuffer;
         }
@@ -67,12 +67,12 @@ public:
         }
     }
 
-    template <bool B = true> constexpr bool is_using_inline_buffer() const { 
-        return !is_using_allocated_buffer() == B; 
+    template <bool B = true> constexpr bool is_using_inline_storage() const { 
+        return !is_using_allocated_storage() == B; 
     }
 
-    template <bool B = true> constexpr void set_using_inline_buffer() {
-        set_using_allocated_buffer<!B>();
+    template <bool B = true> constexpr void set_using_inline_storage() {
+        set_using_allocated_storage<!B>();
     }
 
 private:
@@ -81,11 +81,11 @@ private:
     Storage &operator=(const Storage &) = delete;
     Storage &operator=(Storage &&) = delete;
 
-    using Buffer = std::aligned_storage_t<InlineCapacity, std::alignment_of_v<AlignmentT>>;
+    using InlineStorage = std::aligned_storage_t<InlineCapacity, std::alignment_of_v<AlignmentT>>;
     
     constexpr Byte *buf_ptr() { return reinterpret_cast<Byte *>(m_buf); }
 
-    Buffer m_buf[InlineCapacity];
+    InlineStorage m_buf[InlineCapacity];
     Byte *m_ptr = nullptr;
     Size m_length = 0;
     Size m_capacity = InlineCapacity;

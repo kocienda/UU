@@ -13,13 +13,14 @@
 #include <UU/Types.h>
 
 using namespace UU;
+using namespace UU::TextEncoding;
 
 int main(int argc, const char *argv[]) {
 
-    std::cout << static_cast<int>(UTF8TextEncodingTraits::TextEncodingV) << std::endl;
-    std::cout << sizeof(UTF8TextEncodingTraits::BOM) << std::endl;
-    std::cout << sizeof(UTF8TextEncodingTraits::CharT) << std::endl;
-    std::cout << sizeof(UTF8TextEncodingTraits::CodePointT) << std::endl;
+    std::cout << static_cast<int>(UTF8Traits::FormV) << std::endl;
+    std::cout << sizeof(UTF8Traits::BOM) << std::endl;
+    std::cout << sizeof(UTF8Traits::CharT) << std::endl;
+    std::cout << sizeof(UTF8Traits::CodePointT) << std::endl;
 
     return 0;
 } 

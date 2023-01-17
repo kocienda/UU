@@ -1,5 +1,5 @@
 //
-// ByteReader.h
+// ByteBuffer.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,24 +22,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_BYTE_READER_H
-#define UU_BYTE_READER_H
+#ifndef UU_BYTE_BUFFER_H
+#define UU_BYTE_BUFFER_H
 
 #include <UU/Assertions.h>
 #include <UU/Types.h>
 
 namespace UU {
 
-class ByteReader
-{
+template <Size S> requires IsNonZeroSize<S>
+class ByteBuffer {
 public:
-    constexpr ByteReader() {}
-    virtual ~ByteReader() {}
+    static constexpr Size Capacity = S;
+    static constexpr const Size npos = SizeMax;
+    static constexpr Byte empty_value = 0;
 
-    virtual Byte *bytes() const = 0;
-    virtual Size size() const = 0;
+    constexpr ByteBuffer() { memset(m_buf, empty_value, Capacity); }
+    constexpr ByteBuffer(Byte *ptr, Size size) {}
+    constexpr ByteBuffer(const Byte *ptr, Size size) {}
+
+    constexpr Byte *data() const { return m_buf; }
+    constexpr Size length() const { return Capacity; }
+
+private:
+    constexpr Byte *buf_ptr() { return reinterpret_cast<Byte *>(m_buf); }
+
+    Byte m_buf[Capacity];
 };
 
 }  // namespace UU
 
-#endif  // UU_BYTE_READER_H
+#endif  // UU_BYTE_BUFFER_H
