@@ -468,25 +468,14 @@ template <> struct Traits<Form::UTF8, Char8, Char32> {
         return CPStretch::contains(code_point, 0x10000, 0x10FFFF); 
     }
 
-    template <std::integral T>
-    static constexpr T byteswap(T value) noexcept {
-        static_assert(std::has_unique_object_representations_v<T>,  "T may not have padding bits");
-        auto value_representation = std::bit_cast<std::array<std::byte, sizeof(T)>>(value);
-        std::ranges::reverse(value_representation);
-        return std::bit_cast<T>(value_representation);
-    }
-
     UU_ALWAYS_INLINE
-    static EncodeResult encode_two_byte_code_point(CodePointT code_point) noexcept {
+    static constexpr EncodeResult encode_two_byte_code_point(CodePointT code_point) noexcept {
         // Code point value: 00000yyy yyxxxxxx
         // First byte mask:  110yyyyy
         // Second byte mask: 10xxxxxx
         EncodeResult result;
-        CodePointT code_value = code_point;
-        // std::cout << "encode_two_byte_code_point: " << (int)code_point << " : " << (int)code_value << std::endl;
-        result.bytes[0] = 0b11000000 | ((code_value & 0b0000011111000000) >> 6);
-        result.bytes[1] = 0b10000000 |  (code_value & 0b0000000000111111);
-        // std::cout << "bytes: " << (int)result.bytes[0] << " : " << (int)result.bytes[1] << std::endl;
+        result.bytes[0] = 0b11000000 | ((code_point & 0b0000011111000000) >> 6);
+        result.bytes[1] = 0b10000000 |  (code_point & 0b0000000000111111);
         result.length = 2;
         return result;
     }
@@ -498,13 +487,9 @@ template <> struct Traits<Form::UTF8, Char8, Char32> {
         // Second byte mask: 10yyyyyy
         // Third byte mask:  10xxxxxx
         EncodeResult result;
-        CodePointT code_value = code_point;
-        if constexpr (std::endian::native == std::endian::little) {
-            code_value = byteswap<CodePointT>(code_point);
-        }
-        result.bytes[0] = 0x11100000 | (code_value & 0b1111000000000000) >> 12;
-        result.bytes[1] = 0x10000000 | (code_value & 0b0000111111000000) >> 6;
-        result.bytes[2] = 0x10000000 | (code_value & 0b0000000000111111);
+        result.bytes[0] = 0b11100000 | ((code_point & 0b1111000000000000) >> 12);
+        result.bytes[1] = 0b10000000 | ((code_point & 0b0000111111000000) >> 6);
+        result.bytes[2] = 0b10000000 | ((code_point & 0b0000000000111111));
         result.length = 3;
         return result;
     }
@@ -517,14 +502,10 @@ template <> struct Traits<Form::UTF8, Char8, Char32> {
         // Third byte mask:  10yyyyyy
         // Fourth byte mask: 10xxxxxx
         EncodeResult result;
-        CodePointT code_value = code_point;
-        if constexpr (std::endian::native == std::endian::little) {
-            code_value = byteswap<CodePointT>(code_point);
-        }
-        result.bytes[0] = 0x11110000 | (code_point & 0b000111000000000000000000) >> 18;
-        result.bytes[1] = 0x10000000 | (code_point & 0b000000111111000000000000) >> 12;
-        result.bytes[2] = 0x10000000 | (code_point & 0b0000111111000000) >> 6;
-        result.bytes[3] = 0x10000000 | (code_point & 0b0000000000111111);
+        result.bytes[0] = 0b11110000 | (code_point & 0b000111000000000000000000) >> 18;
+        result.bytes[1] = 0b10000000 | (code_point & 0b000000111111000000000000) >> 12;
+        result.bytes[2] = 0b10000000 | (code_point & 0b0000111111000000) >> 6;
+        result.bytes[3] = 0b10000000 | (code_point & 0b0000000000111111);
         result.length = 4;
         return result;
     }

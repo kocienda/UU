@@ -341,13 +341,167 @@ TEST_CASE( "UTF8Traits::encode(CodePointT code_point) two byte 1", "[text]" ) {
             Char32 code_point = offset + idx;
             auto r = UTF8Traits::encode(code_point);
             StaticByteBuffer<4> buf = { b1, b2, 0, 0 };
-            // std::cout << "b1: " << (int)buf[0] << " == " << (int)r.bytes[0] << std::endl;
-            // std::cout << "b2: " << (int)buf[1] << " == " << (int)r.bytes[1] << std::endl;
-            // std::cout << "b3: " << (int)buf[2] << " == " << (int)r.bytes[2] << std::endl;
-            // std::cout << "b4: " << (int)buf[3] << " == " << (int)r.bytes[3] << std::endl;
             REQUIRE(r.is_ok());
             REQUIRE(r.bytes == buf);
             idx++;
+        }
+    }
+}
+
+TEST_CASE( "UTF8Traits::encode(CodePointT code_point) three byte 1", "[text]" ) {
+    // Code Points:  U+0800..U+0FFF
+    // First Byte:   E0
+    // Second Byte:  A0..BF
+    // Third Byte:   80..BF
+    Char32 offset = 0x800;
+    Char32 idx = 0;
+    Char8 b1 = 0xE0;
+    for (Char8 b2 = 0xA0; b2 <= 0xBF; b2++) {
+        for (Char8 b3 = 0x80; b3 <= 0xBF; b3++) {
+            Char32 code_point = offset + idx;
+            auto r = UTF8Traits::encode(code_point);
+            StaticByteBuffer<4> buf = { b1, b2, b3 };
+            // std::cout << (int)b1 << " : " << (int)r.bytes[0] << std::endl;
+            // std::cout << (int)b2 << " : " << (int)r.bytes[1] << std::endl;
+            // std::cout << (int)b3 << " : " << (int)r.bytes[2] << std::endl;
+            REQUIRE(r.is_ok());
+            REQUIRE(r.bytes == buf);
+            idx++;
+        }
+    }
+}
+
+TEST_CASE( "UTF8Traits::encode(CodePointT code_point) three byte 2", "[text]" ) {
+    // Code Points:  U+1000..U+CFFF
+    // First Byte:   E1..EC
+    // Second Byte:  80..BF
+    // Third Byte:   80..BF
+    Char32 offset = 0x1000;
+    Char32 idx = 0;
+    for (Char8 b1 = 0xE1; b1 <= 0xEC; b1++) {
+        for (Char8 b2 = 0x80; b2 <= 0xBF; b2++) {
+            for (Char8 b3 = 0x80; b3 <= 0xBF; b3++) {
+                const Char8 str[3] = { b1, b2, b3 };
+                auto r = UTF8Traits::decode(str, sizeof(str), 0);
+                Char32 e = offset + idx;
+                REQUIRE(r.code_point == e);
+                REQUIRE(r.advance == 3);
+                idx++;
+            }
+        }
+    }
+}
+
+TEST_CASE( "UTF8Traits::encode(CodePointT code_point) three byte 3", "[text]" ) {
+    // Code Points:  U+D000..U+D7FF
+    // First Byte:   ED
+    // Second Byte:  80..9F
+    // Third Byte:   80..BF
+    Char32 offset = 0xD000;
+    Char32 idx = 0;
+    for (Char8 b1 = 0xED; b1 <= 0xED; b1++) {
+        for (Char8 b2 = 0x80; b2 <= 0x9F; b2++) {
+            for (Char8 b3 = 0x80; b3 <= 0xBF; b3++) {
+                const Char8 str[3] = { b1, b2, b3 };
+                auto r = UTF8Traits::decode(str, sizeof(str), 0);
+                Char32 e = offset + idx;
+                REQUIRE(r.code_point == e);
+                REQUIRE(r.advance == 3);
+                idx++;
+            }
+        }
+    }
+}
+
+TEST_CASE( "UTF8Traits::encode(CodePointT code_point) three byte 4", "[text]" ) {
+    // Code Points:  U+E000..U+FFFF
+    // First Byte:   EE..EF
+    // Second Byte:  80..BF
+    // Third Byte:   80..BF
+    Char32 offset = 0xE000;
+    Char32 idx = 0;
+    for (Char8 b1 = 0xEE; b1 <= 0xEF; b1++) {
+        for (Char8 b2 = 0x80; b2 <= 0xBF; b2++) {
+            for (Char8 b3 = 0x80; b3 <= 0xBF; b3++) {
+                const Char8 str[3] = { b1, b2, b3 };
+                auto r = UTF8Traits::decode(str, sizeof(str), 0);
+                Char32 e = offset + idx;
+                REQUIRE(r.code_point == e);
+                REQUIRE(r.advance == 3);
+                idx++;
+            }
+        }
+    }
+}
+
+TEST_CASE( "UTF8Traits::encode(CodePointT code_point) four byte 1", "[text]" ) {
+    // Code Points:  U+10000..U+3FFFF
+    // First Byte:   F0
+    // Second Byte:  90..BF
+    // Third Byte:   80..BF
+    // Fourth Byte:  80..BF
+    Char32 offset = 0x10000;
+    Char32 idx = 0;
+    for (Char8 b1 = 0xF0; b1 <= 0xF0; b1++) {
+        for (Char8 b2 = 0x90; b2 <= 0xBF; b2++) {
+            for (Char8 b3 = 0x80; b3 <= 0xBF; b3++) {
+                for (Char8 b4 = 0x80; b4 <= 0xBF; b4++) {
+                    const Char8 str[4] = { b1, b2, b3, b4 };
+                    auto r = UTF8Traits::decode(str, sizeof(str), 0);
+                    Char32 e = offset + idx;
+                    REQUIRE(r.code_point == e);
+                    REQUIRE(r.advance == 4);
+                    idx++;
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE( "UTF8Traits::encode(CodePointT code_point) four byte 2", "[text]" ) {
+    // Code Points:  U+40000..U+FFFFF
+    // First Byte:   F1..F3
+    // Second Byte:  80..BF
+    // Third Byte:   80..BF
+    // Fourth Byte:  80..BF
+    Char32 offset = 0x40000;
+    Char32 idx = 0;
+    for (Char8 b1 = 0xF1; b1 <= 0xF3; b1++) {
+        for (Char8 b2 = 0x80; b2 <= 0xBF; b2++) {
+            for (Char8 b3 = 0x80; b3 <= 0xBF; b3++) {
+                for (Char8 b4 = 0x80; b4 <= 0xBF; b4++) {
+                    const Char8 str[4] = { b1, b2, b3, b4 };
+                    auto r = UTF8Traits::decode(str, sizeof(str), 0);
+                    Char32 e = offset + idx;
+                    REQUIRE(r.code_point == e);
+                    REQUIRE(r.advance == 4);
+                    idx++;
+                }
+            }
+        }
+    }
+}
+
+TEST_CASE( "UTF8Traits::encode(CodePointT code_point) four byte 3", "[text]" ) {
+    // Code Points:  U+100000..U+10FFFF
+    // First Byte:   F4
+    // Second Byte:  80..8F
+    // Third Byte:   80..BF
+    // Fourth Byte:  80..BF
+    Char32 offset = 0x100000;
+    Char32 idx = 0;
+    for (Char8 b1 = 0xF4; b1 <= 0xF4; b1++) {
+        for (Char8 b2 = 0x80; b2 <= 0x8F; b2++) {
+            for (Char8 b3 = 0x80; b3 <= 0xBF; b3++) {
+                for (Char8 b4 = 0x80; b4 <= 0xBF; b4++) {
+                    const Char8 str[4] = { b1, b2, b3, b4 };
+                    auto r = UTF8Traits::decode(str, sizeof(str), 0);
+                    Char32 e = offset + idx;
+                    REQUIRE(r.code_point == e);
+                    REQUIRE(r.advance == 4);
+                    idx++;
+                }
+            }
         }
     }
 }
