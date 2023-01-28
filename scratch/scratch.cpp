@@ -2,7 +2,6 @@
 // scratch.cpp
 //
 
-#include "UU/UUText.h"
 #include <cstdio>
 #include <format>
 #include <iostream>
@@ -10,6 +9,7 @@
 #include <string_view>
 
 #include <UU/UU.h>
+#include <UU/UUText.h>
 #include <UU/Types.h>
 
 using namespace UU;

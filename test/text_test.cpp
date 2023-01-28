@@ -340,7 +340,7 @@ TEST_CASE( "UTF8Traits::encode(CodePointT code_point) two byte 1", "[text]" ) {
         for (Char8 b2 = 0x80; b2 <= 0xBF; b2++) {
             Char32 code_point = offset + idx;
             auto r = UTF8Traits::encode(code_point);
-            StaticByteBuffer<4> buf = { b1, b2, 0, 0 };
+            StaticByteBuffer<4> buf = { b1, b2 };
             REQUIRE(r.is_ok());
             REQUIRE(r.bytes == buf);
             idx++;

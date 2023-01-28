@@ -1890,15 +1890,6 @@ namespace std
         }
     };
 
-    // template <typename CharT, UU::Size S, typename TraitsT>
-    // struct std::formatter<UU::BasicString<CharT, S, TraitsT>, CharT> : std::formatter<std::basic_string_view<CharT, TraitsT>, CharT>> {
-    //     template <class FormatContext>
-    //     auto format(UU::BasicString<CharT, S, TraitsT> str, FormatContext &fc) const {
-    //         std::basic_string_view<CharT, TraitsT> sv(str.data(), str.length());
-    //         return std::formatter<const CharT *>::format(sv, fc);
-    //     }
-    // };
-
     // Implement std::swap in terms of BasicString swap
     template <typename CharT, UU::Size S>
     UU_ALWAYS_INLINE void swap(UU::BasicString<CharT, S, std::char_traits<CharT>> &lhs, UU::BasicString<CharT, S, std::char_traits<CharT>> &rhs) {

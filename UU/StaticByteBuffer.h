@@ -73,6 +73,12 @@ public:
             m_buf[pos] = empty_value;
         }
     }
+    constexpr StaticByteBuffer &operator=(const StaticByteBuffer &other) { 
+        for (Size pos = 0; pos < capacity(); ++pos) {
+            m_buf[pos] = other[pos];
+        }
+        return *this;
+    }
 
     constexpr Size capacity() const { return Capacity; }
 
@@ -85,7 +91,7 @@ public:
         }
     }
     
-    constexpr Byte &operator[](Size index) const {
+    constexpr const Byte &operator[](Size index) const {
         return m_buf[index];
     }
     
@@ -100,6 +106,7 @@ public:
         if (a.capacity() == 0) {
             return true;
         }
+        // return memcmp(&a.m_buf, &b.m_buf, a.capacity()) == 0;
         for (Size pos = 0; pos < a.capacity(); pos++) {
             if (a.m_buf[pos] != b.m_buf[pos]) {
                 return false;

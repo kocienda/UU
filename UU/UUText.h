@@ -2,10 +2,9 @@
 // UUText.h
 //
 
-#ifndef UU_FXT_H
-#define UU_FXT_H
+#ifndef UU_TEXT_H
+#define UU_TEXT_H
 
-#include <bit>
 #include <concepts>
 #include <cstring>
 #include <format>
@@ -15,7 +14,6 @@
 
 #include <UU/Assertions.h>
 #include <UU/Compiler.h>
-#include <UU/IteratorWrapper.h>
 #include <UU/StaticByteBuffer.h>
 #include <UU/Storage.h>
 #include <UU/Stretch.h>
@@ -34,18 +32,24 @@ enum class Form {
 
 template <Form FormV, typename CodePointT> requires IsCharType<CodePointT>
 struct Attributes {
-    static constexpr CodePointT sentinel_value = 0;
-    static constexpr Size bom_length = 0;
-    static constexpr StaticByteBuffer<bom_length> bom_value;
     static constexpr Size max_encoded_length = 0;
+    static constexpr CodePointT sentinel_value = 0;
+    static constexpr Size sentinel_bytes_length = 0;
+    static constexpr StaticByteBuffer<sentinel_bytes_length> sentinel_bytes;
+    static constexpr Size bom_bytes_length = 0;
+    static constexpr StaticByteBuffer<bom_bytes_length> bom_bytes;
 };
 
 template <typename CodePointT>
 struct Attributes<Form::UTF8, CodePointT> {
-    static constexpr CodePointT sentinel_value = 0xFFFD;
-    static constexpr Size bom_length = 3;
-    static constexpr StaticByteBuffer<bom_length> bom_value = { 0xEF, 0xBB, 0xBF };
     static constexpr Size max_encoded_length = 4;
+    static constexpr CodePointT sentinel_value = 0xFFFD;
+    static constexpr Size sentinel_bytes_length = max_encoded_length;
+    static constexpr StaticByteBuffer<sentinel_bytes_length> sentinel_bytes = { 
+        (sentinel_value & 0xFF00) >> 8, (sentinel_value & 0xFF), 0, 0
+    };
+    static constexpr Size bom_bytes_length = 3;
+    static constexpr StaticByteBuffer<bom_bytes_length> bom_bytes = { 0xEF, 0xBB, 0xBF };
 };
 
 template <Form FormV, typename CodePointT> requires IsCharType<CodePointT>
@@ -82,11 +86,11 @@ struct Traits {
     using CharTraits = std::char_traits<CharT>;
     using Attrs = Attributes<FormV, CodePointT>;
     using DecodeResult = DecodeResult<FormV, CodePointT>;
-    using BOMT = StaticByteBuffer<Attrs::bom_length>;
+    using BOMT = StaticByteBuffer<Attrs::bom_bytes_length>;
     using EncodeResult = EncodeResult<FormV, CodePointT>;
 
     static constexpr CodePointT Sentinel = Attrs::sentinel_value;
-    static constexpr BOMT BOM = Attrs::bom_value;
+    static constexpr BOMT BOM = Attrs::bom_bytes;
     static constexpr Size npos = SizeMax;
 
     static constexpr bool is_single(CodePointT c) noexcept { return true; }
@@ -126,11 +130,11 @@ template <> struct Traits<Form::UTF8, Char8, Char32> {
     using CharTraits = std::char_traits<CharT>;
     using Attrs = Attributes<FormV, CodePointT>;
     using DecodeResult = DecodeResult<FormV, CodePointT>;
-    using BOMT = StaticByteBuffer<Attrs::bom_length>;
+    using BOMT = StaticByteBuffer<Attrs::bom_bytes_length>;
     using EncodeResult = EncodeResult<FormV, CodePointT>;
 
     static constexpr CodePointT Sentinel = Attrs::sentinel_value;
-    static constexpr BOMT BOM = Attrs::bom_value;
+    static constexpr BOMT BOM = Attrs::bom_bytes;
     static constexpr Size npos = SizeMax;
 
     static constexpr bool is_single(CodePointT c) noexcept { return ((c & 0x80) == 0); }
@@ -175,13 +179,13 @@ template <> struct Traits<Form::UTF8, Char8, Char32> {
     }
 
     static constexpr DecodeResult decode_bom(const CharT *ptr, Size len) noexcept {
-        if (UNLIKELY(len < Attrs::bom_length)) {
+        if (UNLIKELY(len < Attrs::bom_bytes_length)) {
             return { 0, 0 };
         }
         const Byte *byte_ptr = reinterpret_cast<const Byte *>(ptr);
-        BOMT maybe_bom(byte_ptr, Attrs::bom_length);
+        BOMT maybe_bom(byte_ptr, Attrs::bom_bytes_length);
         if (maybe_bom == BOM) {
-            return { 0, Attrs::bom_length };
+            return { 0, Attrs::bom_bytes_length };
         }
         else {
             return { 0, 0 };
@@ -526,18 +530,24 @@ template <> struct Traits<Form::UTF8, Char8, Char32> {
         else if (is_four_byte_code_point(code_point)) {
             result = encode_four_byte_code_point(code_point);
         }
+        else {
+            result.bytes = Attrs::sentinel_bytes;
+            result.length = Attrs::sentinel_bytes_length;
+        }
 
         return result;
     }
 
     static constexpr EncodeResult check_encode(CodePointT code_point) noexcept { 
-        return EncodeResult();
+        return encode(code_point);
     }
 };
 
 using UTF8Traits = Traits<Form::UTF8, Char8, Char32>;
 
 }  // namespace TextEncoding
+
+#if 0
 
 using StringStorage = Storage<48, Char32>;
 
@@ -663,6 +673,8 @@ private:
 using Text8 = ProtoString<Char8>;
 #endif
 
+#endif
+
 }  // namespace UU
 
-#endif  // UU_FXT_H
+#endif  // UU_TEXT_H
