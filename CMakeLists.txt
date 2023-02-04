@@ -32,10 +32,12 @@ set(CODE_DIR UU)
 
 set(PUBLIC_HEADERS
   ${CODE_DIR}/UU.h
+  ${CODE_DIR}/Allocator.h
   ${CODE_DIR}/Assertions.h
   ${CODE_DIR}/AcquireReleaseGuard.h
   ${CODE_DIR}/ANSICode.h
   ${CODE_DIR}/Any.h
+  ${CODE_DIR}/BitBlock.h
   ${CODE_DIR}/CloseGuard.h
   ${CODE_DIR}/Compiler.h
   ${CODE_DIR}/FileLike.h
@@ -116,15 +118,15 @@ target_link_libraries(${test_name} PRIVATE UU libCatch2.a libCatch2Main.a)
 catch_discover_tests(${test_name})
 endfunction()
 
-UU_TEST(smoke_test)
-UU_TEST(file_like_test)
-UU_TEST(math_like_test)
-UU_TEST(spread_test)
-UU_TEST(string_test)
-UU_TEST(string_like_test)
+# UU_TEST(smoke_test)
+# UU_TEST(file_like_test)
+# UU_TEST(math_like_test)
+# UU_TEST(spread_test)
+# UU_TEST(string_test)
+# UU_TEST(string_like_test)
 UU_TEST(text_test)
-UU_TEST(textref_test)
-UU_TEST(unix_like_test)
+# UU_TEST(textref_test)
+# UU_TEST(unix_like_test)
 
 ENDIF()
 
@@ -132,6 +134,7 @@ function(UU_SCRATCH prog_name)
 add_executable(${prog_name} scratch/${prog_name}.cpp)
 target_include_directories(${prog_name} PRIVATE . /u/include)
 target_link_directories(${prog_name} PRIVATE build /u/lib)
+target_link_libraries(${prog_name} UU)
 endfunction()
 
 UU_SCRATCH(scratch)

@@ -217,15 +217,20 @@ void integer_to_string(N n, char *c)
     }
     c += size;
     *c-- = '\0';
-    while (val >= 100) {
-        int pos = val % 100;
-        val /= 100;
-        *(short *)(c-1) = *(short *)(digit_pairs + 2 * pos); 
-        c -= 2;
+    if (n == 0) {
+        *c = '0';
     }
-    while (val > 0) {
-        *c-- = '0' + (val % 10);
-        val /= 10;
+    else {
+        while (val >= 100) {
+            int pos = val % 100;
+            val /= 100;
+            *(short *)(c-1) = *(short *)(digit_pairs + 2 * pos); 
+            c -= 2;
+        }
+        while (val > 0) {
+            *c-- = '0' + (val % 10);
+            val /= 10;
+        }
     }
 }
 

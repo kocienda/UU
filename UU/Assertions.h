@@ -187,6 +187,7 @@ NO_RETURN_DUE_TO_CRASH void UUCrash(void);
 M(General) \
 M(Error) \
 M(Leak) \
+M(Memory) \
 
 UU_LOG_CHANNELS(DECLARE_LOG_CHANNEL)
 #endif

@@ -46,23 +46,23 @@ public:
 
     using StretchVector = SmallVector<StretchT, 2>;
 
-    static Spread all() {
+    static constexpr Spread all() {
         return Spread(StretchT::MinValue, StretchT::MaxValue);
     }
     
     constexpr Spread() {}
-    explicit Spread(ValueT t) { add(t); };
-    explicit Spread(ValueT first, ValueT last) { add(first, last); };
-    explicit Spread(const StretchVector &v) : m_stretches(v) {};
-    explicit Spread(StretchVector &&v) : m_stretches(std::move(v)) {};
-    explicit Spread(const std::string &s) { add(s); };
-    Spread(const Spread &spread) : m_stretches(spread.stretches()) {}
-    Spread(Spread &&spread) : m_stretches(std::move(spread.stretches())) {}
+    explicit constexpr Spread(ValueT t) { add(t); };
+    explicit constexpr Spread(ValueT first, ValueT last) { add(first, last); };
+    explicit constexpr Spread(const StretchVector &v) : m_stretches(v) {};
+    explicit constexpr Spread(StretchVector &&v) : m_stretches(std::move(v)) {};
+    explicit constexpr Spread(const std::string &s) { add(s); };
+    constexpr Spread(const Spread &spread) : m_stretches(spread.stretches()) {}
+    constexpr Spread(Spread &&spread) : m_stretches(std::move(spread.stretches())) {}
 
-    Spread &operator=(const Spread &spread) { m_stretches = spread.stretches(); return *this; }
-    Spread &operator=(Spread &&spread) { m_stretches = std::move(spread.stretches()); return *this; }
+    constexpr Spread &operator=(const Spread &spread) { m_stretches = spread.stretches(); return *this; }
+    constexpr Spread &operator=(Spread &&spread) { m_stretches = std::move(spread.stretches()); return *this; }
 
-    explicit Spread(const std::vector<ValueT> &v) {
+    explicit constexpr Spread(const std::vector<ValueT> &v) {
         ValueT prev = 0;
         bool new_stretch = true;
         
@@ -87,22 +87,22 @@ public:
         }
     }
     
-    size_t size() const {
-        size_t result = 0;
+    constexpr Size size() const {
+        Size result = 0;
         for (const auto &stretch : m_stretches) {
             result += 1 + (stretch.last() - stretch.first());
         }
         return result;
     }
     
-    void add(ValueT t) { m_stretches.emplace_back(t, t); }
-    void add(ValueT first, ValueT last) {
+    constexpr void add(ValueT t) { m_stretches.emplace_back(t, t); }
+    constexpr void add(ValueT first, ValueT last) {
             m_stretches.emplace_back(std::min(first, last), std::max(first, last));
     }
-    void add(const StretchT &stretch) { m_stretches.push_back(stretch); }
-    void add(StretchT &&stretch) { m_stretches.emplace_back(std::move(stretch)); }
-    void add(const Spread &spread) { add_stretches(spread.stretches()); }
-    void add(const StringT &string) {
+    constexpr void add(const StretchT &stretch) { m_stretches.push_back(stretch); }
+    constexpr void add(StretchT &&stretch) { m_stretches.emplace_back(std::move(stretch)); }
+    constexpr void add(const Spread &spread) { add_stretches(spread.stretches()); }
+    constexpr void add(const StringT &string) {
         for (const ValueT &t : string) {
             add(t);
         }
@@ -131,17 +131,17 @@ public:
         }
     }
 
-    ValueT first() const { return m_stretches.size() ? m_stretches.front().first() : std::numeric_limits<ValueT>::max(); }
-    ValueT last() const { return m_stretches.size() ? m_stretches.back().last() : std::numeric_limits<ValueT>::max(); }
+    constexpr ValueT first() const { return m_stretches.size() ? m_stretches.front().first() : std::numeric_limits<ValueT>::max(); }
+    constexpr ValueT last() const { return m_stretches.size() ? m_stretches.back().last() : std::numeric_limits<ValueT>::max(); }
 
-    const StretchVector &stretches() const { return m_stretches; }
-    void set_stretches(const StretchVector &stretches) { m_stretches = stretches; }
-    void add_stretches(const StretchVector &stretches) { m_stretches.insert(m_stretches.end(), stretches.begin(), stretches.end()); }
+    constexpr const StretchVector &stretches() const { return m_stretches; }
+    constexpr void set_stretches(const StretchVector &stretches) { m_stretches = stretches; }
+    constexpr void add_stretches(const StretchVector &stretches) { m_stretches.insert(m_stretches.end(), stretches.begin(), stretches.end()); }
     
-    void clear() { m_stretches.clear(); }
-    template <bool B=true> bool is_empty() const { return (m_stretches.size() == 0) == B; }
+    constexpr void clear() { m_stretches.clear(); }
+    template <bool B=true> constexpr bool is_empty() const { return (m_stretches.size() == 0) == B; }
 
-    template <bool B=true> bool contains(ValueT t) const {
+    template <bool B=true> constexpr bool contains(ValueT t) const {
         for (const StretchT &stretch : m_stretches) {
             if (stretch.contains(t)) {
                 return true;
@@ -150,7 +150,7 @@ public:
         return false;
     }
 
-    void simplify() {
+    constexpr void simplify() {
         if (m_stretches.size() < 2) {
             return;
         }
@@ -176,29 +176,50 @@ public:
     
     class iterator : public std::input_iterator_tag {
     public:
-        using iterator_topic = std::input_iterator_tag;
-        using difference_type = void;
+        using iterator_tag = std::input_iterator_tag;
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = Int64;
         using value_type = ValueT;
         using pointer = ValueT *;
         using reference = ValueT &;
         
         iterator(const Spread *spread) :
-            m_spread(spread && spread->stretches().size() ? spread : nullptr),
-            m_stretch_idx(0), m_stretch_val(has_stretches() ? current_stretch_first() : 0) {}
+            m_spread(spread && spread->stretches().size() ? spread : nullptr)
+        {
+            if (spread && spread->stretches().size()) {
+                m_it = m_spread->stretches()[m_stretch_idx].begin();
+            }
+        }
       
-        const value_type &operator *() const { return m_stretch_val; }
+        const ValueT &operator *() const { return *m_it; }
 
         iterator &operator++() {
             if (m_spread) {
-                if (m_stretch_val + 1 <= current_stretch_last()) {
-                    m_stretch_val++;
+                ++m_it;
+                if (!m_it.valid()) {
+                    if (m_stretch_idx + 1 < ValueT(m_spread->stretches().size())) {
+                        m_stretch_idx++;
+                        m_it = m_spread->stretches()[m_stretch_idx].begin();
+                    }
+                    else {
+                        m_spread = nullptr;
+                    }
                 }
-                else if (m_stretch_idx + 1 < ValueT(m_spread->stretches().size())) {
-                    m_stretch_idx++;
-                    m_stretch_val = current_stretch_first();
-                }
-                else {
-                    m_spread = nullptr;
+            }
+            return *this;
+        }
+
+        iterator &operator--() {
+            if (m_spread) {
+                --m_it;
+                if (!m_it.valid()) {
+                    if (m_stretch_idx - 1 > 0) {
+                        m_stretch_idx--;
+                        m_it = m_spread->stretches()[m_stretch_idx].end();
+                    }
+                    else {
+                        m_spread = nullptr;
+                    }
                 }
             }
             return *this;
@@ -211,29 +232,21 @@ public:
             return !(lhs==rhs);
         }
 
+        friend class Spread;
+
     private:
-        bool has_stretches() const { return m_spread && m_spread->stretches().size(); }
-        value_type current_stretch_first() const { return m_spread->stretches()[m_stretch_idx].first(); }
-        value_type current_stretch_last() const { return m_spread->stretches()[m_stretch_idx].last(); }
+        constexpr bool has_stretches() const { return m_spread && m_spread->stretches().size(); }
 
         const Spread *m_spread = nullptr;
-        value_type m_stretch_idx = 0;
-        value_type m_stretch_val = 0;
+        int m_stretch_idx = 0;
+        typename Stretch<ValueT>::iterator m_it;
     };
 
-    iterator begin() const {
+    constexpr iterator begin() const {
         return iterator(this);
     }
 
-    iterator end() const {
-        return iterator(nullptr);
-    }
-
-    iterator cbegin() const {
-        return iterator(this);
-    }
-
-    iterator cend() const {
+    constexpr iterator end() const {
         return iterator(nullptr);
     }
 

@@ -111,7 +111,9 @@ template <typename T> concept IsCharType =
     std::is_same_v<T, Char8> || std::is_same_v<T, Char16> || std::is_same_v<T, Char32>;
 
 template <Size S> concept IsNonZeroSize = (S > 0);
+template <Size S> concept IsOne = (S == 1);
 template <Size S> concept IsDivisibleByChar32Size = (S % sizeof(Char32) == 0);
+template <Size A, Size B, Size C = 0> concept IsGreaterThan = (A + C > B);
 
 }  // namespace UU
 

@@ -32,8 +32,10 @@ static constexpr int UU_FIXES_VERSION = 0;
 #include <UU/Assertions.h>
 
 #include <UU/AcquireReleaseGuard.h>
+#include <UU/Allocator.h>
 #include <UU/ANSICode.h>
 #include <UU/Any.h>
+#include <UU/BitBlock.h>
 #include <UU/CloseGuard.h>
 #include <UU/Compiler.h>
 #include <UU/FileLike.h>

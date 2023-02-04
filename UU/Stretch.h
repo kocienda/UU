@@ -22,14 +22,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_SWEEP_H
-#define UU_SWEEP_H
+#ifndef UU_STRETCH_H
+#define UU_STRETCH_H
 
 #include <algorithm>
 #include <iostream>
 #include <limits>
 
 #include <UU/Assertions.h>
+#include <UU/IteratorWrapper.h>
 
 namespace UU {
 
@@ -39,42 +40,115 @@ public:
     static constexpr ValueT MinValue = std::numeric_limits<ValueT>::min();
     static constexpr ValueT MaxValue = std::numeric_limits<ValueT>::max();
 
-    static Stretch full() { return Stretch(MinValue, MaxValue); }
+    static constexpr Stretch all() { return Stretch(MinValue, MaxValue); }
     
     constexpr Stretch() {}
     constexpr Stretch(ValueT first, ValueT last) :
         m_first(std::min(first, last)), m_last(std::max(first, last)) {}
 
-    ValueT first() const { return m_first; }
-    void set_first(ValueT first) { m_first = first; }
-    
-    ValueT last() const { return m_last; }
-    void set_last(ValueT last) { m_last = last; }
+    constexpr void set(ValueT first, ValueT last) { 
+        set_first(std::min(first, last)); 
+        set_last(std::max(first, last)); 
+    }
 
-    ValueT length() const { return m_last - m_first; }
+    constexpr ValueT first() const { return m_first; }
+    constexpr void set_first(ValueT first) { m_first = first; }
     
-    template <bool B=true> bool contains(ValueT t) const { return (t >= first() && t <= last()) == B; }
-    template <bool B=true> bool empty() const { return (first() == last()) == B; }
+    constexpr ValueT last() const { return m_last; }
+    constexpr void set_last(ValueT last) { m_last = last; }
 
-    friend bool operator==(const Stretch &a, const Stretch &b) {
+    constexpr ValueT length() const { return m_last - m_first; }
+    
+    template <bool B=true> constexpr bool contains(ValueT t) const { return (t >= first() && t <= last()) == B; }
+    template <bool B=true> constexpr bool empty() const { return (first() == last()) == B; }
+
+    friend constexpr bool operator==(const Stretch &a, const Stretch &b) {
         return a.first() == b.first() && a.last() == b.last();
     };
     
-    friend bool operator!=(const Stretch &a, const Stretch &b) {
+    friend constexpr bool operator!=(const Stretch &a, const Stretch &b) {
         return !(a==b);
     };
     
-    static bool compare(const Stretch &a, const Stretch &b) {
+    static constexpr bool compare(const Stretch &a, const Stretch &b) {
         return a.first() < b.first();
     }
     
-    static bool overlap(const Stretch &a, const Stretch &b) {
+    static constexpr bool overlap(const Stretch &a, const Stretch &b) {
         return !(a.last() < b.first() || a.first() > b.last());
     }
 
     template <bool B=true>
     UU_ALWAYS_INLINE static constexpr bool contains(ValueT c, ValueT lo, ValueT hi) noexcept {
         return ((c >= lo) && (c <= hi)) == B;
+    }
+
+    class iterator : public std::input_iterator_tag {
+    public:
+        using iterator_tag = std::input_iterator_tag;
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = Int64;
+        using value_type = ValueT;
+        using pointer = ValueT *;
+        using reference = ValueT &;
+        
+        constexpr iterator() : m_stretch(Stretch()), m_val(0), m_valid(false) {}
+
+        constexpr iterator(const Stretch &stretch, bool valid = true) : 
+            m_stretch(stretch), m_val(stretch.first()), m_valid(valid) {}
+      
+        const ValueT &operator *() const { return m_val; }
+
+        const bool valid() const { return m_valid; }
+
+        iterator &operator++() {
+            if (m_valid) {
+                if (m_val < m_stretch.last()) {
+                    m_val++;
+                }
+                else {
+                    m_valid = false;
+                }
+            }
+            return *this;
+        }
+
+        iterator &operator--() {
+            if (m_valid) {
+                if (m_val > m_stretch.first()) {
+                    m_val--;
+                }
+                else {
+                    m_valid = false;
+                }
+            }
+            return *this;
+        }
+
+        friend constexpr bool operator==(const iterator &lhs, const iterator &rhs) {
+            if (!lhs.m_valid && !rhs.m_valid) {
+                return true;
+            }
+            return lhs.m_valid == rhs.m_valid && lhs.m_val == rhs.m_val;
+        }
+        friend constexpr  bool operator!=(const iterator &lhs, const iterator &rhs) {
+            return !(lhs==rhs);
+        }
+
+        friend class Stretch;
+
+    private:
+        Stretch m_stretch;
+        value_type m_val = 0;
+        bool m_valid;
+    };
+
+    constexpr iterator begin() const {
+        return iterator(*this, true);
+    }
+
+    constexpr iterator end() const {
+        return iterator(Stretch(), false);
     }
 
 private:
@@ -104,4 +178,4 @@ template <class D, class S> Stretch<D> convert(const Stretch<S> &stretch) {
 
 }  // namespace UU
 
-#endif  // UU_SWEEP_H
+#endif  // UU_STRETCH_H
