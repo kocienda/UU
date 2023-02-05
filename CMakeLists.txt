@@ -37,6 +37,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/AcquireReleaseGuard.h
   ${CODE_DIR}/ANSICode.h
   ${CODE_DIR}/Any.h
+  ${CODE_DIR}/Bits.h
   ${CODE_DIR}/BitBlock.h
   ${CODE_DIR}/CloseGuard.h
   ${CODE_DIR}/Compiler.h

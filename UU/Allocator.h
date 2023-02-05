@@ -30,7 +30,7 @@
 #include <UU/Assertions.h>
 #include <UU/BitBlock.h>
 #include <UU/Types.h>
-// #include <UU/UUString.h>
+#include <UU/UUString.h>
 
 namespace UU {
 
@@ -313,27 +313,27 @@ public:
 
     bool owns(Memory mem) const { return Allocator::owns(mem); }    
 
-    // String stats() const {
-        // Size num_digits = number_of_digits(bytes_allocated);
-        // std::string num_fmt = "{0:" + integer_to_string(num_digits) + "}";
-        // String result;
-        // std::string allocs_fmt =                    std::format("allocs:                    {0}\n", num_fmt);
-        // std::string deallocs_fmt =                  std::format("deallocs:                  {0}\n", num_fmt);
-        // std::string bytes_allocated_fmt =           std::format("bytes allocated:           {0}\n", num_fmt);
-        // std::string bytes_deallocated_fmt =         std::format("bytes deallocated:         {0}\n", num_fmt);
-        // std::string bytes_allocated_now_fmt =       std::format("bytes allocated now:       {0}\n", num_fmt);
-        // std::string bytes_allocated_highwater_fmt = std::format("bytes allocated highwater: {0}\n", num_fmt);
-        // result += "============================================================\n";
-        // result += "Allocator stats\n";
-        // result += "------------------------------------------------------------\n";
-        // result += std::vformat(allocs_fmt, std::make_format_args(integer_to_string<Size>(allocs)));
-        // result += std::vformat(deallocs_fmt, std::make_format_args(integer_to_string<Size>(deallocs)));
-        // result += std::vformat(bytes_allocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated)));
-        // result += std::vformat(bytes_deallocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_deallocated)));
-        // result += std::vformat(bytes_allocated_now_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_now)));
-        // result += std::vformat(bytes_allocated_highwater_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_highwater)));
-    //     return result;
-    // }    
+    String stats() const {
+        Size num_digits = number_of_digits(bytes_allocated);
+        std::string num_fmt = "{0:" + integer_to_string(num_digits) + "}";
+        String result;
+        std::string allocs_fmt =                    std::format("allocs:                    {0}\n", num_fmt);
+        std::string deallocs_fmt =                  std::format("deallocs:                  {0}\n", num_fmt);
+        std::string bytes_allocated_fmt =           std::format("bytes allocated:           {0}\n", num_fmt);
+        std::string bytes_deallocated_fmt =         std::format("bytes deallocated:         {0}\n", num_fmt);
+        std::string bytes_allocated_now_fmt =       std::format("bytes allocated now:       {0}\n", num_fmt);
+        std::string bytes_allocated_highwater_fmt = std::format("bytes allocated highwater: {0}\n", num_fmt);
+        result += "============================================================\n";
+        result += "Allocator stats\n";
+        result += "------------------------------------------------------------\n";
+        result += std::vformat(allocs_fmt, std::make_format_args(integer_to_string<Size>(allocs)));
+        result += std::vformat(deallocs_fmt, std::make_format_args(integer_to_string<Size>(deallocs)));
+        result += std::vformat(bytes_allocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated)));
+        result += std::vformat(bytes_deallocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_deallocated)));
+        result += std::vformat(bytes_allocated_now_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_now)));
+        result += std::vformat(bytes_allocated_highwater_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_highwater)));
+        return result;
+    }    
 
 private:
     Size allocs = 0;

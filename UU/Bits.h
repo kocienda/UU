@@ -1,5 +1,5 @@
 //
-// UU.h
+// Bits.h
 //
 // MIT License
 // Copyright (c) 2022 Ken Kocienda. All rights reserved.
@@ -22,40 +22,54 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_H
-#define UU_H
+#ifndef UU_BITS_H
+#define UU_BITS_H
 
-static constexpr int UU_MAJOR_VERSION = 0;
-static constexpr int UU_MINOR_VERSION = 1;
-static constexpr int UU_FIXES_VERSION = 0;
+#include <bit>
 
 #include <UU/Assertions.h>
-
-#include <UU/AcquireReleaseGuard.h>
-#include <UU/Allocator.h>
-#include <UU/ANSICode.h>
-#include <UU/Any.h>
-#include <UU/Bits.h>
-#include <UU/BitBlock.h>
-#include <UU/CloseGuard.h>
-#include <UU/Compiler.h>
-#include <UU/FileLike.h>
-#include <UU/IteratorWrapper.h>
-#include <UU/MappedFile.h>
-#include <UU/MathLike.h>
 #include <UU/Platform.h>
-#include <UU/SmallVector.h>
-#include <UU/Spread.h>
-#include <UU/Spread.h>
-#include <UU/StackTrace.h>
-#include <UU/StaticByteBuffer.h>
-#include <UU/Storage.h>
-#include <UU/Stretch.h>
-#include <UU/StringLike.h>
-#include <UU/TextRef.h>
 #include <UU/Types.h>
-#include <UU/UTF8.h>
-#include <UU/UnixLike.h>
-#include <UU/UUString.h>
 
-#endif // UU_H
+namespace UU {
+
+template <typename N> requires IsUnsignedIntegral<N>
+constexpr int countr_one(N n) {
+#if COMPILER(GCC_OR_CLANG)
+    if constexpr (std::is_same_v<N, UInt8> ||
+                  std::is_same_v<N, UInt16> ||
+                  std::is_same_v<N, UInt32>) {
+        unsigned int x = ~n;
+        return __builtin_ffs(x) - 1;
+    }
+    else if constexpr (std::is_same_v<N, UInt64>) {
+        unsigned long long x = ~n;
+        return __builtin_ffsll(x) - 1;
+    }
+#elif COMPILER(MSVC)
+    if constexpr (std::is_same_v<N, UInt32>) {
+        if (LIKELY(n < UInt32Max)) {
+            unsigned int x = ~n;
+            return _tzcnt_u32(x);
+        }
+    }    
+    else if constexpr (std::is_same_v<N, UInt64>) {
+        if (LIKELY(n < UInt64Max)) {
+            unsigned int x1 = ~(n & 0xffffffff);
+            int p = _tzcnt_u32(x1);
+            if (p < 32) {
+                return p;
+            }
+            else {
+                unsigned int x2 = ~(n >> 32);
+                return _tzcnt_u32(x2) + 32;
+            }
+        }
+    }
+#endif
+    return -1;
+}
+
+}  // namespace UU
+
+#endif // UU_BITS_H

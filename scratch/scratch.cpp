@@ -11,6 +11,7 @@
 #include <string_view>
 
 #include <UU/UU.h>
+#include <UU/Compiler.h>
 #include <UU/UUText.h>
 #include <UU/Types.h>
 
@@ -30,6 +31,13 @@ int main(int argc, const char *argv[]) {
     LOG_CHANNEL_ON(General);
     LOG_CHANNEL_ON(Memory);
 
+    // UInt64 u1 = UInt64Max - 1;
+    UInt32 u1 = UInt32Max;
+    int z = UU::countr_one(u1);
+    int y = __builtin_ffsll(~u1) - 1;
+    std::cout << "countr_one: " << u1 << " => " << z << std::endl;
+    std::cout << "ffs: " << u1 << " => " << y << " (" << ~u1 << ")" << std::endl;
+    
     // BitBlock<2> b;
     // b.set(0);
     // b.set(71);
@@ -86,44 +94,44 @@ int main(int argc, const char *argv[]) {
     // ;
     // Allocator allocator;
 
-    using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, Freelist<BlockAllocator<64, 256>, 64, 256>>, Mallocator>;
-    using Size2Allocator = FallbackAllocator<Freelist<BlockAllocator<128, 2048>, 128, 2048>, Mallocator>;
-    using Size3Allocator = FallbackAllocator<Freelist<BlockAllocator<256, 1048>, 256, 1048>, Mallocator>;
-    using Size4Allocator = FallbackAllocator<Freelist<BlockAllocator<512, 512>, 512, 512>, Mallocator>;
-    using Size5Allocator = FallbackAllocator<Freelist<BlockAllocator<1024, 512>, 1024, 512>, Mallocator>;
-    using Size6Allocator = FallbackAllocator<Freelist<BlockAllocator<2048, 512>, 2048, 512>, Mallocator>;
-    using Allocator = StatsAllocator<
-        Segregator<64, Size1Allocator, 
-        Segregator<128, Size2Allocator, 
-        Segregator<256, Size3Allocator, 
-        Segregator<512, Size4Allocator, 
-        Segregator<1024, Size5Allocator, 
-        Segregator<2048, Size6Allocator, 
-        Mallocator>>>>>>>;
+    // using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, Freelist<BlockAllocator<64, 256>, 64, 256>>, Mallocator>;
+    // using Size2Allocator = FallbackAllocator<Freelist<BlockAllocator<128, 2048>, 128, 2048>, Mallocator>;
+    // using Size3Allocator = FallbackAllocator<Freelist<BlockAllocator<256, 1048>, 256, 1048>, Mallocator>;
+    // using Size4Allocator = FallbackAllocator<Freelist<BlockAllocator<512, 512>, 512, 512>, Mallocator>;
+    // using Size5Allocator = FallbackAllocator<Freelist<BlockAllocator<1024, 512>, 1024, 512>, Mallocator>;
+    // using Size6Allocator = FallbackAllocator<Freelist<BlockAllocator<2048, 512>, 2048, 512>, Mallocator>;
+    // using Allocator = StatsAllocator<
+    //     Segregator<64, Size1Allocator, 
+    //     Segregator<128, Size2Allocator, 
+    //     Segregator<256, Size3Allocator, 
+    //     Segregator<512, Size4Allocator, 
+    //     Segregator<1024, Size5Allocator, 
+    //     Segregator<2048, Size6Allocator, 
+    //     Mallocator>>>>>>>;
     
-    Allocator allocator;
+    // Allocator allocator;
 
-    Memory mem0 = allocator.alloc(32);
-    allocator.dealloc(mem0);
-    Memory mem1 = allocator.alloc(24);
-    Memory mem2 = allocator.alloc(256);
-    allocator.dealloc(mem1);
-    allocator.dealloc(mem2);
-    Memory mem3 = allocator.alloc(256);
-    allocator.dealloc(mem3);
+    // Memory mem0 = allocator.alloc(32);
+    // allocator.dealloc(mem0);
+    // Memory mem1 = allocator.alloc(24);
+    // Memory mem2 = allocator.alloc(256);
+    // allocator.dealloc(mem1);
+    // allocator.dealloc(mem2);
+    // Memory mem3 = allocator.alloc(256);
+    // allocator.dealloc(mem3);
 
-    constexpr Size count = 384;
-    Memory mem4[count];
-    for (int i = 0; i < count; i++) {
-        mem4[i] = allocator.alloc(256);
-    }
-    for (int i = 0; i < count; i++) {
-        allocator.dealloc(mem4[i]);
-    }
-    for (int i = 0; i < 32; i++) {
-        mem4[i] = allocator.alloc(256);
-    }
-    allocator.alloc(50000);
+    // constexpr Size count = 384;
+    // Memory mem4[count];
+    // for (int i = 0; i < count; i++) {
+    //     mem4[i] = allocator.alloc(256);
+    // }
+    // for (int i = 0; i < count; i++) {
+    //     allocator.dealloc(mem4[i]);
+    // }
+    // for (int i = 0; i < 32; i++) {
+    //     mem4[i] = allocator.alloc(256);
+    // }
+    // allocator.alloc(50000);
 
     // std::cout << allocator.stats() << std::endl;
 

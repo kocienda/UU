@@ -108,6 +108,18 @@
 
 #endif /* COMPILER(GCC) */
 
+/* COMPILER(MSVC) - Microsoft Visual C++ */
+
+#if defined(_MSC_VER)
+#define UU_COMPILER_MSVC 1
+
+#if _MSC_VER < 1910
+#error "Please use a newer version of Visual Studio. Requires VS2017 or newer to compile."
+#endif
+
+#endif /* COMPILER(MSVC) */
+
+
 #ifndef __nodiscard__
 #define __nodiscard__ [[nodiscard]]
 #endif
@@ -119,6 +131,10 @@
 #define UU_CPP_STD_VER 14
 #elif __cplusplus <= 201703L
 #define UU_CPP_STD_VER 17
+#elif __cplusplus <= 202207L
+#define UU_CPP_STD_VER 20
+#else
+#define UU_CPP_STD_VER 23
 #endif
 #endif
 
