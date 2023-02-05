@@ -32,20 +32,22 @@ int main(int argc, const char *argv[]) {
     LOG_CHANNEL_ON(Memory);
 
     // UInt64 u1 = UInt64Max - 1;
-    UInt32 u1 = UInt32Max;
-    int z = UU::countr_one(u1);
-    int y = __builtin_ffsll(~u1) - 1;
-    std::cout << "countr_one: " << u1 << " => " << z << std::endl;
-    std::cout << "ffs: " << u1 << " => " << y << " (" << ~u1 << ")" << std::endl;
+    // UInt32 u1 = UInt32Max;
+    // int z = UU::countr_one(u1);
+    // int p = UU::popcount(u1);
+    // std::cout << "countr_one: " << u1 << " => " << z << std::endl;
+    // std::cout << "popcount: " << u1 << " => " << p << std::endl;
     
     // BitBlock<2> b;
     // b.set(0);
     // b.set(71);
     // b.set(3);
     // // b.reset();
-    // std::cout << "get[0]: " << b.get(0) << std::endl;
-    // std::cout << "get[71]: " << b.get(71) << std::endl;
-    // std::cout << "get[72]: " << b.get(72) << std::endl;
+    // std::cout << "test[0]: " << b.test(0) << std::endl;
+    // std::cout << "test[71]: " << b.test(71) << std::endl;
+    // std::cout << "test[72]: " << b.test(72) << std::endl;
+    // std::cout << "take: " << b.take() << std::endl;
+    // std::cout << "take: " << b.take() << std::endl;
     // std::cout << "take: " << b.take() << std::endl;
 
     // b.set_all();
@@ -94,31 +96,31 @@ int main(int argc, const char *argv[]) {
     // ;
     // Allocator allocator;
 
-    // using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, Freelist<BlockAllocator<64, 256>, 64, 256>>, Mallocator>;
-    // using Size2Allocator = FallbackAllocator<Freelist<BlockAllocator<128, 2048>, 128, 2048>, Mallocator>;
-    // using Size3Allocator = FallbackAllocator<Freelist<BlockAllocator<256, 1048>, 256, 1048>, Mallocator>;
-    // using Size4Allocator = FallbackAllocator<Freelist<BlockAllocator<512, 512>, 512, 512>, Mallocator>;
-    // using Size5Allocator = FallbackAllocator<Freelist<BlockAllocator<1024, 512>, 1024, 512>, Mallocator>;
-    // using Size6Allocator = FallbackAllocator<Freelist<BlockAllocator<2048, 512>, 2048, 512>, Mallocator>;
-    // using Allocator = StatsAllocator<
-    //     Segregator<64, Size1Allocator, 
-    //     Segregator<128, Size2Allocator, 
-    //     Segregator<256, Size3Allocator, 
-    //     Segregator<512, Size4Allocator, 
-    //     Segregator<1024, Size5Allocator, 
-    //     Segregator<2048, Size6Allocator, 
-    //     Mallocator>>>>>>>;
+    using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, BlockAllocator<2048, 0, 64>>, Mallocator>;
+    using Size2Allocator = FallbackAllocator<BlockAllocator<2048, 65, 128>, Mallocator>;
+    using Size3Allocator = FallbackAllocator<BlockAllocator<2048, 129, 256>, Mallocator>;
+    using Size4Allocator = FallbackAllocator<BlockAllocator<2048, 257, 384>, Mallocator>;
+    using Size5Allocator = FallbackAllocator<BlockAllocator<2048, 385, 512>, Mallocator>;
+    using Size6Allocator = FallbackAllocator<BlockAllocator<2048, 513, 1024>, Mallocator>;
+    using Allocator = StatsAllocator<
+        Segregator<64, Size1Allocator, 
+        Segregator<128, Size2Allocator, 
+        Segregator<256, Size3Allocator, 
+        Segregator<512, Size4Allocator, 
+        Segregator<1024, Size5Allocator, 
+        Segregator<2048, Size6Allocator, 
+        Mallocator>>>>>>>;
     
-    // Allocator allocator;
+    Allocator allocator;
 
-    // Memory mem0 = allocator.alloc(32);
-    // allocator.dealloc(mem0);
-    // Memory mem1 = allocator.alloc(24);
-    // Memory mem2 = allocator.alloc(256);
-    // allocator.dealloc(mem1);
-    // allocator.dealloc(mem2);
-    // Memory mem3 = allocator.alloc(256);
-    // allocator.dealloc(mem3);
+    Memory mem0 = allocator.alloc(32);
+    allocator.dealloc(mem0);
+    Memory mem1 = allocator.alloc(24);
+    Memory mem2 = allocator.alloc(256);
+    allocator.dealloc(mem1);
+    Memory mem3 = allocator.alloc(256);
+    allocator.dealloc(mem2);
+    allocator.dealloc(mem3);
 
     // constexpr Size count = 384;
     // Memory mem4[count];

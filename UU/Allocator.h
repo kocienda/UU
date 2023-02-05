@@ -34,17 +34,6 @@
 
 namespace UU {
 
-// Memory =========================================================================================
-
-struct Memory {
-    constexpr Memory() {}
-    constexpr Memory(void *ptr_, Size length_, Size index_ = 0) : 
-        ptr(ptr_), length(length_), index(index_) {}
-    void *ptr = nullptr;
-    Size length = 0;
-    Size index = 0;
-};
-
 // helpers ========================================================================================
 
 UU_ALWAYS_INLINE 
@@ -56,6 +45,58 @@ constexpr Size align_up(Size size) {
     Size rem = size % void_size;
     return rem == 0 ? size : size + (void_size - rem); 
 }
+
+// Memory =========================================================================================
+
+struct Memory {
+    constexpr Memory() {}
+    constexpr Memory(void *ptr_, Size length_, int special_ = 0) : 
+        ptr(ptr_), length(length_), special(special_) {}
+    void *ptr = nullptr;
+    Size length = 0;
+    int special = 0;
+};
+
+// MemoryBlock ====================================================================================
+
+template <Size Length, Size Count> requires IsMutipleOf64<Count>
+struct MemoryBlock {
+    static constexpr Size Capacity = Length * Count;
+    static constexpr Size BlockCount = Count / 64;
+    constexpr MemoryBlock() {}
+    
+    constexpr bool is_full() const { return bits.is_full(); }
+    constexpr bool not_full() const { return !is_full(); }
+    constexpr void ensure() { 
+        if (UNLIKELY(base == nullptr)) {
+            base = malloc(Capacity);
+        }
+    }
+    constexpr Memory take() {
+        ensure();
+        ASSERT(not_full());
+        int idx = bits.peek();
+        bits.set(idx);
+        return { byte_ptr(base) + (idx * Length), Length, idx };
+    }
+    constexpr void put(const Memory &mem) { 
+        ASSERT(bits.test(mem.special));
+        bits.clear(mem.special);
+    }
+    constexpr void reset() { 
+        bits.reset();
+    }
+    constexpr void release() { 
+        free(base);
+        base = nullptr;
+    }
+    bool contains(const Memory &mem) const { 
+        return mem.ptr >= base && mem.ptr <= byte_ptr(base) + Capacity;
+    }    
+
+    void *base = nullptr;
+    BitBlock<BlockCount> bits;
+};
 
 // Freelist =======================================================================================
 
@@ -94,7 +135,7 @@ public:
         capacity++;
     }
 
-    bool owns(Memory mem) const { 
+    bool owns(const Memory &mem) const { 
         Size elength = align_up(mem.length);
         return elength == Length || parent.owns(mem);
     }    
@@ -122,7 +163,7 @@ public:
         ASSERT(mem.ptr == nullptr);
     }
 
-    bool owns(Memory mem) const { return mem.ptr == nullptr; }    
+    bool owns(const Memory &mem) const { return mem.ptr == nullptr; }    
 };
 
 
@@ -152,7 +193,7 @@ public:
         }
     }
 
-    bool owns(Memory mem) const { return first.owns(mem) || second.owns(mem); }
+    bool owns(const Memory &mem) const { return first.owns(mem) || second.owns(mem); }
 
 private:
     First first; 
@@ -182,7 +223,7 @@ public:
         }
     }
 
-    bool owns(Memory mem) const { return first.owns(mem) || second.owns(mem); }
+    bool owns(const Memory &mem) const { return first.owns(mem) || second.owns(mem); }
 
 private:
     First first; 
@@ -223,7 +264,9 @@ public:
         ptr = base();
     }
 
-    bool owns(Memory mem) const { return mem.ptr >= base() && mem.ptr < base() + Capacity; }    
+    bool owns(const Memory &mem) const { 
+        return mem.ptr >= base() && mem.ptr < base() + Capacity; 
+    }    
 
 private:
     UU_ALWAYS_INLINE 
@@ -238,52 +281,47 @@ private:
 
 // BlockAllocator =================================================================================
 
-template <Size ChunkSize, Size ChunkCount>
+template <Size Count, Size LoFit, Size HiFit = LoFit> requires 
+    IsMutipleOf64<Count> && IsLessThanOrEqual<LoFit, HiFit>
 class BlockAllocator
 {
 public:
-    static constexpr Size Capacity = ChunkSize * ChunkCount;
-    static constexpr Size BlockCount = ChunkCount / BitBlock<1>::BitsPerSubBlock;
+    using Block = MemoryBlock<HiFit, Count>;
+    static constexpr Size Capacity = Block::Capacity;
+    static constexpr Size BlockCount = Block::BlockCount;
 
     constexpr BlockAllocator() {}
 
+    constexpr bool fits(Size length) const { return length >= LoFit && length <= HiFit; }
+
     Memory alloc(Size length) {
-        if (UNLIKELY(base == nullptr)) {
-            base = static_cast<Byte *>(malloc(Capacity));
-            LOG(Memory, "BlockAllocator (%llu/%llu) base: %p", ChunkSize, ChunkCount, base);
-        }
         Size elength = align_up(length);
         Memory mem;
-        if (elength <= ChunkSize && LIKELY(bit_block.not_full())) {
-            Size idx = bit_block.take();
-            Byte *ptr = base + (idx * ChunkSize);
-            LOG(Memory, "BlockAllocator (%llu/%llu) alloc: %lu : %lu : %p", ChunkSize, ChunkCount, elength, idx, ptr);
-            mem = Memory(ptr, elength, idx);
+        if (fits(elength) && m_block.not_full()) {
+            mem = m_block.take();
+            LOG(Memory, "BlockAllocator alloc: %lu : %p : %d", mem.length, mem.ptr, mem.special);
         }
         return mem;
     }
 
     void dealloc(Memory mem) {
         if (owns(mem)) {
-            LOG(Memory, "BlockAllocator (%llu/%llu) dealloc: %lu (%lu) : %p", ChunkSize, ChunkCount, mem.length, mem.index, mem.ptr);
-            bit_block.clear(mem.index);
+            LOG(Memory, "BlockAllocator dealloc: %lu : %p : %d", mem.length, mem.ptr, mem.special);
+            m_block.put(mem);
         }
     }
 
     void free_all() {
-        free(base);
-        base = nullptr;
+        m_block.reset();
+        m_block.release();
     }
 
-    bool owns(Memory mem) const { 
-        bool result = mem.ptr >= base && mem.ptr < base + Capacity;
-        LOG(Memory, "BlockAllocator (%llu/%llu) owns: %lu (%lu) : %p => %p : %s", ChunkSize, ChunkCount, mem.length, mem.index, mem.ptr, base, result ? "Y" : "N");
-        return result;
+    bool owns(const Memory &mem) const { 
+        return m_block.contains(mem);
     }    
 
 private:
-    BitBlock<BlockCount> bit_block;
-    Byte *base = nullptr;
+    Block m_block;
 };
 
 // StatsAllocator =================================================================================
@@ -311,7 +349,7 @@ public:
         Allocator::dealloc(mem);
     }
 
-    bool owns(Memory mem) const { return Allocator::owns(mem); }    
+    bool owns(const Memory &mem) const { return Allocator::owns(mem); }    
 
     String stats() const {
         Size num_digits = number_of_digits(bytes_allocated);
@@ -360,7 +398,7 @@ public:
         ::free(mem.ptr);
     }
 
-    bool owns(Memory mem) const { return true; }
+    bool owns(const Memory &mem) const { return true; }
 };
 
 

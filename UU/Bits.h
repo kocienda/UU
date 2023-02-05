@@ -31,10 +31,14 @@
 #include <UU/Platform.h>
 #include <UU/Types.h>
 
+#if COMPILER(MSVC)
+#include <intrin.h>
+#endif
+
 namespace UU {
 
 template <typename N> requires IsUnsignedIntegral<N>
-constexpr int countr_one(N n) {
+UU_ALWAYS_INLINE constexpr int countr_one(N n) {
 #if COMPILER(GCC_OR_CLANG)
     if constexpr (std::is_same_v<N, UInt8> ||
                   std::is_same_v<N, UInt16> ||
@@ -48,23 +52,46 @@ constexpr int countr_one(N n) {
     }
 #elif COMPILER(MSVC)
     if constexpr (std::is_same_v<N, UInt32>) {
-        if (LIKELY(n < UInt32Max)) {
-            unsigned int x = ~n;
-            return _tzcnt_u32(x);
+        if (n < UInt32Max) {
+            unsigned long x = ~n;
+            unsigned long index;
+            _BitScanForward(&index, x);
+            return index;
         }
     }    
     else if constexpr (std::is_same_v<N, UInt64>) {
-        if (LIKELY(n < UInt64Max)) {
-            unsigned int x1 = ~(n & 0xffffffff);
-            int p = _tzcnt_u32(x1);
-            if (p < 32) {
-                return p;
-            }
-            else {
-                unsigned int x2 = ~(n >> 32);
-                return _tzcnt_u32(x2) + 32;
-            }
+        if (n < UInt64Max) {
+            UInt64 x = ~n;
+            unsigned long index;
+            _BitScanForward64(&index, x);
+            return index;
         }
+    }
+#endif
+    return -1;
+}
+
+template <typename N> requires IsUnsignedIntegral<N>
+UU_ALWAYS_INLINE constexpr int popcount(N n) {
+#if COMPILER(GCC_OR_CLANG)
+    if constexpr (std::is_same_v<N, UInt8> ||
+                  std::is_same_v<N, UInt16> ||
+                  std::is_same_v<N, UInt32>) {
+        unsigned int x = n;
+        return __builtin_popcount(x);
+    }
+    else if constexpr (std::is_same_v<N, UInt64>) {
+        return __builtin_popcountll(n);
+    }
+#elif COMPILER(MSVC)
+    if constexpr (std::is_same_v<N, UInt8> ||
+                  std::is_same_v<N, UInt16> ||
+                  std::is_same_v<N, UInt32>) {
+        unsigned int x = n;
+        return __popcnt(x);
+    }    
+    else if constexpr (std::is_same_v<N, UInt64>) {
+        return __popcnt64(n);
     }
 #endif
     return -1;
