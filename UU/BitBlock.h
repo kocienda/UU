@@ -33,32 +33,70 @@
 
 namespace UU {
 
+template <Size BlockCount>
 class BitBlock {
 public:
-    constexpr BitBlock() : m_value(0) {}
+    static constexpr Size BitsPerSubBlock = 64;
+    static constexpr Size  ShiftsPerSubBlock = 6;
 
-    constexpr Size bits() const { return 64; }
+    constexpr BitBlock() { reset(); }
+
+    constexpr Size bits() const { return BlockCount * BitsPerSubBlock; }
     constexpr Size size() const { return bits(); }
-    constexpr UInt64 mask_for(Size idx) { ASSERT(idx < bits()); return UInt64(1) << idx; }
-    constexpr void set_all() { m_value = UInt64Max; }
-    constexpr void set(Size idx) {  m_value |= mask_for(idx); }
+    constexpr Size block_for(Size idx) { ASSERT(idx < bits()); return idx >> ShiftsPerSubBlock; }
+    constexpr UInt64 mask_for(Size idx, Size blk) { ASSERT(idx < bits()); return UInt64(1) << (idx & ~(blk << ShiftsPerSubBlock)); }
+    constexpr void set_all() { memset(&m_blocks, 1, BlockCount * sizeof(UInt64)); }
+    constexpr void set(Size idx) { Size blk = block_for(idx); m_blocks[blk] |= mask_for(idx, blk); }
     constexpr void set(const Stretch<Size> &s) { for (auto it : s) { set(it); } }
-    constexpr void clear(Size idx) { m_value &= ~(mask_for(idx)); }
-    constexpr bool get(Size idx) { return m_value & mask_for(idx); }
-    constexpr void reset() { m_value = 0; }
-    template <bool B = true> constexpr bool is_empty() const { return (m_value == 0) == B; }
-    template <bool B = true> constexpr bool is_full() const { return (m_value == UInt64Max) == B; }
-    constexpr Size count() const { return std::popcount(m_value); }
-    constexpr Size peek() const { return std::countr_one(m_value); }
+    constexpr void clear(Size idx) { Size blk = block_for(idx); m_blocks[blk] &= ~(mask_for(idx, blk)); }
+    constexpr bool get(Size idx) { Size blk = block_for(idx); return m_blocks[blk] & mask_for(idx, blk); }
+    constexpr void reset() { memset(&m_blocks, 0, BlockCount * sizeof(UInt64)); }
+    constexpr bool is_empty() const { 
+        for (int idx = 0; idx < BlockCount; idx++) { 
+            if (m_blocks[idx] != 0) {
+                return false;
+            } 
+        }
+        return true;
+    }
+    constexpr bool not_empty() const { return !is_empty(); }
+    constexpr bool is_full() const {
+        for (int idx = 0; idx < BlockCount; idx++) { 
+            if (m_blocks[idx] != UInt64Max) {
+                return false;
+            } 
+        }
+        return true;
+    }
+    constexpr bool not_full() const { return !is_full(); }
+    constexpr Size count() const { 
+        Size c = 0;
+        for (int idx = 0; idx < BlockCount; idx++) { 
+            c += std::popcount(m_blocks[idx]);
+        }
+        return c;
+
+    }
+    constexpr Size peek() const { 
+        for (int idx = 0; idx < BlockCount; idx++) { 
+            Size p = std::countr_one(m_blocks[idx]);
+            if (p != BitsPerSubBlock) {
+                return (idx * BitsPerSubBlock) + p;
+            }
+        }
+        ASSERT(false);
+        return BlockCount * BitsPerSubBlock; 
+    }
+
     constexpr Size take() { 
-        ASSERT(is_full<false>());
+        ASSERT(not_full());
         Size idx = peek();
         set(idx);
         return idx;
     }
 
 private:
-    UInt64 m_value;
+    UInt64 m_blocks[BlockCount];
 };
 
 }  // namespace UU

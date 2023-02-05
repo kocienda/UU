@@ -30,28 +30,18 @@ int main(int argc, const char *argv[]) {
     LOG_CHANNEL_ON(General);
     LOG_CHANNEL_ON(Memory);
 
-    // BitBlock b;
+    // BitBlock<2> b;
     // b.set(0);
-    // b.set(1);
+    // b.set(71);
     // b.set(3);
-    // b.reset();
+    // // b.reset();
     // std::cout << "get[0]: " << b.get(0) << std::endl;
-    // std::cout << "get[1]: " << b.get(1) << std::endl;
+    // std::cout << "get[71]: " << b.get(71) << std::endl;
+    // std::cout << "get[72]: " << b.get(72) << std::endl;
+    // std::cout << "take: " << b.take() << std::endl;
 
-    // auto t = b.take();
-    // if (t.ok) {
-    //     std::cout << "take: " << t.idx << std::endl;
-    // }
-
-    // // b.set_all();
-    // std::cout << "get[2]: " << b.get(2) << std::endl;
-    // t = b.take();
-    // if (t.ok) {
-    //     std::cout << "take: " << t.idx << std::endl;
-    // }
-    // else {
-    //     std::cout << "!!!full: " << std::endl;
-    // }
+    // b.set_all();
+    // std::cout << "get[0]: " << b.get(0) << std::endl;
 
     // Stretch<int> s(1, 10);
     // s.add(1, 10);
@@ -66,11 +56,11 @@ int main(int argc, const char *argv[]) {
     //     std::cout << "v: " << *it << std::endl;
     // }
 
-    Spread<int> p(1, 10);
-    p.add(12, 20);
-    for (auto it = p.begin(); it != p.end(); ++it) {
-        std::cout << "p: " << *it << std::endl;
-    }
+    // Spread<int> p(1, 10);
+    // p.add(12, 20);
+    // for (auto it = p.begin(); it != p.end(); ++it) {
+    //     std::cout << "p: " << *it << std::endl;
+    // }
     // std::cout << "---" << std::endl;
     // for (auto it = p.rbegin(); it != p.rend(); ++it) {
     //     std::cout << "p: " << *it << std::endl;
@@ -90,19 +80,50 @@ int main(int argc, const char *argv[]) {
     // Memory mem = mallocator.alloc(32);
     // mallocator.dealloc(mem);
 
-    // using FreelistAllocator = Freelist<StackAllocator<16384>, 256, 128, 128, 64>;
-    // using Allocator = StatsAllocator<FallbackAllocator<FreelistAllocator, Mallocator>>;
+    // using FreelistAllocator = Freelist<StackAllocator<16384>, 128, 128>;
+    // using Allocator = StatsAllocator<
+    //     FallbackAllocator<FreelistAllocator, Mallocator>>
+    // ;
     // Allocator allocator;
 
-    // Memory mem0 = allocator.alloc(384);
-    // allocator.dealloc(mem0);
-    // Memory mem1 = allocator.alloc(128);
-    // Memory mem2 = allocator.alloc(256);
-    // allocator.dealloc(mem1);
-    // allocator.dealloc(mem2);
-    // Memory mem3 = allocator.alloc(256);
-    // // allocator.dealloc(mem2);
-    // allocator.dealloc(mem3);
+    using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, Freelist<BlockAllocator<64, 256>, 64, 256>>, Mallocator>;
+    using Size2Allocator = FallbackAllocator<Freelist<BlockAllocator<128, 2048>, 128, 2048>, Mallocator>;
+    using Size3Allocator = FallbackAllocator<Freelist<BlockAllocator<256, 1048>, 256, 1048>, Mallocator>;
+    using Size4Allocator = FallbackAllocator<Freelist<BlockAllocator<512, 512>, 512, 512>, Mallocator>;
+    using Size5Allocator = FallbackAllocator<Freelist<BlockAllocator<1024, 512>, 1024, 512>, Mallocator>;
+    using Size6Allocator = FallbackAllocator<Freelist<BlockAllocator<2048, 512>, 2048, 512>, Mallocator>;
+    using Allocator = StatsAllocator<
+        Segregator<64, Size1Allocator, 
+        Segregator<128, Size2Allocator, 
+        Segregator<256, Size3Allocator, 
+        Segregator<512, Size4Allocator, 
+        Segregator<1024, Size5Allocator, 
+        Segregator<2048, Size6Allocator, 
+        Mallocator>>>>>>>;
+    
+    Allocator allocator;
+
+    Memory mem0 = allocator.alloc(32);
+    allocator.dealloc(mem0);
+    Memory mem1 = allocator.alloc(24);
+    Memory mem2 = allocator.alloc(256);
+    allocator.dealloc(mem1);
+    allocator.dealloc(mem2);
+    Memory mem3 = allocator.alloc(256);
+    allocator.dealloc(mem3);
+
+    constexpr Size count = 384;
+    Memory mem4[count];
+    for (int i = 0; i < count; i++) {
+        mem4[i] = allocator.alloc(256);
+    }
+    for (int i = 0; i < count; i++) {
+        allocator.dealloc(mem4[i]);
+    }
+    for (int i = 0; i < 32; i++) {
+        mem4[i] = allocator.alloc(256);
+    }
+    allocator.alloc(50000);
 
     // std::cout << allocator.stats() << std::endl;
 

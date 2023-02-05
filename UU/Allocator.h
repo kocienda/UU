@@ -28,8 +28,9 @@
 #include <format>
 
 #include <UU/Assertions.h>
+#include <UU/BitBlock.h>
 #include <UU/Types.h>
-#include <UU/UUString.h>
+// #include <UU/UUString.h>
 
 namespace UU {
 
@@ -37,9 +38,11 @@ namespace UU {
 
 struct Memory {
     constexpr Memory() {}
-    constexpr Memory(void *ptr_, Size length_) : ptr(ptr_), length(length_) {}
+    constexpr Memory(void *ptr_, Size length_, Size index_ = 0) : 
+        ptr(ptr_), length(length_), index(index_) {}
     void *ptr = nullptr;
     Size length = 0;
+    Size index = 0;
 };
 
 // helpers ========================================================================================
@@ -56,22 +59,16 @@ constexpr Size align_up(Size size) {
 
 // Freelist =======================================================================================
 
-template <typename Allocator, Size Length, 
-    Size AllocMargin = 0, Size FreeMargin = 0, Size Capacity = SizeMax>
-requires IsGreaterThan<align_up(Length), align_up(AllocMargin), std::alignment_of_v<void *>> &&
-         IsGreaterThan<align_up(Length), align_up(FreeMargin), std::alignment_of_v<void *>>
+template <typename Allocator, Size Length, Size Capacity = SizeMax>
 class Freelist
 {
 public:
-    static constexpr Size AllocLength = align_up(Length) - align_up(AllocMargin);
-    static constexpr Size FreeLength = align_up(Length) + align_up(FreeMargin);
-
     Memory alloc(Size length) {
         if (!root) {
             return parent.alloc(length);
         }
         Size elength = align_up(length);
-        if (elength < AllocLength || elength > Length) {
+        if (elength > Length) {
             return parent.alloc(length);
         }
         ASSERT(capacity > 0);
@@ -85,7 +82,7 @@ public:
 
     void dealloc(Memory mem) {
         Size elength = align_up(mem.length);
-        if ((elength < Length || elength > FreeLength) || capacity == Capacity) {
+        if (elength < Length || capacity >= Capacity) {
             LOG(Memory, "Freelist freeing from parent: %lu : %p", mem.length, mem.ptr);
             parent.dealloc(mem);
             return;
@@ -128,44 +125,83 @@ public:
     bool owns(Memory mem) const { return mem.ptr == nullptr; }    
 };
 
-// FallbackAllocator ==============================================================================
 
-template <typename First, typename Second>
-class FallbackAllocator : private First, private Second
+// Segregator =====================================================================================
+
+template <Size Threshold, typename First, typename Second>
+class Segregator
 {
 public:
     Memory alloc(Size length) {
-        Memory mem = First::alloc(length);
-        if (!mem.ptr) {
-            mem = Second::alloc(length);
+        Memory mem;
+        if (length <= Threshold) {
+            mem = first.alloc(length);
+        }
+        else {
+            mem = second.alloc(length);
         }
         return mem;
     }
 
     void dealloc(Memory mem) {
-        if (First::owns(mem)) {
-            First::dealloc(mem);
+        if (mem.length <= Threshold && first.owns(mem)) {
+            first.dealloc(mem);
         }
         else {
-            Second::dealloc(mem);
+            second.dealloc(mem);
         }
     }
 
-    bool owns(Memory mem) const { return First::owns(mem) || Second::owns(mem); }
+    bool owns(Memory mem) const { return first.owns(mem) || second.owns(mem); }
+
+private:
+    First first; 
+    Second second; 
+};
+
+// FallbackAllocator ==============================================================================
+
+template <typename First, typename Second>
+class FallbackAllocator
+{
+public:
+    Memory alloc(Size length) {
+        Memory mem = first.alloc(length);
+        if (!mem.ptr) {
+            mem = second.alloc(length);
+        }
+        return mem;
+    }
+
+    void dealloc(Memory mem) {
+        if (first.owns(mem)) {
+            first.dealloc(mem);
+        }
+        else {
+            second.dealloc(mem);
+        }
+    }
+
+    bool owns(Memory mem) const { return first.owns(mem) || second.owns(mem); }
+
+private:
+    First first; 
+    Second second; 
 };
 
 // StackAllocator =================================================================================
 
-template <Size S>
+template <Size S, Size Chunk = 64> requires IsGreaterThan<S, Chunk>
 class StackAllocator
 {
 public:
     static constexpr Size Capacity = S;
+    static constexpr Size EChunk = align_up(Chunk);
 
     constexpr StackAllocator() : ptr(base()) {}
 
     Memory alloc(Size length) {
-        Size elength = align_up(length);
+        Size elength = std::max(align_up(length), EChunk);
         Memory mem;
         if (LIKELY(elength <= remaining())) {
             LOG(Memory, "StackAllocator alloc: %lu : %p", elength, ptr);
@@ -200,6 +236,56 @@ private:
     Byte *ptr;
 };
 
+// BlockAllocator =================================================================================
+
+template <Size ChunkSize, Size ChunkCount>
+class BlockAllocator
+{
+public:
+    static constexpr Size Capacity = ChunkSize * ChunkCount;
+    static constexpr Size BlockCount = ChunkCount / BitBlock<1>::BitsPerSubBlock;
+
+    constexpr BlockAllocator() {}
+
+    Memory alloc(Size length) {
+        if (UNLIKELY(base == nullptr)) {
+            base = static_cast<Byte *>(malloc(Capacity));
+            LOG(Memory, "BlockAllocator (%llu/%llu) base: %p", ChunkSize, ChunkCount, base);
+        }
+        Size elength = align_up(length);
+        Memory mem;
+        if (elength <= ChunkSize && LIKELY(bit_block.not_full())) {
+            Size idx = bit_block.take();
+            Byte *ptr = base + (idx * ChunkSize);
+            LOG(Memory, "BlockAllocator (%llu/%llu) alloc: %lu : %lu : %p", ChunkSize, ChunkCount, elength, idx, ptr);
+            mem = Memory(ptr, elength, idx);
+        }
+        return mem;
+    }
+
+    void dealloc(Memory mem) {
+        if (owns(mem)) {
+            LOG(Memory, "BlockAllocator (%llu/%llu) dealloc: %lu (%lu) : %p", ChunkSize, ChunkCount, mem.length, mem.index, mem.ptr);
+            bit_block.clear(mem.index);
+        }
+    }
+
+    void free_all() {
+        free(base);
+        base = nullptr;
+    }
+
+    bool owns(Memory mem) const { 
+        bool result = mem.ptr >= base && mem.ptr < base + Capacity;
+        LOG(Memory, "BlockAllocator (%llu/%llu) owns: %lu (%lu) : %p => %p : %s", ChunkSize, ChunkCount, mem.length, mem.index, mem.ptr, base, result ? "Y" : "N");
+        return result;
+    }    
+
+private:
+    BitBlock<BlockCount> bit_block;
+    Byte *base = nullptr;
+};
+
 // StatsAllocator =================================================================================
 
 template <typename Allocator>
@@ -227,27 +313,27 @@ public:
 
     bool owns(Memory mem) const { return Allocator::owns(mem); }    
 
-    String stats() const {
-        Size num_digits = number_of_digits(bytes_allocated);
-        std::string num_fmt = "{0:" + integer_to_string(num_digits) + "}";
-        String result;
-        std::string allocs_fmt =                    std::format("allocs:                    {0}\n", num_fmt);
-        std::string deallocs_fmt =                  std::format("deallocs:                  {0}\n", num_fmt);
-        std::string bytes_allocated_fmt =           std::format("bytes allocated:           {0}\n", num_fmt);
-        std::string bytes_deallocated_fmt =         std::format("bytes deallocated:         {0}\n", num_fmt);
-        std::string bytes_allocated_now_fmt =       std::format("bytes allocated now:       {0}\n", num_fmt);
-        std::string bytes_allocated_highwater_fmt = std::format("bytes allocated highwater: {0}\n", num_fmt);
-        result += "============================================================\n";
-        result += "Allocator stats\n";
-        result += "------------------------------------------------------------\n";
-        result += std::vformat(allocs_fmt, std::make_format_args(integer_to_string<Size>(allocs)));
-        result += std::vformat(deallocs_fmt, std::make_format_args(integer_to_string<Size>(deallocs)));
-        result += std::vformat(bytes_allocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated)));
-        result += std::vformat(bytes_deallocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_deallocated)));
-        result += std::vformat(bytes_allocated_now_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_now)));
-        result += std::vformat(bytes_allocated_highwater_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_highwater)));
-        return result;
-    }    
+    // String stats() const {
+        // Size num_digits = number_of_digits(bytes_allocated);
+        // std::string num_fmt = "{0:" + integer_to_string(num_digits) + "}";
+        // String result;
+        // std::string allocs_fmt =                    std::format("allocs:                    {0}\n", num_fmt);
+        // std::string deallocs_fmt =                  std::format("deallocs:                  {0}\n", num_fmt);
+        // std::string bytes_allocated_fmt =           std::format("bytes allocated:           {0}\n", num_fmt);
+        // std::string bytes_deallocated_fmt =         std::format("bytes deallocated:         {0}\n", num_fmt);
+        // std::string bytes_allocated_now_fmt =       std::format("bytes allocated now:       {0}\n", num_fmt);
+        // std::string bytes_allocated_highwater_fmt = std::format("bytes allocated highwater: {0}\n", num_fmt);
+        // result += "============================================================\n";
+        // result += "Allocator stats\n";
+        // result += "------------------------------------------------------------\n";
+        // result += std::vformat(allocs_fmt, std::make_format_args(integer_to_string<Size>(allocs)));
+        // result += std::vformat(deallocs_fmt, std::make_format_args(integer_to_string<Size>(deallocs)));
+        // result += std::vformat(bytes_allocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated)));
+        // result += std::vformat(bytes_deallocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_deallocated)));
+        // result += std::vformat(bytes_allocated_now_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_now)));
+        // result += std::vformat(bytes_allocated_highwater_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_highwater)));
+    //     return result;
+    // }    
 
 private:
     Size allocs = 0;
@@ -264,10 +350,13 @@ class Mallocator
 {
 public:
     Memory alloc(Size length) {
-        return Memory(malloc(length), length);
+        Memory mem = Memory(malloc(length), length);
+        LOG(Memory, "Mallocator alloc: %lu : %p", mem.length, mem.ptr);
+        return mem;
     }
 
     void dealloc(Memory mem) {
+        LOG(Memory, "Mallocator dealloc: %lu : %p", mem.length, mem.ptr);
         ::free(mem.ptr);
     }
 
