@@ -50,11 +50,13 @@ constexpr Size align_up(Size size) {
 
 struct Memory {
     constexpr Memory() {}
-    constexpr Memory(void *ptr_, Size length_, int special_ = 0) : 
-        ptr(ptr_), length(length_), special(special_) {}
+    constexpr Memory(void *ptr_, Size length_, Size ref_ = 0) : 
+        ptr(ptr_), length(length_), ref(ref_) {}
+    constexpr bool is_empty() const { return ptr == nullptr; }
+    constexpr bool not_empty() const { return !is_empty(); }
     void *ptr = nullptr;
     Size length = 0;
-    int special = 0;
+    Size ref = 0;
 };
 
 // MemoryBlock ====================================================================================
@@ -65,8 +67,12 @@ struct MemoryBlock {
     static constexpr Size BlockCount = Count / 64;
     constexpr MemoryBlock() {}
     
+    constexpr bool is_empty() const { return bits.is_empty(); }
+    constexpr bool not_empty() const { return !is_empty(); }
     constexpr bool is_full() const { return bits.is_full(); }
     constexpr bool not_full() const { return !is_full(); }
+
+    UU_ALWAYS_INLINE
     constexpr void ensure() { 
         if (UNLIKELY(base == nullptr)) {
             base = malloc(Capacity);
@@ -75,23 +81,24 @@ struct MemoryBlock {
     constexpr Memory take() {
         ensure();
         ASSERT(not_full());
-        int idx = bits.peek();
+        UInt32 idx = bits.peek();
         bits.set(idx);
         return { byte_ptr(base) + (idx * Length), Length, idx };
     }
     constexpr void put(const Memory &mem) { 
-        ASSERT(bits.test(mem.special));
-        bits.clear(mem.special);
+        ASSERT(bits.test(mem.ref));
+        bits.clear(mem.ref);
     }
     constexpr void reset() { 
         bits.reset();
     }
     constexpr void release() { 
+        LOG(Memory, "MemoryBlock free: %p", base);
         free(base);
         base = nullptr;
     }
-    bool contains(const Memory &mem) const { 
-        return mem.ptr >= base && mem.ptr <= byte_ptr(base) + Capacity;
+    bool contains(const Memory &mem) const {
+        return mem.ptr >= base && mem.ptr < (byte_ptr(base) + Capacity);
     }    
 
     void *base = nullptr;
@@ -268,6 +275,10 @@ public:
         return mem.ptr >= base() && mem.ptr < base() + Capacity; 
     }    
 
+    UInt64 marker() const {
+        return reinterpret_cast<UInt64>(this);
+    }
+
 private:
     UU_ALWAYS_INLINE 
     Byte *base() const { return reinterpret_cast<Byte *>(const_cast<Byte *>(bytes)); }
@@ -281,7 +292,7 @@ private:
 
 // BlockAllocator =================================================================================
 
-template <Size Count, Size LoFit, Size HiFit = LoFit> requires 
+template <Size Count, Size LoFit, Size HiFit = LoFit, bool ChecksFit = false> requires 
     IsMutipleOf64<Count> && IsLessThanOrEqual<LoFit, HiFit>
 class BlockAllocator
 {
@@ -297,16 +308,21 @@ public:
     Memory alloc(Size length) {
         Size elength = align_up(length);
         Memory mem;
-        if (fits(elength) && m_block.not_full()) {
+        bool test_fit = true;
+        if constexpr (ChecksFit) {
+            test_fit = fits(length);
+        }
+        if (test_fit && m_block.not_full()) {
+            ASSERT(fits(elength));
             mem = m_block.take();
-            LOG(Memory, "BlockAllocator alloc: %lu : %p : %d", mem.length, mem.ptr, mem.special);
+            LOG(Memory, "BlockAllocator alloc: %lu : %p : %d", mem.length, mem.ptr, mem.ref);
         }
         return mem;
     }
 
     void dealloc(Memory mem) {
         if (owns(mem)) {
-            LOG(Memory, "BlockAllocator dealloc: %lu : %p : %d", mem.length, mem.ptr, mem.special);
+            LOG(Memory, "BlockAllocator dealloc: %lu : %p : %d", mem.length, mem.ptr, mem.ref);
             m_block.put(mem);
         }
     }
@@ -320,8 +336,81 @@ public:
         return m_block.contains(mem);
     }    
 
+    bool is_empty() const {
+        return m_block.is_empty();
+    }
+
 private:
     Block m_block;
+};
+
+// CascadingAllocator =============================================================================
+
+template <typename Allocator, Size MaxCount = 8> requires IsGreaterThanOne<MaxCount>
+class CascadingAllocator
+{
+public:
+    constexpr CascadingAllocator() {
+        m_allocators.emplace_back();
+    }
+
+    Memory alloc(Size length) {
+        Size elength = align_up(length);
+        Memory mem;
+        // search from most recent allocator to return a Memory
+        for (Size idx = index; idx < m_allocators.size(); idx++) {
+            mem = m_allocators[idx].alloc(elength);
+            if (mem.not_empty()) {
+                index = idx;
+                return mem;
+            }
+        }
+        // search from start
+        for (Size idx = 0; idx < index; idx++) {
+            mem = m_allocators[idx].alloc(elength);
+            if (mem.not_empty()) {
+                index = idx;
+                return mem;
+            }
+        }
+        // if (m_allocators.size() < MaxCount) {
+            // cascade… add a new allocator
+            LOG(Memory, "CascadingAllocator adding allocator: %llu", m_allocators.size());
+            Allocator &a = m_allocators.emplace_back();
+            index = m_allocators.size() - 1;
+            mem = a.alloc(elength);
+        // }
+        return mem;
+    }
+
+    void dealloc(Memory mem) {
+        for (Size idx = 0; idx < m_allocators.size(); idx++) {
+            Allocator &a = m_allocators[idx];
+            if (a.owns(mem)) {
+                a.dealloc(mem);
+                if (m_allocators.size() > 1 && a.is_empty()) {
+                    // reclaim allocator
+                    LOG(Memory, "CascadingAllocator freeing allocator: %llu", idx);
+                    a.free_all();
+                    m_allocators.erase(m_allocators.begin() + idx);
+                }
+                break;
+            }
+        }
+    }
+
+    bool owns(const Memory &mem) const { 
+        for (Size idx = 0; idx < m_allocators.size(); idx++) {
+            if (m_allocators[idx].owns(mem)) {
+                return true;
+            }
+        }
+        return false;
+    }    
+
+private:
+    std::vector<Allocator> m_allocators;
+    Size index = 0;
 };
 
 // StatsAllocator =================================================================================

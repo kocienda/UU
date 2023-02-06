@@ -2,6 +2,7 @@
 // scratch.cpp
 //
 
+#include <bit>
 #include <pthread.h>
 
 #include <cstdio>
@@ -31,6 +32,20 @@ int main(int argc, const char *argv[]) {
     LOG_CHANNEL_ON(General);
     LOG_CHANNEL_ON(Memory);
 
+    // UInt32 u1 = 72; //0b00000000000000000000000000000000;
+    
+    for (UInt32 i = 0; i < 520; i += 8) {
+        int z = std::min(8, 32 - std::countl_zero(i >> 5));
+        std::cout << "bucket: " << i << " => " << z << std::endl;
+    }
+    
+    // for (UInt32 i = 0; i < 12; i ++) {
+    //     int z = i & 0b111;
+    //     std::cout << "mask: " << i << " => " << z << std::endl;
+    // }
+
+
+
     // UInt64 u1 = UInt64Max - 1;
     // UInt32 u1 = UInt32Max;
     // int z = UU::countr_one(u1);
@@ -38,7 +53,13 @@ int main(int argc, const char *argv[]) {
     // std::cout << "countr_one: " << u1 << " => " << z << std::endl;
     // std::cout << "popcount: " << u1 << " => " << p << std::endl;
     
-    // BitBlock<2> b;
+    // BitBlock<4> b;
+    // constexpr Size count = 200;
+    // for (int i = 0; i < count; i++) {
+    //     UInt32 t = b.take();
+    //     std::cout << "t: " << t << std::endl;
+    // }
+
     // b.set(0);
     // b.set(71);
     // b.set(3);
@@ -96,31 +117,42 @@ int main(int argc, const char *argv[]) {
     // ;
     // Allocator allocator;
 
+    // CascadingAllocator<BlockAllocator<64, 65, 128>> callocator;
+    // constexpr Size count = 200;
+    // Memory mem[count];
+    // for (int i = 0; i < count; i++) {
+    //     mem[i] = callocator.alloc(72);
+    // }
+    // for (int i = count - 1; i >= 0; i--) {
+    //     callocator.dealloc(mem[i]);
+    // }
+    
+
     using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, BlockAllocator<2048, 0, 64>>, Mallocator>;
-    using Size2Allocator = FallbackAllocator<BlockAllocator<2048, 65, 128>, Mallocator>;
-    using Size3Allocator = FallbackAllocator<BlockAllocator<2048, 129, 256>, Mallocator>;
-    using Size4Allocator = FallbackAllocator<BlockAllocator<2048, 257, 384>, Mallocator>;
-    using Size5Allocator = FallbackAllocator<BlockAllocator<2048, 385, 512>, Mallocator>;
-    using Size6Allocator = FallbackAllocator<BlockAllocator<2048, 513, 1024>, Mallocator>;
+    using Size2Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 65, 128>>, Mallocator>;
+    using Size3Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 129, 256>>, Mallocator>;
+    using Size4Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 257, 384>>, Mallocator>;
+    using Size5Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 385, 512>>, Mallocator>;
+    using Size6Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 513, 1024>>, Mallocator>;
     using Allocator = StatsAllocator<
         Segregator<64, Size1Allocator, 
         Segregator<128, Size2Allocator, 
         Segregator<256, Size3Allocator, 
+        Segregator<384, Size4Allocator, 
         Segregator<512, Size4Allocator, 
         Segregator<1024, Size5Allocator, 
-        Segregator<2048, Size6Allocator, 
         Mallocator>>>>>>>;
     
     Allocator allocator;
 
-    Memory mem0 = allocator.alloc(32);
-    allocator.dealloc(mem0);
-    Memory mem1 = allocator.alloc(24);
-    Memory mem2 = allocator.alloc(256);
-    allocator.dealloc(mem1);
-    Memory mem3 = allocator.alloc(256);
-    allocator.dealloc(mem2);
-    allocator.dealloc(mem3);
+    // Memory mem0 = allocator.alloc(32);
+    // allocator.dealloc(mem0);
+    // Memory mem1 = allocator.alloc(24);
+    // Memory mem2 = allocator.alloc(256);
+    // allocator.dealloc(mem1);
+    // Memory mem3 = allocator.alloc(256);
+    // allocator.dealloc(mem2);
+    // allocator.dealloc(mem3);
 
     // constexpr Size count = 384;
     // Memory mem4[count];

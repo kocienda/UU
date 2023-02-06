@@ -54,7 +54,7 @@ public:
     constexpr bool test(Size idx) { Size blk = block_for(idx); return m_blocks[blk] & mask_for(idx, blk); }
     constexpr void reset() { memset(&m_blocks, 0, BlockCount * sizeof(UInt64)); }
     constexpr bool is_empty() const { 
-        for (int idx = 0; idx < BlockCount; idx++) { 
+        for (UInt32 idx = 0; idx < BlockCount; idx++) { 
             if (m_blocks[idx] != 0) {
                 return false;
             } 
@@ -73,27 +73,27 @@ public:
     }
     constexpr bool not_full() const { return !is_full(); }
 
-    constexpr int count() const { 
+    constexpr UInt32 count() const { 
         int c = 0;
         for (int idx = 0; idx < BlockCount; idx++) { 
-            c += UU::popcount(m_blocks[idx]);
+            c += std::popcount(m_blocks[idx]);
         }
         return c;
     }
 
-    constexpr int peek() const { 
-        for (int idx = 0; idx < BlockCount; idx++) { 
-            int p = UU::countr_one(m_blocks[idx]);
-            if (p != -1) {
+    constexpr UInt32 peek() const { 
+        for (UInt32 idx = 0; idx < BlockCount; idx++) { 
+            UInt32 p = std::countr_one(m_blocks[idx]);
+            if (p != BitsPerSubBlock) {
                 return (idx * BitsPerSubBlock) + p;
             }
         }
         return -1; 
     }
 
-    constexpr int take() { 
+    constexpr UInt32 take() { 
         ASSERT(not_full());
-        int idx = peek();
+        UInt32 idx = peek();
         set(idx);
         return idx;
     }
@@ -118,14 +118,14 @@ public:
     constexpr void set(Size idx) { m_block |= mask_for(idx); }
     constexpr void set(const Stretch<Size> &s) { for (auto it : s) { set(it); } }
     constexpr void clear(Size idx) { m_block &= ~(mask_for(idx)); }
-    constexpr bool get(Size idx) { return m_block & mask_for(idx); }
+    constexpr bool test(Size idx) { return m_block & mask_for(idx); }
     constexpr void reset() { memset(&m_block, 0, sizeof(UInt64)); }
     constexpr bool is_empty() const { return m_block == 0; }
     constexpr bool not_empty() const { return !is_empty(); }
     constexpr bool is_full() const { return m_block == UInt64Max; }
     constexpr bool not_full() const { return !is_full(); }
-    constexpr int count() const { return UU::popcount(m_block); }
-    constexpr int peek() const { return UU::countr_one(m_block); }
+    constexpr int count() const { return std::popcount(m_block); }
+    constexpr int peek() const { return std::countr_one(m_block); }
     constexpr int take() { 
         ASSERT(not_full());
         int idx = peek();

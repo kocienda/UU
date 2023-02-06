@@ -115,6 +115,7 @@ template <typename T> concept IsUnsignedIntegral =
     std::is_same_v<T, UInt32> || std::is_same_v<T, UInt64>;
 
 template <Size S> concept IsNonZeroSize = (S > 0);
+template <Size S> concept IsGreaterThanOne = (S > 1);
 template <Size S> concept IsOne = (S == 1);
 template <Size S> concept IsMultipleOfChar32Size = (S % sizeof(Char32) == 0);
 template <Size S> concept IsMutipleOf64 = (S % 64 == 0);

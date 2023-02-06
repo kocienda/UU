@@ -47,8 +47,11 @@ UU_ALWAYS_INLINE constexpr int countr_one(N n) {
         return __builtin_ffs(x) - 1;
     }
     else if constexpr (std::is_same_v<N, UInt64>) {
+        if (n == UInt64Max) {
+            return 0;
+        }
         unsigned long long x = ~n;
-        return __builtin_ffsll(x) - 1;
+        return __builtin_clzll(x);
     }
 #elif COMPILER(MSVC)
     if constexpr (std::is_same_v<N, UInt32>) {
