@@ -114,14 +114,14 @@ template <typename T> concept IsUnsignedIntegral =
     std::is_same_v<T, UInt8> || std::is_same_v<T, UInt16> || 
     std::is_same_v<T, UInt32> || std::is_same_v<T, UInt64>;
 
-template <Size S> concept IsNonZeroSize = (S > 0);
+template <Size S> concept IsGreaterThanZero = (S > 0);
 template <Size S> concept IsGreaterThanOne = (S > 1);
 template <Size S> concept IsOne = (S == 1);
-template <Size S> concept IsMultipleOfChar32Size = (S % sizeof(Char32) == 0);
-template <Size S> concept IsMutipleOf64 = (S % 64 == 0);
 template <Size A, Size B, Size C = 0> concept IsGreaterThan = (A + C > B);
 template <Size A, Size B, Size C = 0> concept IsLessThan = (A + C < B);
 template <Size A, Size B, Size C = 0> concept IsLessThanOrEqual = (A + C <= B);
+template <Size S> concept IsMultipleOfChar32Size = (S % sizeof(Char32) == 0);
+template <Size S> concept IsMutipleOf64 = (S % 64 == 0);
 
 }  // namespace UU
 

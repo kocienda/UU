@@ -32,7 +32,7 @@
 
 namespace UU {
 
-template <Size S, typename A> requires IsNonZeroSize<S>
+template <Size S, typename A> requires IsGreaterThanZero<S>
 class Storage 
 {
 public:
