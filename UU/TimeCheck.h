@@ -25,10 +25,7 @@
 #ifndef UU_TIME_CHECK_H
 #define UU_TIME_CHECK_H
 
-#include <stdio.h>
-
 #include <chrono>
-#include <string>
 
 #include <UU/Assertions.h>
 
@@ -41,8 +38,6 @@ struct TimeCheck {
     TimeMark mark;
     TimeElapsed elapsed = TimeElapsed(0);
 };
-
-
 
 UU_ALWAYS_INLINE TimeMark time_check_now() {
     return std::chrono::steady_clock::now();
