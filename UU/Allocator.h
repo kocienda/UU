@@ -1,10 +1,10 @@
 //
-// Allocator.cpp
+// Allocator.h
 //
 // MIT License
-// Copyright (c) 2022 Ken Kocienda. All rights reserved.
+// Copyright (c) 2022-2023 Ken Kocienda. All rights reserved.
 // 
-// Permission is hereby granted, dealloc of charge, to any person obtaining a copy
+// Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -26,11 +26,12 @@
 #define UU_ALLOCATOR_H
 
 #include <format>
+#include <string>
 
 #include <UU/Assertions.h>
 #include <UU/BitBlock.h>
+#include <UU/MathLike.h>
 #include <UU/Types.h>
-#include <UU/UUString.h>
 
 namespace UU {
 
@@ -50,21 +51,17 @@ constexpr Size align_up(Size size) {
 
 struct Memory {
     constexpr Memory() {}
-    constexpr Memory(void *ptr_, Size length_, Size ref_ = 0) : 
-        ptr(ptr_), length(length_), ref(ref_) {}
+    constexpr Memory(void *ptr_, Size capacity_) : ptr(ptr_), capacity(capacity_) {}
     constexpr bool is_empty() const { return ptr == nullptr; }
     constexpr bool not_empty() const { return !is_empty(); }
     void *ptr = nullptr;
-    Size length = 0;
-    Size ref = 0;
+    Size capacity = 0;
 };
 
 // MemoryBlock ====================================================================================
 
-template <Size Length, Size Count> requires IsMutipleOf64<Count>
+template <Size Capacity, Size Count> requires IsMutipleOf64<Count>
 struct MemoryBlock {
-    static constexpr Size Capacity = Length * Count;
-    static constexpr Size BlockCount = Count / 64;
     constexpr MemoryBlock() {}
     
     constexpr bool is_empty() const { return bits.is_empty(); }
@@ -73,21 +70,24 @@ struct MemoryBlock {
     constexpr bool not_full() const { return !is_full(); }
 
     UU_ALWAYS_INLINE
-    constexpr void ensure() { 
+    constexpr void reserve() { 
         if (UNLIKELY(base == nullptr)) {
-            base = malloc(Capacity);
+            base = malloc(Capacity * Count);
         }
     }
     constexpr Memory take() {
-        ensure();
+        reserve();
         ASSERT(not_full());
         UInt32 idx = bits.peek();
         bits.set(idx);
-        return { byte_ptr(base) + (idx * Length), Length, idx };
+        LOG(Memory, "MemoryBlock take: %d of %d", idx, Count);
+        return { byte_ptr(base) + (idx * Capacity), Capacity };
     }
     constexpr void put(const Memory &mem) { 
-        ASSERT(bits.test(mem.ref));
-        bits.clear(mem.ref);
+        Size idx = (byte_ptr(mem.ptr) - byte_ptr(base)) / Capacity;
+        LOG(Memory, "MemoryBlock put: %d", idx);
+        ASSERT(idx < Count);
+        bits.clear(idx);
     }
     constexpr void reset() { 
         bits.reset();
@@ -98,63 +98,11 @@ struct MemoryBlock {
         base = nullptr;
     }
     bool contains(const Memory &mem) const {
-        return mem.ptr >= base && mem.ptr < (byte_ptr(base) + Capacity);
+        return mem.ptr >= base && mem.ptr < (byte_ptr(base) + (Capacity * Count));
     }    
 
     void *base = nullptr;
-    BitBlock<BlockCount> bits;
-};
-
-// Freelist =======================================================================================
-
-template <typename Allocator, Size Length, Size Capacity = SizeMax>
-class Freelist
-{
-public:
-    Memory alloc(Size length) {
-        if (!root) {
-            return parent.alloc(length);
-        }
-        Size elength = align_up(length);
-        if (elength > Length) {
-            return parent.alloc(length);
-        }
-        ASSERT(capacity > 0);
-        Byte *ptr = (Byte *)root;
-        LOG(Memory, "Returning from freelist: %lu : %p", Length, ptr);
-        Memory mem(ptr, Length);
-        root = root->next;
-        capacity--;
-        return mem;
-    }
-
-    void dealloc(Memory mem) {
-        Size elength = align_up(mem.length);
-        if (elength < Length || capacity >= Capacity) {
-            LOG(Memory, "Freelist freeing from parent: %lu : %p", mem.length, mem.ptr);
-            parent.dealloc(mem);
-            return;
-        }
-        LOG(Memory, "Storing in freelist: %lu : %p", mem.length, mem.ptr);
-        auto node = (Node *)mem.ptr;
-        node->next = root;
-        root = node;
-        capacity++;
-    }
-
-    bool owns(const Memory &mem) const { 
-        Size elength = align_up(mem.length);
-        return elength == Length || parent.owns(mem);
-    }    
-
-private:
-    struct Node { 
-        Node *next = nullptr;
-    };
-
-    Allocator parent;
-    Node *root = nullptr;
-    Size capacity = 0;
+    BitBlock<Count / BitBlockBitsPerSubBlock> bits;
 };
 
 // NullAllocator ==================================================================================
@@ -162,79 +110,158 @@ private:
 class NullAllocator
 {
 public:
-    Memory alloc(Size length) {
+    Memory alloc(Size capacity) {
         return Memory();
     }
 
-    void dealloc(Memory mem) {
+    bool dealloc(Memory mem) {
+        if (!owns(mem)) {
+            return false;
+        }
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
         ASSERT(mem.ptr == nullptr);
     }
 
-    bool owns(const Memory &mem) const { return mem.ptr == nullptr; }    
+    bool owns(const Memory &mem) const { return mem.ptr == nullptr; }
 };
 
+// Freelist =======================================================================================
+
+template <typename Alloc, Size Length, Size Count = SizeMax>
+class Freelist
+{
+public:
+    Memory alloc(Size capacity) {
+        if (!root) {
+            return parent.alloc(capacity);
+        }
+        Size ecap = align_up(capacity);
+        if (ecap > Length) {
+            return parent.alloc(capacity);
+        }
+        ASSERT(count > 0);
+        Byte *ptr = (Byte *)root;
+        LOG(Memory, "Returning from freelist: %lu : %p", Length, ptr);
+        Memory mem(ptr, Length);
+        root = root->next;
+        count--;
+        return mem;
+    }
+
+    bool dealloc(Memory mem) {
+        if (!owns(mem)) {
+            return false;
+        }
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
+        Size ecap = align_up(mem.capacity);
+        if (ecap < Length || count >= Count) {
+            LOG(Memory, "Freelist freeing from parent: %lu : %p", mem.capacity, mem.ptr);
+            parent.free(mem);
+            return;
+        }
+        LOG(Memory, "Storing in freelist: %lu : %p", mem.capacity, mem.ptr);
+        auto node = (Node *)mem.ptr;
+        node->next = root;
+        root = node;
+        count++;
+    }
+
+    bool owns(const Memory &mem) const { 
+        Size ecap = align_up(mem.capacity);
+        return ecap == Length || parent.owns(mem);
+    }    
+
+private:
+    struct Node { 
+        Node *next = nullptr;
+    };
+
+    Alloc parent;
+    Node *root = nullptr;
+    Size count = 0;
+};
 
 // Segregator =====================================================================================
 
-template <Size Threshold, typename First, typename Second>
+template <Size Threshold, typename FirstAlloc, typename SecondAlloc>
 class Segregator
 {
 public:
-    Memory alloc(Size length) {
+    Memory alloc(Size capacity) {
         Memory mem;
-        if (length <= Threshold) {
-            mem = first.alloc(length);
+        if (capacity <= Threshold) {
+            mem = first.alloc(capacity);
         }
         else {
-            mem = second.alloc(length);
+            mem = second.alloc(capacity);
         }
         return mem;
     }
 
-    void dealloc(Memory mem) {
-        if (mem.length <= Threshold && first.owns(mem)) {
-            first.dealloc(mem);
+    bool dealloc(Memory mem) {
+        if (!owns(mem)) {
+            return false;
+        }
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
+        if (mem.capacity <= Threshold && first.owns(mem)) {
+            first.free(mem);
         }
         else {
-            second.dealloc(mem);
+            second.free(mem);
         }
     }
 
     bool owns(const Memory &mem) const { return first.owns(mem) || second.owns(mem); }
 
 private:
-    First first; 
-    Second second; 
+    FirstAlloc first;
+    SecondAlloc second;
 };
 
 // FallbackAllocator ==============================================================================
 
-template <typename First, typename Second>
-class FallbackAllocator
+template <typename FirstAlloc, typename SecondAlloc>
+class FallbackAllocator : private FirstAlloc, private SecondAlloc
 {
 public:
-    Memory alloc(Size length) {
-        Memory mem = first.alloc(length);
+    Memory alloc(Size capacity) {
+        Memory mem = FirstAlloc::alloc(capacity);
         if (!mem.ptr) {
-            mem = second.alloc(length);
+            mem = SecondAlloc::alloc(capacity);
         }
         return mem;
     }
 
-    void dealloc(Memory mem) {
-        if (first.owns(mem)) {
-            first.dealloc(mem);
+    bool dealloc(Memory mem) {
+        if (!owns(mem)) {
+            return false;
+        }
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
+        if (FirstAlloc::owns(mem)) {
+            FirstAlloc::free(mem);
         }
         else {
-            second.dealloc(mem);
+            SecondAlloc::free(mem);
         }
     }
 
-    bool owns(const Memory &mem) const { return first.owns(mem) || second.owns(mem); }
-
-private:
-    First first; 
-    Second second; 
+    bool owns(const Memory &mem) const { return FirstAlloc::owns(mem) || SecondAlloc::owns(mem); }
 };
 
 // StackAllocator =================================================================================
@@ -243,26 +270,34 @@ template <Size S, Size Chunk = 64> requires IsGreaterThan<S, Chunk>
 class StackAllocator
 {
 public:
-    static constexpr Size Capacity = S;
+    static constexpr Size Count = S;
     static constexpr Size EChunk = align_up(Chunk);
 
     constexpr StackAllocator() : ptr(base()) {}
 
-    Memory alloc(Size length) {
-        Size elength = std::max(align_up(length), EChunk);
+    Memory alloc(Size capacity) {
+        Size ecap = std::max(align_up(capacity), EChunk);
         Memory mem;
-        if (LIKELY(elength <= remaining())) {
-            LOG(Memory, "StackAllocator alloc: %lu : %p", elength, ptr);
-            mem = Memory(ptr, elength);
-            ptr += elength;
+        if (LIKELY(ecap <= remaining())) {
+            LOG(Memory, "StackAllocator alloc: %lu : %p", ecap, ptr);
+            mem = Memory(ptr, ecap);
+            ptr += ecap;
         }
         return mem;
     }
 
-    void dealloc(Memory mem) {
+    bool dealloc(Memory mem) {
+        if (!owns(mem)) {
+            return false;
+        }
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
         Byte *mem_ptr = byte_ptr(mem.ptr);
-        if (ptr == mem_ptr + align_up(mem.length)) {
-            LOG(Memory, "StackAllocator dealloc: %lu : %p", mem.length, mem_ptr);
+        if (ptr == mem_ptr + align_up(mem.capacity)) {
+            LOG(Memory, "StackAllocator free: %lu : %p", mem.capacity, mem_ptr);
             ptr = mem_ptr;
         }
     }
@@ -271,22 +306,18 @@ public:
         ptr = base();
     }
 
-    bool owns(const Memory &mem) const { 
-        return mem.ptr >= base() && mem.ptr < base() + Capacity; 
+    bool owns(const Memory &mem) const {
+        return mem.ptr >= base() && mem.ptr < base() + Count; 
     }    
-
-    UInt64 marker() const {
-        return reinterpret_cast<UInt64>(this);
-    }
 
 private:
     UU_ALWAYS_INLINE 
     Byte *base() const { return reinterpret_cast<Byte *>(const_cast<Byte *>(bytes)); }
     
     UU_ALWAYS_INLINE 
-    Size remaining() const { return Capacity - (ptr - base()); }
+    Size remaining() const { return Count - cast_size(ptr - base()); }
 
-    Byte bytes[Capacity];
+    Byte bytes[Count];
     Byte *ptr;
 };
 
@@ -298,33 +329,37 @@ class BlockAllocator
 {
 public:
     using Block = MemoryBlock<HiFit, Count>;
-    static constexpr Size Capacity = Block::Capacity;
-    static constexpr Size BlockCount = Block::BlockCount;
 
     constexpr BlockAllocator() {}
 
-    constexpr bool fits(Size length) const { return length >= LoFit && length <= HiFit; }
+    constexpr bool fits(Size capacity) const { return capacity >= LoFit && capacity <= HiFit; }
 
-    Memory alloc(Size length) {
-        Size elength = align_up(length);
+    Memory alloc(Size capacity) {
+        Size ecap = align_up(capacity);
         Memory mem;
         bool test_fit = true;
         if constexpr (ChecksFit) {
-            test_fit = fits(length);
+            test_fit = fits(ecap);
         }
         if (test_fit && m_block.not_full()) {
-            ASSERT(fits(elength));
+            ASSERT(fits(ecap));
             mem = m_block.take();
-            LOG(Memory, "BlockAllocator alloc: %lu : %p : %d", mem.length, mem.ptr, mem.ref);
+            LOG(Memory, "BlockAllocator alloc: %lu : %p", mem.capacity, mem.ptr);
         }
         return mem;
     }
 
-    void dealloc(Memory mem) {
-        if (owns(mem)) {
-            LOG(Memory, "BlockAllocator dealloc: %lu : %p : %d", mem.length, mem.ptr, mem.ref);
-            m_block.put(mem);
+    bool dealloc(Memory mem) {
+        if (!owns(mem)) {
+            return false;
         }
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
+        LOG(Memory, "BlockAllocator free: %lu : %p", mem.capacity, mem.ptr);
+        m_block.put(mem);
     }
 
     void free_all() {
@@ -346,7 +381,7 @@ private:
 
 // CascadingAllocator =============================================================================
 
-template <typename Allocator, Size MaxCount = 8> requires IsGreaterThanOne<MaxCount>
+template <typename Alloc, Size MaxCount = 8> requires IsGreaterThanOne<MaxCount>
 class CascadingAllocator
 {
 public:
@@ -354,12 +389,12 @@ public:
         m_allocators.emplace_back();
     }
 
-    Memory alloc(Size length) {
-        Size elength = align_up(length);
+    Memory alloc(Size capacity) {
+        Size ecap = align_up(capacity);
         Memory mem;
         // search from most recent allocator to return a Memory
         for (Size idx = index; idx < m_allocators.size(); idx++) {
-            mem = m_allocators[idx].alloc(elength);
+            mem = m_allocators[idx].alloc(ecap);
             if (mem.not_empty()) {
                 index = idx;
                 return mem;
@@ -367,7 +402,7 @@ public:
         }
         // search from start
         for (Size idx = 0; idx < index; idx++) {
-            mem = m_allocators[idx].alloc(elength);
+            mem = m_allocators[idx].alloc(ecap);
             if (mem.not_empty()) {
                 index = idx;
                 return mem;
@@ -376,27 +411,31 @@ public:
         // if (m_allocators.size() < MaxCount) {
             // cascade… add a new allocator
             LOG(Memory, "CascadingAllocator adding allocator: %llu", m_allocators.size());
-            Allocator &a = m_allocators.emplace_back();
-            index = m_allocators.size() - 1;
-            mem = a.alloc(elength);
+            Alloc &a = m_allocators.emplace_back();
+            index = cast_size(m_allocators.size()) - 1;
+            mem = a.alloc(ecap);
         // }
         return mem;
     }
 
-    void dealloc(Memory mem) {
+    bool dealloc(Memory mem) {
         for (Size idx = 0; idx < m_allocators.size(); idx++) {
-            Allocator &a = m_allocators[idx];
-            if (a.owns(mem)) {
-                a.dealloc(mem);
+            Alloc &a = m_allocators[idx];
+            if (a.dealloc(mem)) {
                 if (m_allocators.size() > 1 && a.is_empty()) {
                     // reclaim allocator
                     LOG(Memory, "CascadingAllocator freeing allocator: %llu", idx);
                     a.free_all();
                     m_allocators.erase(m_allocators.begin() + idx);
                 }
-                break;
+                return true;
             }
         }
+        return false;
+    }
+
+    void free(Memory mem) {
+        dealloc(mem);
     }
 
     bool owns(const Memory &mem) const { 
@@ -409,41 +448,49 @@ public:
     }    
 
 private:
-    std::vector<Allocator> m_allocators;
+    std::vector<Alloc> m_allocators;
     Size index = 0;
 };
 
 // StatsAllocator =================================================================================
 
-template <typename Allocator>
-class StatsAllocator : private Allocator
+template <typename Alloc>
+class StatsAllocator : private Alloc
 {
 public:
-    Memory alloc(Size length) {
-        Memory mem = Allocator::alloc(length);
+    Memory alloc(Size capacity) {
+        Memory mem = Alloc::alloc(capacity);
         allocs++;
-        bytes_allocated += mem.length;
-        bytes_allocated_now += mem.length;
+        bytes_allocated += mem.capacity;
+        bytes_allocated_now += mem.capacity;
         bytes_allocated_highwater = std::max(bytes_allocated_highwater, bytes_allocated_now);
         return mem;
     }
 
-    void dealloc(Memory mem) {
+    bool dealloc(Memory mem) {
+        if (!owns(mem)) {
+            return false;
+        }
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
         if (!owns(mem)) {
             return;
         }
         deallocs++;
-        bytes_deallocated += mem.length;
-        bytes_allocated_now -= mem.length;
-        Allocator::dealloc(mem);
+        bytes_deallocated += mem.capacity;
+        bytes_allocated_now -= mem.capacity;
+        Alloc::free(mem);
     }
 
-    bool owns(const Memory &mem) const { return Allocator::owns(mem); }    
+    bool owns(const Memory &mem) const { return Alloc::owns(mem); }    
 
-    String stats() const {
+    std::string stats() const {
         Size num_digits = number_of_digits(bytes_allocated);
         std::string num_fmt = "{0:" + integer_to_string(num_digits) + "}";
-        String result;
+        std::string result;
         std::string allocs_fmt =                    std::format("allocs:                    {0}\n", num_fmt);
         std::string deallocs_fmt =                  std::format("deallocs:                  {0}\n", num_fmt);
         std::string bytes_allocated_fmt =           std::format("bytes allocated:           {0}\n", num_fmt);
@@ -476,14 +523,19 @@ private:
 class Mallocator
 {
 public:
-    Memory alloc(Size length) {
-        Memory mem = Memory(malloc(length), length);
-        LOG(Memory, "Mallocator alloc: %lu : %p", mem.length, mem.ptr);
+    Memory alloc(Size capacity) {
+        Memory mem = Memory(malloc(capacity), capacity);
+        LOG(Memory, "Mallocator alloc: %lu : %p", mem.capacity, mem.ptr);
         return mem;
     }
 
-    void dealloc(Memory mem) {
-        LOG(Memory, "Mallocator dealloc: %lu : %p", mem.length, mem.ptr);
+    bool dealloc(Memory mem) {
+        free(mem);
+        return true;
+    }
+
+    void free(Memory mem) {
+        LOG(Memory, "Mallocator free: %lu : %p", mem.capacity, mem.ptr);
         ::free(mem.ptr);
     }
 

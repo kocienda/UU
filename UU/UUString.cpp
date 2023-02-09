@@ -47,7 +47,7 @@ template <> String & String::append(const Spread<int> &spread)
     return *this;
 }
 
-template <> String & String::append(const Spread<size_t> &spread)
+template <> String & String::append(const Spread<Size> &spread)
 {
     bool first = true;
     for (const auto &r : spread.stretches()) {

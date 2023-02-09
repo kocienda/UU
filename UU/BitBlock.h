@@ -2,7 +2,7 @@
 // BitBlock.h
 //
 // MIT License
-// Copyright (c) 2022 Ken Kocienda. All rights reserved.
+// Copyright (c) 2022-2023 Ken Kocienda. All rights reserved.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,19 +34,20 @@
 
 namespace UU {
 
+static constexpr Size BitBlockBitsPerSubBlock = 64;
+static constexpr Size BitBlockBitShift = 6;
+
 template <Size C>
 class BitBlock {
 public:
     static constexpr Size BlockCount = C;
-    static constexpr Size BitsPerSubBlock = 64;
-    static constexpr Size  ShiftsPerSubBlock = 6;
 
     constexpr BitBlock() { reset(); }
 
-    constexpr Size bits() const { return BlockCount * BitsPerSubBlock; }
+    constexpr Size bits() const { return BlockCount * BitBlockBitsPerSubBlock; }
     constexpr Size size() const { return bits(); }
-    constexpr Size block_for(Size idx) { ASSERT(idx < bits()); return idx >> ShiftsPerSubBlock; }
-    constexpr UInt64 mask_for(Size idx, Size blk) { ASSERT(idx < bits()); return UInt64(1) << (idx & ~(blk << ShiftsPerSubBlock)); }
+    constexpr Size block_for(Size idx) { ASSERT(idx < bits()); return idx >> BitBlockBitShift; }
+    constexpr UInt64 mask_for(Size idx, Size blk) { ASSERT(idx < bits()); return UInt64(1) << (idx & ~(blk << BitBlockBitShift)); }
     constexpr void fill() { memset(&m_blocks, 1, BlockCount * sizeof(UInt64)); }
     constexpr void set(Size idx) { Size blk = block_for(idx); m_blocks[blk] |= mask_for(idx, blk); }
     constexpr void set(const Stretch<Size> &s) { for (auto it : s) { set(it); } }
@@ -84,8 +85,8 @@ public:
     constexpr UInt32 peek() const { 
         for (UInt32 idx = 0; idx < BlockCount; idx++) { 
             UInt32 p = std::countr_one(m_blocks[idx]);
-            if (p != BitsPerSubBlock) {
-                return (idx * BitsPerSubBlock) + p;
+            if (p != BitBlockBitsPerSubBlock) {
+                return (idx * BitBlockBitsPerSubBlock) + p;
             }
         }
         return -1; 
@@ -106,12 +107,10 @@ template <>
 class BitBlock<1> {
 public:
     static constexpr Size BlockCount = 1;
-    static constexpr Size BitsPerSubBlock = 64;
-    static constexpr Size  ShiftsPerSubBlock = 6;
 
     constexpr BitBlock() { reset(); }
 
-    constexpr Size bits() const { return BitsPerSubBlock; }
+    constexpr Size bits() const { return BitBlockBitsPerSubBlock; }
     constexpr Size size() const { return bits(); }
     constexpr UInt64 mask_for(Size idx) { ASSERT(idx < bits()); return UInt64(1) << idx; }
     constexpr void fill() { memset(&m_block, 1, sizeof(UInt64)); }
