@@ -25,22 +25,26 @@
 #ifndef UU_TIME_CHECK_H
 #define UU_TIME_CHECK_H
 
-#include <chrono>
+#include <time.h>
 
 #include <UU/Assertions.h>
+#include <UU/Types.h>
 
 namespace UU {
 
-using TimeMark = std::chrono::time_point<std::chrono::steady_clock>;
-using TimeElapsed = std::chrono::duration<double>;
+using TimeMark = UInt64;
+using TimeElapsed = UInt64;
 
 struct TimeCheck {
-    TimeMark mark;
+    TimeMark mark = TimeMark(0);
     TimeElapsed elapsed = TimeElapsed(0);
 };
 
 UU_ALWAYS_INLINE TimeMark time_check_now() {
-    return std::chrono::steady_clock::now();
+    static constexpr UInt64 BILLION = 1000000000;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+    return (ts.tv_sec * BILLION) + (ts.tv_nsec);
 }
 
 UU_ALWAYS_INLINE TimeCheck &time_check_get(int idx) {
@@ -58,10 +62,9 @@ UU_ALWAYS_INLINE void time_check_mark(int idx) {
 
 UU_ALWAYS_INLINE void time_check_done(int idx) {
     ASSERT(idx < TIME_CHECK_COUNT);
-    TimeCheck &time_check = time_check_get(idx);
     TimeMark done = time_check_now();
-    TimeElapsed elapsed = done - time_check.mark;
-    time_check.elapsed += elapsed;
+    TimeCheck &time_check = time_check_get(idx);
+    time_check.elapsed += (done - time_check.mark);
 }
 
 UU_ALWAYS_INLINE TimeElapsed time_check_elapsed(int idx) {
@@ -71,12 +74,14 @@ UU_ALWAYS_INLINE TimeElapsed time_check_elapsed(int idx) {
 }
 
 UU_ALWAYS_INLINE double time_check_elapsed_seconds(int idx) {
-    return time_check_elapsed(idx).count();
+    static constexpr double BILLION = 1000000000.0;
+    return time_check_elapsed(idx) / BILLION;
 }
 
 UU_ALWAYS_INLINE void time_check_reset(int idx) {
     ASSERT(idx < TIME_CHECK_COUNT);
     TimeCheck &time_check = time_check_get(idx);
+    time_check.mark = TimeMark(0);
     time_check.elapsed = TimeElapsed(0);
 }
 
