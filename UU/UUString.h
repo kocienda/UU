@@ -43,7 +43,9 @@
 #include <stdlib.h>
 
 #include <UU/Assertions.h>
+#include <UU/Allocator.h>
 #include <UU/Compiler.h>
+#include <UU/Context.h>
 #include <UU/IteratorWrapper.h>
 #include <UU/MathLike.h>
 #include <UU/Types.h>
@@ -59,7 +61,7 @@ class TextRef;
 
 // string size ====================================================================================
 
-static constexpr Size BasicStringDefaultInlineCapacity = 72;
+static constexpr Size BasicStringDefaultInlineCapacity = 96;
 
 // template metaprogramming =======================================================================
 
@@ -131,7 +133,7 @@ public:
     // public guts inspection =====================================================================
 
     template <bool B = true> constexpr bool is_using_inline_buffer() const { 
-        return (m_ptr == const_cast<CharT *>(m_buf)) == B; 
+        return (data() == const_cast<CharT *>(m_buf)) == B; 
     }
 
     template <bool B = true> constexpr bool is_using_allocated_buffer() const { 
@@ -143,12 +145,12 @@ private:
 
 #define UU_STRING_ASSERT_NULL_TERMINATED \
     do { \
-        ASSERT_WITH_MESSAGE(m_ptr[m_length] == '\0', "string not null terminated"); \
+        ASSERT_WITH_MESSAGE(data()[m_length] == '\0', "string not null terminated"); \
     } while (0)
 
     UU_ALWAYS_INLINE constexpr void null_terminate() {
         ensure_capacity(m_length);
-        m_ptr[m_length] = '\0';
+        data()[m_length] = '\0';
     }
 
     UU_ALWAYS_INLINE 
@@ -206,10 +208,8 @@ private:
 #endif
     }
 
-    UU_ALWAYS_INLINE CharT *ptr() const { return m_ptr; }
-
     template <bool B = true> constexpr bool is_same_string(const BasicString &other) const { 
-        return (ptr() == other.ptr()) == B; 
+        return (data() == other.data()) == B; 
     }
 
     template <bool B = true> constexpr bool are_same_strings(const BasicString &a, const BasicString &b) const { 
@@ -287,7 +287,7 @@ public:
 
     constexpr BasicString(BasicString &&other) {
         if (other.is_using_allocated_buffer()) {
-            m_ptr = other.m_ptr;
+            m_ptr = other.data();
             m_length = other.length();
             m_capacity = other.capacity();
             other.reset();
@@ -317,7 +317,9 @@ public:
 
     constexpr ~BasicString() {
         if (is_using_allocated_buffer()) {
-            free(m_ptr);
+            Memory mem = { data(), capacity() };
+            Allocator &allocator = Context::get().allocator();
+            allocator.dealloc(mem);
         }
     }
 
@@ -329,10 +331,10 @@ public:
     constexpr Size size() const { return m_length; }
     constexpr Size max_size() const noexcept { return std::distance(begin(), end()); }
     constexpr Size capacity() const { return m_capacity; }
-    constexpr CharT& front() { return m_ptr[0]; }
-    constexpr CharT& front() const { return m_ptr[0]; }
-    constexpr CharT& back() { return m_ptr[m_length - 1]; }
-    constexpr CharT& back() const { return m_ptr[m_length - 1]; }
+    constexpr CharT& front() { return data()[0]; }
+    constexpr CharT& front() const { return data()[0]; }
+    constexpr CharT& back() { return data()[m_length - 1]; }
+    constexpr CharT& back() const { return data()[m_length - 1]; }
 
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     constexpr const char *c_str() const noexcept { return reinterpret_cast<const char *>(data()); }
@@ -345,7 +347,7 @@ public:
     
     constexpr CharT at(Size index) {
         if (LIKELY(m_length > index)) {
-            return m_ptr[index];
+            return data()[index];
         }
         else {
             return return_empty_or_throw_out_of_range(index);
@@ -354,7 +356,7 @@ public:
     
     constexpr const CharT &at(Size index) const {
         if (LIKELY(m_length > index)) {
-            return m_ptr[index];
+            return data()[index];
         }
         else {
             return return_empty_or_throw_out_of_range(index);
@@ -384,10 +386,11 @@ public:
         }
 
         if (length() < InlineCapacity) {
-            CharT *old_ptr = m_ptr;
+            Memory old_mem = { data(), capacity() };
+            Allocator &allocator = Context::get().allocator();
             m_ptr = m_buf;
-            TraitsT::copy(m_ptr, old_ptr, length());
-            free(old_ptr);
+            TraitsT::copy(data(), (CharT *)old_mem.ptr, length());
+            allocator.dealloc(old_mem);
             null_terminate();
             ASSERT(is_using_inline_buffer());
             return;
@@ -397,11 +400,14 @@ public:
         if (shrink_length == ceil_to_page_size(capacity())) {
             return;
         }
-        CharT *old_ptr = m_ptr;
+
+        Memory old_mem = { data(), capacity() };
+        Allocator &allocator = Context::get().allocator();
         Size amt = (shrink_length * sizeof(CharT)) + 1;
-        m_ptr = static_cast<CharT *>(malloc(amt));
-        TraitsT::copy(m_ptr, old_ptr, length());
-        free(old_ptr);
+        Memory mem = allocator.alloc(amt);
+        m_ptr = (CharT *)mem.ptr;
+        TraitsT::copy(m_ptr, (CharT *)old_mem.ptr, length());
+        allocator.dealloc(old_mem);
         null_terminate();
         ASSERT(is_using_allocated_buffer());
     }
@@ -467,7 +473,7 @@ public:
 
     constexpr BasicString &assign(BasicString &&str) noexcept {
         if (str.is_using_allocated_buffer()) {
-            m_ptr = str.m_ptr;
+            data() = str.data();
             m_length = str.length();
             m_capacity = str.capacity();
         }
@@ -549,7 +555,7 @@ public:
     constexpr BasicString &append(Size count, CharT c) {
         ensure_capacity(m_length + count);
         for (Size idx = 0; idx < count; idx++) {
-            m_ptr[m_length + idx] = c;
+            data()[m_length + idx] = c;
         }
         m_length += count;
         null_terminate();
@@ -579,7 +585,7 @@ public:
     constexpr BasicString &append(const char *ptr, Size length) {
         ensure_capacity(m_length + length);
         for (Size idx = 0; idx < length; idx++) {
-            m_ptr[m_length + idx] = ptr[idx];
+            data()[m_length + idx] = ptr[idx];
         }
         m_length += length;
         null_terminate();
@@ -588,7 +594,7 @@ public:
     
     constexpr BasicString &append(const CharT *ptr, Size length) {
         ensure_capacity(m_length + length);
-        TraitsT::copy(m_ptr + m_length, ptr, length);
+        TraitsT::copy(data() + m_length, ptr, length);
         m_length += length;
         null_terminate();
         return *this;
@@ -599,7 +605,7 @@ public:
         Size length = strlen(ptr);
         ensure_capacity(m_length + length);
         for (Size idx = 0; idx < length; idx++) {
-            m_ptr[idx + length] = ptr[idx];
+            data()[idx + length] = ptr[idx];
         }
         m_length += length;
         null_terminate();
@@ -609,7 +615,7 @@ public:
     constexpr BasicString &append(const CharT *ptr) {
         Size length = TraitsT::length(ptr);
         ensure_capacity(m_length + length);
-        TraitsT::copy(m_ptr + m_length, ptr, length);
+        TraitsT::copy(data() + m_length, ptr, length);
         m_length += length;
         null_terminate();
         return *this;
@@ -620,7 +626,7 @@ public:
     constexpr BasicString &append(InputIt first, InputIt last) {
         for (auto it = first; it != last; ++it) {
             ensure_capacity(m_length);
-            m_ptr[m_length] = *it;
+            data()[m_length] = *it;
             m_length++;
         }
         null_terminate();
@@ -630,7 +636,7 @@ public:
     constexpr BasicString &append(std::initializer_list<CharT> ilist) {
         for (auto it = ilist.begin(); it != ilist.end(); ++it) {
             ensure_capacity(m_length);
-            m_ptr[m_length] = *it;
+            data()[m_length] = *it;
             m_length++;
         }
         null_terminate();
@@ -655,7 +661,7 @@ public:
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     constexpr BasicString &append(char c) {
         ensure_capacity(m_length);
-        m_ptr[m_length] = c;
+        data()[m_length] = c;
         m_length++;
         null_terminate();
         return *this;
@@ -663,7 +669,7 @@ public:
 
     constexpr BasicString &append(CharT c) {
         ensure_capacity(m_length);
-        m_ptr[m_length] = c;
+        data()[m_length] = c;
         m_length++;
         null_terminate();
         return *this;
@@ -696,7 +702,7 @@ public:
         TraitsT::move(dst, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
         for (Size idx = 0; idx < count; idx++) {
-            m_ptr[diff + idx] = c;
+            data()[diff + idx] = c;
         }
         m_length += count;
         null_terminate();
@@ -740,7 +746,7 @@ public:
         ensure_capacity(m_length);
         iterator dst = unconst_copy(pos);
         TraitsT::move(dst + 1, pos, end() - pos);
-        m_ptr[pos - begin()] = c;
+        data()[pos - begin()] = c;
         m_length++;
         null_terminate();
         return dst;
@@ -752,7 +758,7 @@ public:
         TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
         for (Size idx = 0; idx < count; idx++) {
-            m_ptr[diff + idx] = c;
+            data()[diff + idx] = c;
         }
         m_length += count;
         null_terminate();
@@ -768,7 +774,7 @@ public:
         TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
         for (Size idx = 0; idx < count; idx++) {
-            m_ptr[offset + idx] = *(first + idx);
+            data()[offset + idx] = *(first + idx);
         }
         m_length += count;
         null_terminate();
@@ -782,7 +788,7 @@ public:
         TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
         for (Size idx = 0; idx < count; idx++) {
-            m_ptr[offset + idx] = *(ilist.begin() + idx);
+            data()[offset + idx] = *(ilist.begin() + idx);
         }
         m_length += count;
         null_terminate();
@@ -813,7 +819,7 @@ public:
         }
         Size amt = std::min(count, length() - index);
         Size rem = length() - amt;
-        TraitsT::move(m_ptr + index, m_ptr + index + amt, rem);
+        TraitsT::move(data() + index, data() + index + amt, rem);
         m_length -= amt;
         null_terminate();
         return *this;
@@ -863,7 +869,7 @@ public:
     }
 
     constexpr bool starts_with(CharT c) const noexcept {
-        return length() > 0 && TraitsT::eq(m_ptr[0], c);
+        return length() > 0 && TraitsT::eq(data()[0], c);
     }
 
     constexpr bool starts_with(const CharT *s) const {
@@ -887,7 +893,7 @@ public:
     }
 
     constexpr bool ends_with(CharT c) const noexcept {
-        return length() > 0 && TraitsT::eq(m_ptr[length() - 1], c);
+        return length() > 0 && TraitsT::eq(data()[length() - 1], c);
     }
 
     constexpr bool ends_with(const CharT *s) const {
@@ -928,7 +934,7 @@ public:
 
     constexpr Size find(CharT c, Size pos = 0) const noexcept {
         for (Size idx = pos; idx < length(); idx++) {
-            if (TraitsT::eq(m_ptr[idx], c)) {
+            if (TraitsT::eq(data()[idx], c)) {
                 return idx;
             }
         }
@@ -951,7 +957,7 @@ public:
             const CharT a = t[0];
             const CharT b = t[1];
             for (Size idx = pos; idx < length() - 1; idx++) {
-                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::eq(m_ptr[idx + 1], b)) {
+                if (TraitsT::eq(data()[idx], a) && TraitsT::eq(data()[idx + 1], b)) {
                     return idx;
                 }
             }
@@ -960,7 +966,7 @@ public:
         else {
             const CharT a = t[0];
             for (Size idx = pos; idx <= length() - t.length(); idx++) {
-                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                if (TraitsT::eq(data()[idx], a) && TraitsT::compare(data() + idx, t.data(), t.length()) == 0) {
                     return idx;
                 }
             }
@@ -996,7 +1002,7 @@ public:
             const CharT a = t[0];
             const CharT b = t[1];
             for (Size idx = pos; idx < length() - 1; idx++) {
-                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::eq(m_ptr[idx + 1], b)) {
+                if (TraitsT::eq(data()[idx], a) && TraitsT::eq(data()[idx + 1], b)) {
                     return idx;
                 }
             }
@@ -1030,7 +1036,7 @@ public:
         }
         Size idx = std::min(pos, length() - 1);
         for (;;) {
-            if (TraitsT::eq(m_ptr[idx], c)) {
+            if (TraitsT::eq(data()[idx], c)) {
                 return idx;
             }
             if (idx == 0) {
@@ -1061,7 +1067,7 @@ public:
             const CharT b = t[1];
             Size idx = std::min(pos, length() - t.length());
             for (;;) {
-                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::eq(m_ptr[idx + 1], b)) {
+                if (TraitsT::eq(data()[idx], a) && TraitsT::eq(data()[idx + 1], b)) {
                     return idx;
                 }
                 if (idx == 0) {
@@ -1075,7 +1081,7 @@ public:
             const CharT a = t[0];
             Size idx = std::min(pos, length() - t.length());
             for (;;) {
-                if (TraitsT::eq(m_ptr[idx], a) && TraitsT::compare(m_ptr + idx, t.data(), t.length()) == 0) {
+                if (TraitsT::eq(data()[idx], a) && TraitsT::compare(data() + idx, t.data(), t.length()) == 0) {
                     return idx;
                 }
                 if (idx == 0) {
@@ -1113,7 +1119,7 @@ public:
         }
         for (Size idx = pos; idx < length(); idx++) {
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(data()[idx], t[cidx])) {
                     return idx;
                 }
             }
@@ -1140,7 +1146,7 @@ public:
             return npos;
         }
         for (Size idx = pos; idx < length(); idx++) {
-            if (!TraitsT::eq(m_ptr[idx], c)) {
+            if (!TraitsT::eq(data()[idx], c)) {
                 return idx;
             }
         }
@@ -1156,7 +1162,7 @@ public:
         for (Size idx = pos; idx < length(); idx++) {
             bool match = false;
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(data()[idx], t[cidx])) {
                     match = true;
                     break;
                 }
@@ -1198,7 +1204,7 @@ public:
         Size idx = std::min(pos, length() - 1);
         for (;;) {
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(data()[idx], t[cidx])) {
                     return idx;
                 }
             }
@@ -1227,7 +1233,7 @@ public:
     constexpr Size find_last_not_of(CharT c, Size pos = npos) const noexcept {
         Size idx = std::min(pos, length() - 1);
         for (;;) {
-            if (!TraitsT::eq(m_ptr[idx], c)) {
+            if (!TraitsT::eq(data()[idx], c)) {
                 return idx;
             }
             if (idx == 0) {
@@ -1251,7 +1257,7 @@ public:
         for (;;) {
             bool match = false;
             for (Size cidx = 0; cidx < t.length(); cidx++) {
-                if (TraitsT::eq(m_ptr[idx], t[cidx])) {
+                if (TraitsT::eq(data()[idx], t[cidx])) {
                     match = true;
                     break;
                 }
@@ -1386,11 +1392,11 @@ public:
     // operator[] =================================================================================
 
     constexpr CharT operator[](Size index) {
-        return m_ptr[index];
+        return data()[index];
     }
     
     constexpr const CharT &operator[](Size index) const {
-        return m_ptr[index];
+        return data()[index];
     }
 
     // operator= ==================================================================================
@@ -1406,9 +1412,9 @@ public:
         clear();
         if (other.is_using_allocated_buffer()) {
             if (is_using_allocated_buffer()) {
-                free(m_ptr);
+                free(data());
             }
-            m_ptr = other.m_ptr;
+            m_ptr = other.data();
             m_length = other.length();
             m_capacity = other.capacity();
         }
@@ -1519,27 +1525,27 @@ public:
     // iterators ==================================================================================
 
     constexpr iterator begin() {
-        return iterator(m_ptr);
+        return iterator(data());
     }
 
     constexpr const_iterator begin() const {
-        return iterator(m_ptr);
+        return iterator(data());
     }
 
     constexpr const_iterator cbegin() const {
-        return iterator(m_ptr);
+        return iterator(data());
     }
 
     constexpr iterator end() {
-        return iterator(m_ptr) + m_length;
+        return iterator(data()) + m_length;
     }
 
     constexpr const_iterator end() const {
-        return iterator(m_ptr) + m_length;
+        return iterator(data()) + m_length;
     }
 
     constexpr const_iterator cend() const {
-        return iterator(m_ptr) + m_length;
+        return iterator(data()) + m_length;
     }
 
     constexpr reverse_iterator rbegin() {
@@ -1577,7 +1583,7 @@ public:
             TraitsT::copy(m_buf, other.m_buf, InlineCapacity);
             TraitsT::copy(other.m_buf, tmp_buf, InlineCapacity);
 
-            // m_ptr
+            // data()
             // no-op
 
             // m_length
@@ -1589,8 +1595,8 @@ public:
             // no-op
         }
         else if (is_using_inline_buffer() && other.is_using_allocated_buffer()) {
-            // m_buf and m_ptr
-            CharT *tmp_ptr = other.m_ptr;
+            // m_buf and data()
+            CharT *tmp_ptr = other.data();
             TraitsT::copy(other.m_buf, m_buf, InlineCapacity);
             other.m_ptr = other.m_buf;
             m_ptr = tmp_ptr;
@@ -1606,8 +1612,8 @@ public:
             other.m_capacity = tmp_capacity;
         }
         else if (is_using_allocated_buffer() && other.is_using_inline_buffer()) {
-            // m_buf and m_ptr
-            CharT *tmp_ptr = m_ptr;
+            // m_buf and data()
+            CharT *tmp_ptr = data();
             TraitsT::copy(m_buf, other.m_buf, InlineCapacity);
             m_ptr = m_buf;
             other.m_ptr = tmp_ptr;
@@ -1625,9 +1631,9 @@ public:
         else {
             ASSERT(is_using_allocated_buffer());
             ASSERT(other.is_using_allocated_buffer());
-            // m_buf and m_ptr
-            CharT *tmp_ptr = m_ptr;
-            m_ptr = other.m_ptr;
+            // m_buf and data()
+            CharT *tmp_ptr = data();
+            m_ptr = other.data();
             other.m_ptr = tmp_ptr;
 
             // m_length
@@ -1647,7 +1653,7 @@ public:
     constexpr BasicString &replace_all(CharT a, CharT b) {
         Size pos = find(a);
         while (pos < length()) {
-            m_ptr[pos] = b;
+            data()[pos] = b;
             pos = find(a, pos + 1);
         }
         null_terminate();
@@ -1746,15 +1752,25 @@ public:
 
 private:
     void grow(Size new_capacity) {
+        Size old_capacity = m_capacity;
         while (m_capacity < new_capacity) {
             m_capacity *= 2;
         }
         Size amt = m_capacity * sizeof(CharT);
         if (is_using_allocated_buffer()) {
-            m_ptr = static_cast<CharT *>(realloc(m_ptr, amt));
+            Memory old_mem = { m_ptr, old_capacity };
+            Allocator &allocator = Context::get().allocator();
+            Memory mem = allocator.alloc(amt);
+            TraitsT::copy((CharT *)mem.ptr, m_ptr, length());
+            m_ptr = static_cast<CharT *>(mem.ptr);
+            m_capacity = mem.capacity;
+            allocator.dealloc(old_mem);
         }
         else {
-            m_ptr = static_cast<CharT *>(malloc(amt));
+            Allocator &allocator = Context::get().allocator();
+            Memory mem = allocator.alloc(amt);
+            m_ptr = static_cast<CharT *>(mem.ptr);
+            m_capacity = mem.capacity;
             TraitsT::copy(m_ptr, m_buf, length());
         }
         null_terminate();

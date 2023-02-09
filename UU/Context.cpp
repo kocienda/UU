@@ -1,8 +1,8 @@
 //
-// UU.h
+// Context.cpp
 //
 // MIT License
-// Copyright (c) 2022 Ken Kocienda. All rights reserved.
+// Copyright (c) 2022-2023 Ken Kocienda. All rights reserved.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,42 +22,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef UU_H
-#define UU_H
-
-static constexpr int UU_MAJOR_VERSION = 0;
-static constexpr int UU_MINOR_VERSION = 1;
-static constexpr int UU_FIXES_VERSION = 0;
-
 #include <UU/Assertions.h>
-
-#include <UU/AcquireReleaseGuard.h>
-#include <UU/Allocator.h>
-#include <UU/ANSICode.h>
-#include <UU/Any.h>
-#include <UU/Bits.h>
-#include <UU/BitBlock.h>
-#include <UU/CloseGuard.h>
-#include <UU/Compiler.h>
 #include <UU/Context.h>
-#include <UU/FileLike.h>
-#include <UU/IteratorWrapper.h>
-#include <UU/MappedFile.h>
-#include <UU/MathLike.h>
-#include <UU/Platform.h>
-#include <UU/SmallVector.h>
-#include <UU/Spread.h>
-#include <UU/Spread.h>
-#include <UU/StackTrace.h>
-#include <UU/StaticByteBuffer.h>
-#include <UU/Storage.h>
-#include <UU/Stretch.h>
-#include <UU/StringLike.h>
-#include <UU/TextRef.h>
-#include <UU/TimeCheck.h>
-#include <UU/Types.h>
-#include <UU/UTF8.h>
-#include <UU/UnixLike.h>
-#include <UU/UUString.h>
 
-#endif // UU_H
+namespace UU {
+
+// static SmallVector<Context *, 4> g_contexts;
+// void Context::init() { g_contexts.emplace_back(new Context); }
+
+void Context::init() {}
+Context &Context::get() { 
+    static Context g_context;
+    return g_context;
+}
+
+}  // namespace UU

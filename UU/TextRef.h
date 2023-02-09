@@ -98,6 +98,9 @@ public:
     String to_string(int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE,
         const std::filesystem::path &reference_path = std::filesystem::path(""), int highlight_color = 0) const;
 
+    void write_to_string(String &output, int flags = TextRef::StandardFeatures, FilenameFormat filename_format = FilenameFormat::RELATIVE,
+        const std::filesystem::path &reference_path = std::filesystem::path(""), int highlight_color = 0) const;
+
     template <bool B = true> bool has_index() const { return (m_index != Invalid) == B; }
     template <bool B = true> bool has_filename() const { return (!m_filename.empty()) == B; }
     template <bool B = true> bool has_line() const { return (m_line != Invalid) == B; }

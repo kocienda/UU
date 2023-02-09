@@ -166,7 +166,12 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
 {
     String output;
     output.reserve(m_filename.length() + m_message.length() + 32); // estimate
+    write_to_string(output, flags, filename_format, reference_path, highlight_color);
+    return output;
+}
 
+void TextRef::write_to_string(String &output, int flags, FilenameFormat filename_format, const fs::path &reference_path, int highlight_color) const
+{
     if (has_index() && (flags & TextRef::Index)) {
         output.append_as_string(index());
         output += ") ";
@@ -200,6 +205,7 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
             add_highlight(output, output_filename, spread(), highlight_color);
         }
     }
+
     if (has_line() && (flags & TextRef::Line)) {
         if (output.length()) {
             output += ':';
@@ -233,8 +239,8 @@ String TextRef::to_string(int flags, FilenameFormat filename_format, const fs::p
         }
     }
 
-    return output;
 }
+
 
 std::ostream &operator<<(std::ostream &os, const TextRef &ref)
 {

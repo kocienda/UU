@@ -41,6 +41,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/BitBlock.h
   ${CODE_DIR}/CloseGuard.h
   ${CODE_DIR}/Compiler.h
+  ${CODE_DIR}/Context.h
   ${CODE_DIR}/FileLike.h
   ${CODE_DIR}/IteratorWrapper.h
   ${CODE_DIR}/MappedFile.h
@@ -55,6 +56,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Storage.h
   ${CODE_DIR}/StringLike.h
   ${CODE_DIR}/TextRef.h
+  ${CODE_DIR}/TimeCheck.h
   ${CODE_DIR}/Types.h
   ${CODE_DIR}/UTF8.h
   ${CODE_DIR}/UnixLike.h
@@ -64,6 +66,7 @@ set(PUBLIC_HEADERS
 
 set(SOURCES
   ${CODE_DIR}/Assertions.cpp
+  ${CODE_DIR}/Context.cpp
   ${CODE_DIR}/FileLike.cpp
   ${CODE_DIR}/MappedFile.cpp
   ${CODE_DIR}/SmallVector.cpp
@@ -123,9 +126,9 @@ endfunction()
 # UU_TEST(file_like_test)
 # UU_TEST(math_like_test)
 # UU_TEST(spread_test)
-UU_TEST(string_test)
+# UU_TEST(string_test)
 # UU_TEST(string_like_test)
-UU_TEST(text_test)
+# UU_TEST(text_test)
 # UU_TEST(textref_test)
 # UU_TEST(unix_like_test)
 

@@ -25,7 +25,9 @@
 #ifndef UU_ALLOCATOR_H
 #define UU_ALLOCATOR_H
 
+#include <chrono>
 #include <format>
+#include <sstream>
 #include <string>
 
 #include <UU/Assertions.h>
@@ -315,7 +317,7 @@ private:
     Byte *base() const { return reinterpret_cast<Byte *>(const_cast<Byte *>(bytes)); }
     
     UU_ALWAYS_INLINE 
-    Size remaining() const { return Count - cast_size(ptr - base()); }
+    Size remaining() const { return Count - (ptr - base()); }
 
     Byte bytes[Count];
     Byte *ptr;
@@ -412,7 +414,7 @@ public:
             // cascade… add a new allocator
             LOG(Memory, "CascadingAllocator adding allocator: %llu", m_allocators.size());
             Alloc &a = m_allocators.emplace_back();
-            index = cast_size(m_allocators.size()) - 1;
+            index = m_allocators.size() - 1;
             mem = a.alloc(ecap);
         // }
         return mem;
@@ -458,8 +460,14 @@ template <typename Alloc>
 class StatsAllocator : private Alloc
 {
 public:
+    using Elapsed = std::chrono::duration<double>;
+
     Memory alloc(Size capacity) {
+        auto mark = std::chrono::steady_clock::now();
         Memory mem = Alloc::alloc(capacity);
+        auto done = std::chrono::steady_clock::now();
+        Elapsed elapsed = done - mark;
+        time_in_seconds += elapsed;
         allocs++;
         bytes_allocated += mem.capacity;
         bytes_allocated_now += mem.capacity;
@@ -488,28 +496,42 @@ public:
     bool owns(const Memory &mem) const { return Alloc::owns(mem); }    
 
     std::string stats() const {
-        Size num_digits = number_of_digits(bytes_allocated);
-        std::string num_fmt = "{0:" + integer_to_string(num_digits) + "}";
-        std::string result;
-        std::string allocs_fmt =                    std::format("allocs:                    {0}\n", num_fmt);
-        std::string deallocs_fmt =                  std::format("deallocs:                  {0}\n", num_fmt);
-        std::string bytes_allocated_fmt =           std::format("bytes allocated:           {0}\n", num_fmt);
-        std::string bytes_deallocated_fmt =         std::format("bytes deallocated:         {0}\n", num_fmt);
-        std::string bytes_allocated_now_fmt =       std::format("bytes allocated now:       {0}\n", num_fmt);
-        std::string bytes_allocated_highwater_fmt = std::format("bytes allocated highwater: {0}\n", num_fmt);
-        result += "============================================================\n";
-        result += "Allocator stats\n";
-        result += "------------------------------------------------------------\n";
-        result += std::vformat(allocs_fmt, std::make_format_args(integer_to_string<Size>(allocs)));
-        result += std::vformat(deallocs_fmt, std::make_format_args(integer_to_string<Size>(deallocs)));
-        result += std::vformat(bytes_allocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated)));
-        result += std::vformat(bytes_deallocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_deallocated)));
-        result += std::vformat(bytes_allocated_now_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_now)));
-        result += std::vformat(bytes_allocated_highwater_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_highwater)));
-        return result;
+        // Size num_digits = number_of_digits(bytes_allocated);
+        // std::string num_fmt = "{0:" + integer_to_string(num_digits) + "}";
+        // std::string result;
+        // std::string allocs_fmt =                    std::format("allocs:                    {0}\n", num_fmt);
+        // std::string deallocs_fmt =                  std::format("deallocs:                  {0}\n", num_fmt);
+        // std::string bytes_allocated_fmt =           std::format("bytes allocated:           {0}\n", num_fmt);
+        // std::string bytes_deallocated_fmt =         std::format("bytes deallocated:         {0}\n", num_fmt);
+        // std::string bytes_allocated_now_fmt =       std::format("bytes allocated now:       {0}\n", num_fmt);
+        // std::string bytes_allocated_highwater_fmt = std::format("bytes allocated highwater: {0}\n", num_fmt);
+        // result += "============================================================\n";
+        // result += "Allocator stats\n";
+        // result += "------------------------------------------------------------\n";
+        // result += std::vformat(allocs_fmt, std::make_format_args(integer_to_string<Size>(allocs)));
+        // result += std::vformat(deallocs_fmt, std::make_format_args(integer_to_string<Size>(deallocs)));
+        // result += std::vformat(bytes_allocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated)));
+        // result += std::vformat(bytes_deallocated_fmt, std::make_format_args(integer_to_string<Size>(bytes_deallocated)));
+        // result += std::vformat(bytes_allocated_now_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_now)));
+        // result += std::vformat(bytes_allocated_highwater_fmt, std::make_format_args(integer_to_string<Size>(bytes_allocated_highwater)));
+        // return result;
+        std::stringstream result;
+        result << "============================================================\n";
+        result << "Allocator stats\n";
+        result << "------------------------------------------------------------\n";
+        result << "time in seconds:           " << time_in_seconds.count() << std::endl;
+        result << "allocs:                    " << allocs << std::endl;
+        result << "deallocs:                  " << deallocs << std::endl;
+        result << "outstanding blocks:        " << (allocs - deallocs) << std::endl;
+        result << "bytes allocated:           " << bytes_allocated << std::endl;
+        result << "bytes deallocated:         " << bytes_deallocated << std::endl;
+        result << "bytes allocated now:       " << bytes_allocated_now << std::endl;
+        result << "bytes allocated highwater: " << bytes_allocated_highwater << std::endl;
+        return result.str();
     }    
 
 private:
+    Elapsed time_in_seconds = Elapsed(0);
     Size allocs = 0;
     Size deallocs = 0;
     Size bytes_allocated = 0;

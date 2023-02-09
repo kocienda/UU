@@ -32,12 +32,18 @@ int main(int argc, const char *argv[]) {
     LOG_CHANNEL_ON(General);
     LOG_CHANNEL_ON(Memory);
 
+    // static constexpr Context ctx;
+    // Context::init();
+    // Allocator allocator = Context::get().allocator();
+    // Memory mem = allocator.alloc(32);
+    // std::cout << "mem: " << mem.capacity << std::endl;
+
     // UInt32 u1 = 72; //0b00000000000000000000000000000000;
     
-    for (UInt32 i = 0; i < 520; i += 8) {
-        int z = std::min(8, 32 - std::countl_zero(i >> 5));
-        std::cout << "bucket: " << i << " => " << z << std::endl;
-    }
+    // for (UInt32 i = 0; i < 520; i += 8) {
+    //     int z = std::min(8, 32 - std::countl_zero(i >> 5));
+    //     std::cout << "bucket: " << i << " => " << z << std::endl;
+    // }
     
     // for (UInt32 i = 0; i < 12; i ++) {
     //     int z = i & 0b111;
@@ -128,22 +134,22 @@ int main(int argc, const char *argv[]) {
     // }
     
 
-    using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, BlockAllocator<2048, 0, 64>>, Mallocator>;
-    using Size2Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 65, 128>>, Mallocator>;
-    using Size3Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 129, 256>>, Mallocator>;
-    using Size4Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 257, 384>>, Mallocator>;
-    using Size5Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 385, 512>>, Mallocator>;
-    using Size6Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 513, 1024>>, Mallocator>;
-    using Allocator = StatsAllocator<
-        Segregator<64, Size1Allocator, 
-        Segregator<128, Size2Allocator, 
-        Segregator<256, Size3Allocator, 
-        Segregator<384, Size4Allocator, 
-        Segregator<512, Size4Allocator, 
-        Segregator<1024, Size5Allocator, 
-        Mallocator>>>>>>>;
+    // using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, BlockAllocator<2048, 0, 64>>, Mallocator>;
+    // using Size2Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 65, 128>>, Mallocator>;
+    // using Size3Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 129, 256>>, Mallocator>;
+    // using Size4Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 257, 384>>, Mallocator>;
+    // using Size5Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 385, 512>>, Mallocator>;
+    // using Size6Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 513, 1024>>, Mallocator>;
+    // using Allocator = StatsAllocator<
+    //     Segregator<64, Size1Allocator, 
+    //     Segregator<128, Size2Allocator, 
+    //     Segregator<256, Size3Allocator, 
+    //     Segregator<384, Size4Allocator, 
+    //     Segregator<512, Size4Allocator, 
+    //     Segregator<1024, Size5Allocator, 
+    //     Mallocator>>>>>>>;
     
-    Allocator allocator;
+    // Allocator allocator;
 
     // Memory mem0 = allocator.alloc(32);
     // allocator.dealloc(mem0);
@@ -154,20 +160,25 @@ int main(int argc, const char *argv[]) {
     // allocator.dealloc(mem2);
     // allocator.dealloc(mem3);
 
-    // constexpr Size count = 384;
-    // Memory mem4[count];
-    // for (int i = 0; i < count; i++) {
-    //     mem4[i] = allocator.alloc(256);
-    // }
-    // for (int i = 0; i < count; i++) {
-    //     allocator.dealloc(mem4[i]);
-    // }
+    // using Allocator = StatsAllocator<Mallocator>;
+
+    constexpr Size count = 384;
+    Memory mem4[count];
+    for (int i = 0; i < count; i++) {
+        Allocator &allocator = Context::get().allocator();
+        mem4[i] = allocator.alloc(256);
+    }
+    for (int i = 0; i < count; i++) {
+        Allocator &allocator = Context::get().allocator();
+        allocator.dealloc(mem4[i]);
+    }
     // for (int i = 0; i < 32; i++) {
     //     mem4[i] = allocator.alloc(256);
     // }
     // allocator.alloc(50000);
 
-    // std::cout << allocator.stats() << std::endl;
+    Allocator &allocator = Context::get().allocator();
+    std::cout << allocator.stats() << std::endl;
 
     // std::cout << static_cast<int>(UTF8Traits::FormV) << std::endl;
     // std::cout << sizeof(UTF8Traits::BOM) << std::endl;
