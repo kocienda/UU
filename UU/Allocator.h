@@ -392,9 +392,10 @@ public:
 
 // MemoryBlock ====================================================================================
 
-template <Size Capacity, Size Count> requires IsMutipleOf64<Count>
 struct MemoryBlock {
-    constexpr MemoryBlock() {}
+    static constexpr Size BLOCK_COUNT = 2;
+
+    constexpr MemoryBlock(Size capacity_) : capacity(capacity_) {}
     
     UU_ALWAYS_INLINE constexpr bool is_empty() const { return bits.is_empty(); }
     UU_ALWAYS_INLINE constexpr bool not_empty() const { return !is_empty(); }
@@ -403,18 +404,18 @@ struct MemoryBlock {
 
     constexpr Memory take() {
         if (UNLIKELY(base == nullptr)) {
-            base = malloc(Capacity * Count);
-            extent = byte_ptr(base) + (Capacity * Count);
+            base = malloc(capacity * BLOCK_COUNT);
+            extent = byte_ptr(base) + (capacity * BLOCK_COUNT);
         }
         ASSERT(not_full());
         UInt32 idx = bits.peek();
         bits.set(idx);
-        // LOG(Memory, "MemoryBlock take: %d of %d : %lu", idx, Count, Capacity);
-        return { byte_ptr(base) + (idx * Capacity), Capacity };
+        // LOG(Memory, "MemoryBlock take: %d of %d : %lu", idx, BLOCK_COUNT, capacity);
+        return { byte_ptr(base) + (idx * capacity), capacity };
     }
 
     constexpr void put(const Memory &mem) { 
-        Size idx = (byte_ptr(mem.ptr) - byte_ptr(base)) / Capacity;
+        Size idx = (byte_ptr(mem.ptr) - byte_ptr(base)) / capacity;
         // LOG(Memory, "MemoryBlock put: %d", idx);
         ASSERT(idx < Count);
         bits.clear(idx);
@@ -437,7 +438,8 @@ struct MemoryBlock {
 
     void *base = nullptr;
     void *extent = nullptr;
-    BitBlock<Count / BitBlockBitsPerSubBlock> bits;
+    Size capacity = 0;
+    BitBlock<BLOCK_COUNT> bits;
 };
 
 // BlockAllocator =================================================================================
@@ -447,8 +449,6 @@ template <Size Count, Size LoFit, Size HiFit = LoFit, bool ChecksFit = false> re
 class BlockAllocator
 {
 public:
-    using Block = MemoryBlock<HiFit, Count>;
-
     constexpr BlockAllocator() {}
 
     constexpr bool fits(Size capacity) const { return capacity >= LoFit && capacity <= HiFit; }
@@ -496,7 +496,7 @@ public:
     }
 
 private:
-    Block m_block;
+    MemoryBlock m_block = MemoryBlock(HiFit);
 };
 
 // CascadingAllocator =============================================================================
