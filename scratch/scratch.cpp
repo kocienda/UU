@@ -15,42 +15,64 @@
 using namespace UU;
 // using namespace UU::TextEncoding;
 
+// UU_ALWAYS_INLINE UInt32 previous_power_of_2(UInt32 n) {
+//     int k = n == 0 ? 0 : (1 << (32 - (std::countl_zero(n - 1)) - 1));
+//     return k;
+// }
+
+UU_ALWAYS_INLINE constexpr UInt32 bucketize(UInt32 n) {
+    UInt32 m = UU::is_power_of_two(n) ? (n - 1) : n;
+    int k = std::countl_zero(m >> 5);
+    int j = std::min(7, 32 - k);
+    // if (j > 0) {
+    //     int pp = previous_power_of_2(n);
+    //     if (n - pp <= previous_power_of_2(pp)) {
+    //         j--;
+    //     }
+    // }
+    return j;
+}
+
 int main(int argc, const char *argv[]) {
 
     LOG_CHANNEL_ON(General);
     LOG_CHANNEL_ON(Memory);
 
-    using TAllocator = Mallocator;
+    // using TAllocator = Mallocator;
     // using TAllocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 65, 128>>, Mallocator>;
 
     // TAllocator tallocator;
-    GPAllocator tallocator;
+    // GPAllocator tallocator;
 
-    constexpr int LOOPS = 100000;
-    constexpr int COUNT = 1000;
-    constexpr Size SIZE = 32;
-    Memory mem[COUNT];
-    for (int loops = 0; loops < LOOPS; loops++) {
-        time_check_mark(0);
-        for (int c = 0; c < COUNT; c++) {
-            mem[c] = tallocator.alloc(SIZE);
-        }
-        time_check_done(0);
-        time_check_mark(1);
-        for (int c = 0; c < COUNT; c++) {
-            tallocator.dealloc(mem[c]);
-        }
-        time_check_done(1);
-    }
-    printf("alloc:   %0.9f\n", time_check_elapsed_seconds(0));
-    printf("dealloc: %0.9f\n", time_check_elapsed_seconds(1));
+    // constexpr int LOOPS = 100000;
+    // constexpr int COUNT = 1000;
+    // constexpr Size SIZE = 32;
+    // Memory mem[COUNT];
+    // for (int loops = 0; loops < LOOPS; loops++) {
+    //     time_check_mark(0);
+    //     for (int c = 0; c < COUNT; c++) {
+    //         mem[c] = tallocator.alloc(SIZE);
+    //     }
+    //     time_check_done(0);
+    //     time_check_mark(1);
+    //     for (int c = 0; c < COUNT; c++) {
+    //         tallocator.dealloc(mem[c]);
+    //     }
+    //     time_check_done(1);
+    // }
+    // printf("alloc:   %0.9f\n", time_check_elapsed_seconds(0));
+    // printf("dealloc: %0.9f\n", time_check_elapsed_seconds(1));
 
     // UInt32 u1 = 72; //0b00000000000000000000000000000000;
     
-    // for (UInt32 i = 0; i < 520; i += 8) {
-    //     int z = std::min(8, 32 - std::countl_zero(i >> 5));
-    //     std::cout << "bucket: " << i << " => " << z << std::endl;
-    // }
+    for (UInt32 i = 0; i < 1032; i += 16) {
+        int y = bucketize(i);
+        int z = bucketize(i + 1);
+        std::cout << "bucket: " << i << " => " << y << std::endl;
+        std::cout << "bucket: " << i + 1 << " => " << z << std::endl;
+        // int m = i == 0 ? 0 : (1 << ( (31 ^ __builtin_clz(i))));
+        // std::cout << "m: " << m << std::endl;
+    }
     
     // for (UInt32 i = 0; i < 12; i ++) {
     //     int z = i & 0b111;

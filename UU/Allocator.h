@@ -29,6 +29,7 @@
 #include <atomic>
 #include <format>
 #include <mutex>
+#include <pthread.h>
 #include <sstream>
 #include <string>
 
@@ -354,13 +355,14 @@ public:
         if (test_fit && m_block.not_full()) {
             ASSERT_WITH_MESSAGE(fits(ecap), "must fit in %lu - %lu ; got %lu", LoFit, HiFit, capacity);
             mem = m_block.take();
-            LOG(Memory, "BlockAllocator alloc: %lu (%lu - %lu) : %p", mem.capacity, LoFit, HiFit, mem.ptr);
+            LOG(Memory, "BlockAllocator alloc: %lu (%lu - %lu) : %p (%d => %p)", mem.capacity, LoFit, HiFit, mem.ptr, pthread_main_np(), pthread_self());
         }
         return mem;
     }
 
     bool dealloc(Memory mem) {
         if (!owns(mem)) {
+            LOG(Memory, "BlockAllocator doesn't own: %lu (%lu - %lu) : %p (%d => %p)", mem.capacity, LoFit, HiFit, mem.ptr, pthread_main_np(), pthread_self());
             return false;
         }
         free(mem);
@@ -368,7 +370,7 @@ public:
     }
 
     void free(Memory mem) {
-        LOG(Memory, "BlockAllocator free: %lu (%lu - %lu) : %p", mem.capacity, LoFit, HiFit, mem.ptr);
+        LOG(Memory, "BlockAllocator free: %lu (%lu - %lu) : %p (%d => %p)", mem.capacity, LoFit, HiFit, mem.ptr, pthread_main_np(), pthread_self());
         m_block.put(mem);
     }
 
@@ -665,71 +667,52 @@ public:
     }
 
     bool dealloc(Memory mem) {
+        bool b = false;
         if (mem.capacity <= Size1) {
             lock(x1);
-            bool b = a1.dealloc(mem);
+            b = a1.dealloc(mem);
             unlock(x1);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else if (mem.capacity <= Size2) {
             lock(x2);
-            bool b = a2.dealloc(mem);
+            b = a2.dealloc(mem);
             unlock(x2);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else if (mem.capacity <= Size3) {
             lock(x3);
-            bool b = a3.dealloc(mem);
+            b = a3.dealloc(mem);
             unlock(x3);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else if (mem.capacity <= Size4) {
             lock(x4);
-            bool b = a4.dealloc(mem);
+            b = a4.dealloc(mem);
             unlock(x4);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else if (mem.capacity <= Size5) {
             lock(x5);
-            bool b = a5.dealloc(mem);
+            b = a5.dealloc(mem);
             unlock(x5);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else if (mem.capacity <= Size6) {
             lock(x6);
-            bool b = a6.dealloc(mem);
+            b = a6.dealloc(mem);
             unlock(x6);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else if (mem.capacity <= Size7) {
             lock(x7);
-            bool b = a7.dealloc(mem);
+            b = a7.dealloc(mem);
             unlock(x7);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else if (mem.capacity <= Size8) {
             lock(x8);
-            bool b = a8.dealloc(mem);
+            b = a8.dealloc(mem);
             unlock(x8);
-            if (!b) {
-                mallocator_dealloc(mem);
-            }
         }
         else {
+            b = true;
+            mallocator_dealloc(mem);
+        }
+        if (!b) {
             mallocator_dealloc(mem);
         }
         return true;

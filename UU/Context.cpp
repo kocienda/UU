@@ -22,6 +22,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <pthread.h>
+
 #include <UU/Assertions.h>
 #include <UU/Context.h>
 
@@ -31,9 +33,12 @@ namespace UU {
 // void Context::init() { g_contexts.emplace_back(new Context); }
 
 static Context g_context;
+// thread_local static int g_context_counter = 0;
 
 void Context::init() {}
-Context &Context::get() { 
+Context &Context::get() {
+    // g_context_counter++;
+    // printf("t: %p : %p : %d\n", pthread_self(), &g_context, g_context_counter);
     return g_context;
 }
 

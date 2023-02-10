@@ -100,6 +100,16 @@ UU_ALWAYS_INLINE constexpr int popcount(N n) {
     return -1;
 }
 
+template <typename N> requires IsUnsignedIntegral<N>
+UU_ALWAYS_INLINE constexpr int is_power_of_two(N n) {
+    // not zero, (obviously), but then check if
+    // all the bits change when subtracting one,
+    // for example:
+    // 8 : 0b1000
+    // 7 : 0b0111
+    return n != 0 && (n & (n - 1)) == 0;
+}
+
 }  // namespace UU
 
 #endif // UU_BITS_H
