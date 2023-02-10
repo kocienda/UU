@@ -70,24 +70,20 @@ template <Size Capacity, Size Count> requires IsMutipleOf64<Count>
 struct MemoryBlock {
     constexpr MemoryBlock() {}
     
-    constexpr bool is_empty() const { return bits.is_empty(); }
-    constexpr bool not_empty() const { return !is_empty(); }
-    constexpr bool is_full() const { return bits.is_full(); }
-    constexpr bool not_full() const { return !is_full(); }
-
-    UU_ALWAYS_INLINE
-    constexpr void reserve() { 
-        if (UNLIKELY(base == nullptr)) {
-            base = malloc(Capacity * Count);
-        }
-    }
+    UU_ALWAYS_INLINE constexpr bool is_empty() const { return bits.is_empty(); }
+    UU_ALWAYS_INLINE constexpr bool not_empty() const { return !is_empty(); }
+    UU_ALWAYS_INLINE constexpr bool is_full() const { return bits.is_full(); }
+    UU_ALWAYS_INLINE constexpr bool not_full() const { return !is_full(); }
 
     constexpr Memory take() {
-        reserve();
+        if (UNLIKELY(base == nullptr)) {
+            base = malloc(Capacity * Count);
+            extent = byte_ptr(base) + (Capacity * Count);
+        }
         ASSERT(not_full());
         UInt32 idx = bits.peek();
         bits.set(idx);
-        LOG(Memory, "MemoryBlock take: %d of %d : %lu", idx, Count, Capacity);
+        // LOG(Memory, "MemoryBlock take: %d of %d : %lu", idx, Count, Capacity);
         return { byte_ptr(base) + (idx * Capacity), Capacity };
     }
 
@@ -106,13 +102,15 @@ struct MemoryBlock {
         // LOG(Memory, "MemoryBlock free: %p", base);
         free(base);
         base = nullptr;
+        extent = nullptr;
     }
     
     bool contains(const Memory &mem) const {
-        return mem.ptr >= base && mem.ptr < (byte_ptr(base) + (Capacity * Count));
+        return mem.ptr >= base && mem.ptr < extent;
     }    
 
     void *base = nullptr;
+    void *extent = nullptr;
     BitBlock<Count / BitBlockBitsPerSubBlock> bits;
 };
 
@@ -125,7 +123,7 @@ public:
         return Memory();
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         if (!owns(mem)) {
             return false;
         }
@@ -133,7 +131,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         ASSERT(mem.ptr == nullptr);
     }
 
@@ -163,7 +161,7 @@ public:
         return mem;
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         if (!owns(mem)) {
             return false;
         }
@@ -171,7 +169,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         Size ecap = align_up(mem.capacity);
         if (ecap < Length || count >= Count) {
             LOG(Memory, "Freelist freeing from parent: %lu : %p", mem.capacity, mem.ptr);
@@ -217,7 +215,7 @@ public:
         return mem;
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         if (!owns(mem)) {
             return false;
         }
@@ -225,7 +223,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         if (mem.capacity <= Threshold && first.owns(mem)) {
             first.free(mem);
         }
@@ -255,7 +253,7 @@ public:
         return mem;
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         if (!owns(mem)) {
             return false;
         }
@@ -263,7 +261,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         if (FirstAlloc::owns(mem)) {
             FirstAlloc::free(mem);
         }
@@ -297,7 +295,7 @@ public:
         return mem;
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         if (!owns(mem)) {
             return false;
         }
@@ -305,7 +303,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         Byte *mem_ptr = byte_ptr(mem.ptr);
         if (ptr == mem_ptr + align_up(mem.capacity)) {
             LOG(Memory, "StackAllocator free: %lu : %p", mem.capacity, mem_ptr);
@@ -360,7 +358,7 @@ public:
         return mem;
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         if (!owns(mem)) {
             LOG(Memory, "BlockAllocator doesn't own: %lu (%lu - %lu) : %p (%d => %p)", mem.capacity, LoFit, HiFit, mem.ptr, pthread_main_np(), pthread_self());
             return false;
@@ -369,7 +367,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         LOG(Memory, "BlockAllocator free: %lu (%lu - %lu) : %p (%d => %p)", mem.capacity, LoFit, HiFit, mem.ptr, pthread_main_np(), pthread_self());
         m_block.put(mem);
     }
@@ -398,14 +396,16 @@ class CascadingAllocator
 {
 public:
     constexpr CascadingAllocator() {
-        m_allocators.emplace_back();
+        for (Size idx = 0; idx < MaxCount; idx++) {
+            m_allocators[idx] = Alloc();
+        }
     }
 
     Memory alloc(Size capacity) {
         Size ecap = align_up(capacity);
         Memory mem;
-        // search from most recent allocator to return a Memory
-        for (Size idx = index; idx < m_allocators.size(); idx++) {
+        // search from most recent allocator
+        for (Size idx = index; idx < MaxCount; idx++) {
             mem = m_allocators[idx].alloc(ecap);
             if (mem.not_empty()) {
                 index = idx;
@@ -420,25 +420,28 @@ public:
                 return mem;
             }
         }
-        if (m_allocators.size() < MaxCount) {
-            // cascade… add a new allocator
-            LOG(Memory, "CascadingAllocator adding allocator: %llu", m_allocators.size());
-            Alloc &a = m_allocators.emplace_back();
-            index = m_allocators.size() - 1;
-            mem = a.alloc(ecap);
-        }
         return mem;
     }
 
-    bool dealloc(Memory mem) {
-        for (Size idx = 0; idx < m_allocators.size(); idx++) {
+    bool dealloc(Memory &mem) {
+        // search from most recent allocator
+        for (Size idx = index; idx < MaxCount; idx++) {
             Alloc &a = m_allocators[idx];
             if (a.dealloc(mem)) {
-                if (m_allocators.size() > 1 && a.is_empty()) {
-                    // reclaim allocator
+                if (a.is_empty()) {
                     LOG(Memory, "CascadingAllocator freeing allocator: %llu", idx);
                     a.free_all();
-                    m_allocators.erase(m_allocators.begin() + idx);
+                }
+                return true;
+            }
+        }
+        // search from start
+        for (Size idx = 0; idx < index; idx++) {
+            Alloc &a = m_allocators[idx];
+            if (a.dealloc(mem)) {
+                if (a.is_empty()) {
+                    LOG(Memory, "CascadingAllocator freeing allocator: %llu", idx);
+                    a.free_all();
                 }
                 return true;
             }
@@ -446,12 +449,12 @@ public:
         return false;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         dealloc(mem);
     }
 
     bool owns(const Memory &mem) const { 
-        for (Size idx = 0; idx < m_allocators.size(); idx++) {
+        for (Size idx = 0; idx < MaxCount; idx++) {
             if (m_allocators[idx].owns(mem)) {
                 return true;
             }
@@ -460,7 +463,7 @@ public:
     }    
 
 private:
-    UU::SmallVector<Alloc, MaxCount> m_allocators;
+    Alloc m_allocators[MaxCount];
     Size index = 0;
 };
 
@@ -485,7 +488,7 @@ public:
         return mem;
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         if (!owns(mem)) {
             return false;
         }
@@ -493,7 +496,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         if (!owns(mem)) {
             return;
         }
@@ -561,12 +564,12 @@ public:
         return mem;
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         free(mem);
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         LOG(Memory, "Mallocator free: %lu : %p", mem.capacity, mem.ptr);
         ::free(mem.ptr);
     }
@@ -666,7 +669,7 @@ public:
         unlock(xm);
     }
 
-    bool dealloc(Memory mem) {
+    bool dealloc(Memory &mem) {
         bool b = false;
         if (mem.capacity <= Size1) {
             lock(x1);
@@ -718,7 +721,7 @@ public:
         return true;
     }
 
-    void free(Memory mem) {
+    void free(Memory &mem) {
         dealloc(mem);
     }
 
