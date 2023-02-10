@@ -28,6 +28,7 @@
 #include <array>
 #include <atomic>
 #include <format>
+#include <map>
 #include <mutex>
 #include <pthread.h>
 #include <sstream>
@@ -298,6 +299,13 @@ public:
         bytes_allocated += mem.capacity;
         bytes_allocated_now += mem.capacity;
         bytes_allocated_highwater = std::max(bytes_allocated_highwater, bytes_allocated_now);
+        auto sizes_it = sizes.find(capacity);
+        if (sizes_it == sizes.end()) {
+            sizes.emplace(capacity, 1);
+        }
+        else {
+            sizes_it->second++;
+        }
         return mem;
     }
 
@@ -353,6 +361,10 @@ public:
         result << "bytes deallocated:         " << bytes_deallocated << std::endl;
         result << "bytes allocated now:       " << bytes_allocated_now << std::endl;
         result << "bytes allocated highwater: " << bytes_allocated_highwater << std::endl;
+        result << "sizes: " << std::endl;
+        for (auto &s : sizes) {
+            result << "   " << s.first << " : " << s.second << std::endl;
+        }
         return result.str();
     }    
 
@@ -364,6 +376,7 @@ private:
     Size bytes_deallocated = 0;
     Size bytes_allocated_now = 0;
     Size bytes_allocated_highwater = 0;
+    std::map<Size, Size> sizes;
 };
 
 // Mallocator =====================================================================================
@@ -392,10 +405,9 @@ public:
 
 // MemoryBlock ====================================================================================
 
+template <Size Capacity, Size Count> requires IsMutipleOf64<Count>
 struct MemoryBlock {
-    static constexpr Size BLOCK_COUNT = 2;
-
-    constexpr MemoryBlock(Size capacity_) : capacity(capacity_) {}
+    constexpr MemoryBlock() {}
     
     UU_ALWAYS_INLINE constexpr bool is_empty() const { return bits.is_empty(); }
     UU_ALWAYS_INLINE constexpr bool not_empty() const { return !is_empty(); }
@@ -404,18 +416,18 @@ struct MemoryBlock {
 
     constexpr Memory take() {
         if (UNLIKELY(base == nullptr)) {
-            base = malloc(capacity * BLOCK_COUNT);
-            extent = byte_ptr(base) + (capacity * BLOCK_COUNT);
+            base = malloc(Capacity * Count);
+            extent = byte_ptr(base) + (Capacity * Count);
         }
         ASSERT(not_full());
         UInt32 idx = bits.peek();
         bits.set(idx);
-        // LOG(Memory, "MemoryBlock take: %d of %d : %lu", idx, BLOCK_COUNT, capacity);
-        return { byte_ptr(base) + (idx * capacity), capacity };
+        // LOG(Memory, "MemoryBlock take: %d of %d : %lu", idx, Count, Capacity);
+        return { byte_ptr(base) + (idx * Capacity), Capacity };
     }
 
     constexpr void put(const Memory &mem) { 
-        Size idx = (byte_ptr(mem.ptr) - byte_ptr(base)) / capacity;
+        Size idx = (byte_ptr(mem.ptr) - byte_ptr(base)) / Capacity;
         // LOG(Memory, "MemoryBlock put: %d", idx);
         ASSERT(idx < Count);
         bits.clear(idx);
@@ -438,8 +450,7 @@ struct MemoryBlock {
 
     void *base = nullptr;
     void *extent = nullptr;
-    Size capacity = 0;
-    BitBlock<BLOCK_COUNT> bits;
+    BitBlock<Count / BitBlockBitsPerSubBlock> bits;
 };
 
 // BlockAllocator =================================================================================
@@ -449,15 +460,17 @@ template <Size Count, Size LoFit, Size HiFit = LoFit, bool ChecksFit = false> re
 class BlockAllocator
 {
 public:
+    using Block = MemoryBlock<HiFit, Count>;
+
     constexpr BlockAllocator() {}
 
     constexpr bool fits(Size capacity) const { return capacity >= LoFit && capacity <= HiFit; }
 
     Memory alloc(Size capacity) {
-        Size ecap = align_up(capacity);
         Memory mem;
         bool test_fit = true;
         if constexpr (ChecksFit) {
+            Size ecap = align_up(capacity);
             test_fit = fits(ecap);
         }
         if (test_fit && m_block.not_full()) {
@@ -496,12 +509,12 @@ public:
     }
 
 private:
-    MemoryBlock m_block = MemoryBlock(HiFit);
+    Block m_block;
 };
 
 // CascadingAllocator =============================================================================
 
-template <typename Alloc, Size MaxCount = 8> requires IsGreaterThanOne<MaxCount>
+template <typename Alloc, Size MaxCount = 256> requires IsGreaterThanOne<MaxCount>
 class CascadingAllocator
 {
 public:
@@ -600,116 +613,124 @@ class GPAllocator
     using Size7Allocator = CascadingAllocator<BlockAllocator<256, Size6 + 1, Size7>>;
     using Size8Allocator = CascadingAllocator<BlockAllocator<256, Size7 + 1, Size8>>;
 
+    UU_ALWAYS_INLINE void lock() { 
+        mutex.lock(); 
+    }
+    
+    UU_ALWAYS_INLINE void unlock() { 
+        mutex.unlock(); 
+    }
+
 public:
-    UU_ALWAYS_INLINE void lock(std::atomic_flag &lock) {
-        while (lock.test_and_set(std::memory_order_acquire)) {
-            lock.wait(true, std::memory_order_relaxed);
-        }
-    }
-
-    UU_ALWAYS_INLINE void unlock(std::atomic_flag &lock) {
-        lock.clear(std::memory_order_release);
-        lock.notify_one();
-    }
-
     Memory alloc(Size capacity) {
         Size ecapacity = align_up(capacity);
         Memory mem;
-        if (ecapacity <= Size1) {
-            lock(x1);
-            mem = a1.alloc(ecapacity);
-            unlock(x1);
-        }
-        else if (ecapacity <= Size2) {
-            lock(x2);
-            mem = a2.alloc(ecapacity);
-            unlock(x2);
-        }
-        else if (ecapacity <= Size3) {
-            lock(x3);
-            mem = a3.alloc(ecapacity);
-            unlock(x3);
-        }
-        else if (ecapacity <= Size4) {
-            lock(x4);
-            mem = a4.alloc(ecapacity);
-            unlock(x4);
-        }
-        else if (ecapacity <= Size5) {
-            lock(x5);
-            mem = a5.alloc(ecapacity);
-            unlock(x5);
-        }
-        else if (ecapacity <= Size6) {
-            lock(x6);
-            mem = a6.alloc(ecapacity);
-            unlock(x6);
-        }
-        else if (ecapacity <= Size7) {
-            lock(x7);
-            mem = a7.alloc(ecapacity);
-            unlock(x7);
-        }
-        else if (ecapacity <= Size8) {
-            lock(x8);
-            mem = a8.alloc(ecapacity);
-            unlock(x8);
-        }
-        if (mem.is_empty()) {
-            lock(xm);
+        if (ecapacity > Size8) {
+            lock();
             mem = mallocator.alloc(ecapacity);
-            unlock(xm);
+            unlock();
+        }
+        else {
+            if (ecapacity <= Size1) {
+                lock();
+                mem = a1.alloc(ecapacity);
+                unlock();
+            }
+            else if (ecapacity <= Size2) {
+                lock();
+                mem = a2.alloc(ecapacity);
+                unlock();
+            }
+            else if (ecapacity <= Size3) {
+                lock();
+                mem = a3.alloc(ecapacity);
+                unlock();
+            }
+            else if (ecapacity <= Size4) {
+                lock();
+                mem = a4.alloc(ecapacity);
+                unlock();
+            }
+            else if (ecapacity <= Size5) {
+                lock();
+                mem = a5.alloc(ecapacity);
+                unlock();
+            }
+            else if (ecapacity <= Size6) {
+                lock();
+                mem = a6.alloc(ecapacity);
+                unlock();
+            }
+            else if (ecapacity <= Size7) {
+                lock();
+                mem = a7.alloc(ecapacity);
+                unlock();
+            }
+            else if (ecapacity <= Size8) {
+                lock();
+                mem = a8.alloc(ecapacity);
+                unlock();
+            }
+            if (mem.is_empty()) {
+                lock();
+                mem = mallocator.alloc(ecapacity);
+                unlock();
+            }
         }
         return mem;
     }
 
     UU_ALWAYS_INLINE void mallocator_dealloc(Memory &mem) {
-        lock(xm);
+        lock();
         mallocator.dealloc(mem);
-        unlock(xm);
+        unlock();
     }
 
     bool dealloc(Memory &mem) {
+        if (mem.capacity > Size8) {
+            mallocator_dealloc(mem);
+            return true;
+        }
         bool b = false;
         if (mem.capacity <= Size1) {
-            lock(x1);
+            lock();
             b = a1.dealloc(mem);
-            unlock(x1);
+            unlock();
         }
         else if (mem.capacity <= Size2) {
-            lock(x2);
+            lock();
             b = a2.dealloc(mem);
-            unlock(x2);
+            unlock();
         }
         else if (mem.capacity <= Size3) {
-            lock(x3);
+            lock();
             b = a3.dealloc(mem);
-            unlock(x3);
+            unlock();
         }
         else if (mem.capacity <= Size4) {
-            lock(x4);
+            lock();
             b = a4.dealloc(mem);
-            unlock(x4);
+            unlock();
         }
         else if (mem.capacity <= Size5) {
-            lock(x5);
+            lock();
             b = a5.dealloc(mem);
-            unlock(x5);
+            unlock();
         }
         else if (mem.capacity <= Size6) {
-            lock(x6);
+            lock();
             b = a6.dealloc(mem);
-            unlock(x6);
+            unlock();
         }
         else if (mem.capacity <= Size7) {
-            lock(x7);
+            lock();
             b = a7.dealloc(mem);
-            unlock(x7);
+            unlock();
         }
         else if (mem.capacity <= Size8) {
-            lock(x8);
+            lock();
             b = a8.dealloc(mem);
-            unlock(x8);
+            unlock();
         }
         else {
             b = true;
@@ -737,15 +758,7 @@ private:
     Size7Allocator a7;
     Size8Allocator a8;
     Mallocator mallocator;
-    std::atomic_flag x1 = ATOMIC_FLAG_INIT;
-    std::atomic_flag x2 = ATOMIC_FLAG_INIT;
-    std::atomic_flag x3 = ATOMIC_FLAG_INIT;
-    std::atomic_flag x4 = ATOMIC_FLAG_INIT;
-    std::atomic_flag x5 = ATOMIC_FLAG_INIT;
-    std::atomic_flag x6 = ATOMIC_FLAG_INIT;
-    std::atomic_flag x7 = ATOMIC_FLAG_INIT;
-    std::atomic_flag x8 = ATOMIC_FLAG_INIT;
-    std::atomic_flag xm = ATOMIC_FLAG_INIT;
+    std::mutex mutex;
 };
 
 

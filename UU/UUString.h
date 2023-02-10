@@ -61,7 +61,7 @@ class TextRef;
 
 // string size ====================================================================================
 
-static constexpr Size BasicStringDefaultInlineCapacity = 96;
+static constexpr Size BasicStringDefaultInlineCapacity = 192;
 
 // template metaprogramming =======================================================================
 

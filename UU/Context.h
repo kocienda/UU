@@ -32,6 +32,7 @@
 
 namespace UU {
 
+// using Allocator = StatsAllocator<GPAllocator>;
 using Allocator = GPAllocator;
 // using Allocator = Mallocator;
 // using Allocator = StatsAllocator<Mallocator>;
