@@ -35,6 +35,8 @@ namespace UU {
 using TimeMark = UInt64;
 using TimeElapsed = UInt64;
 
+static constexpr int TIME_CHECK_COUNT = 8;
+
 struct TimeCheck {
     TimeMark mark = TimeMark(0);
     TimeElapsed elapsed = TimeElapsed(0);
@@ -49,7 +51,6 @@ UU_ALWAYS_INLINE TimeMark time_check_now() {
 
 UU_ALWAYS_INLINE TimeCheck &time_check_get(int idx) {
     ASSERT(idx < TIME_CHECK_COUNT);
-    static constexpr int TIME_CHECK_COUNT = 8;
     static TimeCheck time_checks[TIME_CHECK_COUNT];
     return time_checks[idx];
 }

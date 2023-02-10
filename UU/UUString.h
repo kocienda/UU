@@ -156,15 +156,9 @@ private:
     UU_ALWAYS_INLINE 
     constexpr void ensure_capacity(Size new_capacity) {
         new_capacity++; // room for null termination
-        if (new_capacity <= InlineCapacity) {
-            m_capacity = InlineCapacity;
-            return;
-        }
-    
         if (new_capacity <= m_capacity) {
             return;
         }
-        
         grow(new_capacity);
     }
 

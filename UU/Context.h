@@ -32,24 +32,9 @@
 
 namespace UU {
 
-using Allocator = StatsAllocator<Mallocator>;
+using Allocator = GPAllocator;
 // using Allocator = Mallocator;
-
-// using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, BlockAllocator<2048, 0, 64>>, Mallocator>;
-// using Size1Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<2048, 0, 64>>, Mallocator>;
-// using Size2Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 65, 128>>, Mallocator>;
-// using Size3Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 129, 256>>, Mallocator>;
-// using Size4Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 257, 384>>, Mallocator>;
-// using Size5Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 385, 512>>, Mallocator>;
-// using Size6Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 513, 1024>>, Mallocator>;
-// using Allocator = StatsAllocator<
-//     Segregator<64, Size1Allocator, 
-//     Segregator<128, Size2Allocator, 
-//     Segregator<256, Size3Allocator, 
-//     Segregator<384, Size4Allocator, 
-//     Segregator<512, Size4Allocator, 
-//     Segregator<1024, Size5Allocator, 
-//     Mallocator>>>>>>>;
+// using Allocator = StatsAllocator<Mallocator>;
 
 class Context
 {

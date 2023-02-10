@@ -30,9 +30,10 @@ namespace UU {
 // static SmallVector<Context *, 4> g_contexts;
 // void Context::init() { g_contexts.emplace_back(new Context); }
 
+static Context g_context;
+
 void Context::init() {}
 Context &Context::get() { 
-    static Context g_context;
     return g_context;
 }
 

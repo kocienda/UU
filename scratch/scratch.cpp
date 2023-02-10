@@ -3,9 +3,8 @@
 //
 
 #include <bit>
-#include <pthread.h>
 
-#include <cstdio>
+#include <atomic>
 #include <format>
 #include <iostream>
 #include <string>
@@ -21,35 +20,11 @@ int main(int argc, const char *argv[]) {
     LOG_CHANNEL_ON(General);
     LOG_CHANNEL_ON(Memory);
 
-    // using TAllocator = Mallocator;
+    using TAllocator = Mallocator;
     // using TAllocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 65, 128>>, Mallocator>;
 
-    // using Size1Allocator = FallbackAllocator<FallbackAllocator<Freelist<StackAllocator<16384>, 64, 256>, BlockAllocator<2048, 0, 64>>, Mallocator>;
-    using Size1Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 0, 64>>, Mallocator>;
-    using Size2Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 65, 128>>, Mallocator>;
-    using Size3Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 129, 256>>, Mallocator>;
-    using Size4Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 257, 384>>, Mallocator>;
-    using Size5Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 385, 512>>, Mallocator>;
-    using Size6Allocator = FallbackAllocator<CascadingAllocator<BlockAllocator<256, 513, 1024>>, Mallocator>;
-    // using TAllocator = StatsAllocator<
-    //     Segregator<64, Size1Allocator, 
-    //     Segregator<128, Size2Allocator, 
-    //     Segregator<256, Size3Allocator, 
-    //     Segregator<384, Size4Allocator, 
-    //     Segregator<512, Size4Allocator, 
-    //     Segregator<1024, Size5Allocator, 
-    //     Mallocator>>>>>>>;
-
-    using TAllocator =
-        Segregator<64, Size1Allocator, 
-        Segregator<128, Size2Allocator, 
-        Segregator<256, Size3Allocator, 
-        Segregator<384, Size4Allocator, 
-        Segregator<512, Size4Allocator, 
-        Segregator<1024, Size5Allocator, 
-        Mallocator>>>>>>;
-
-    TAllocator tallocator;
+    // TAllocator tallocator;
+    GPAllocator tallocator;
 
     constexpr int LOOPS = 100000;
     constexpr int COUNT = 1000;

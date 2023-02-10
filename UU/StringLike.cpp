@@ -50,6 +50,7 @@ std::vector<Size> find_line_end_offsets(const std::string_view &str, Size max_st
 {
     max_string_index = std::min(max_string_index, str.length()); 
     std::vector<Size> result;
+    result.reserve(str.length() / 16); // estimate
     bool added_last_line_ending = false;
 
     // find all line endings in str up to and including the line with the last match

@@ -25,14 +25,17 @@
 #ifndef UU_ALLOCATOR_H
 #define UU_ALLOCATOR_H
 
-#include <chrono>
+#include <array>
+#include <atomic>
 #include <format>
+#include <mutex>
 #include <sstream>
 #include <string>
 
 #include <UU/Assertions.h>
 #include <UU/BitBlock.h>
 #include <UU/MathLike.h>
+#include <UU/SmallVector.h>
 #include <UU/Types.h>
 
 namespace UU {
@@ -77,28 +80,33 @@ struct MemoryBlock {
             base = malloc(Capacity * Count);
         }
     }
+
     constexpr Memory take() {
         reserve();
         ASSERT(not_full());
         UInt32 idx = bits.peek();
         bits.set(idx);
-        LOG(Memory, "MemoryBlock take: %d of %d", idx, Count);
+        LOG(Memory, "MemoryBlock take: %d of %d : %lu", idx, Count, Capacity);
         return { byte_ptr(base) + (idx * Capacity), Capacity };
     }
+
     constexpr void put(const Memory &mem) { 
         Size idx = (byte_ptr(mem.ptr) - byte_ptr(base)) / Capacity;
-        LOG(Memory, "MemoryBlock put: %d", idx);
+        // LOG(Memory, "MemoryBlock put: %d", idx);
         ASSERT(idx < Count);
         bits.clear(idx);
     }
+
     constexpr void reset() { 
         bits.reset();
     }
+
     constexpr void release() { 
-        LOG(Memory, "MemoryBlock free: %p", base);
+        // LOG(Memory, "MemoryBlock free: %p", base);
         free(base);
         base = nullptr;
     }
+    
     bool contains(const Memory &mem) const {
         return mem.ptr >= base && mem.ptr < (byte_ptr(base) + (Capacity * Count));
     }    
@@ -344,9 +352,9 @@ public:
             test_fit = fits(ecap);
         }
         if (test_fit && m_block.not_full()) {
-            ASSERT(fits(ecap));
+            ASSERT_WITH_MESSAGE(fits(ecap), "must fit in %lu - %lu ; got %lu", LoFit, HiFit, capacity);
             mem = m_block.take();
-            LOG(Memory, "BlockAllocator alloc: %lu : %p", mem.capacity, mem.ptr);
+            LOG(Memory, "BlockAllocator alloc: %lu (%lu - %lu) : %p", mem.capacity, LoFit, HiFit, mem.ptr);
         }
         return mem;
     }
@@ -360,7 +368,7 @@ public:
     }
 
     void free(Memory mem) {
-        LOG(Memory, "BlockAllocator free: %lu : %p", mem.capacity, mem.ptr);
+        LOG(Memory, "BlockAllocator free: %lu (%lu - %lu) : %p", mem.capacity, LoFit, HiFit, mem.ptr);
         m_block.put(mem);
     }
 
@@ -410,13 +418,13 @@ public:
                 return mem;
             }
         }
-        // if (m_allocators.size() < MaxCount) {
+        if (m_allocators.size() < MaxCount) {
             // cascade… add a new allocator
             LOG(Memory, "CascadingAllocator adding allocator: %llu", m_allocators.size());
             Alloc &a = m_allocators.emplace_back();
             index = m_allocators.size() - 1;
             mem = a.alloc(ecap);
-        // }
+        }
         return mem;
     }
 
@@ -450,7 +458,7 @@ public:
     }    
 
 private:
-    std::vector<Alloc> m_allocators;
+    UU::SmallVector<Alloc, MaxCount> m_allocators;
     Size index = 0;
 };
 
@@ -562,6 +570,196 @@ public:
     }
 
     bool owns(const Memory &mem) const { return true; }
+};
+
+// GPAllocator =====================================================================================
+
+class GPAllocator
+{
+    static constexpr Size Size0 =    0;
+    static constexpr Size Size1 =   32;
+    static constexpr Size Size2 =   64;
+    static constexpr Size Size3 =   96;
+    static constexpr Size Size4 =  128;
+    static constexpr Size Size5 =  256;
+    static constexpr Size Size6 =  384;
+    static constexpr Size Size7 =  512;
+    static constexpr Size Size8 = 1024;
+
+    using Size1Allocator = CascadingAllocator<BlockAllocator<256, Size0, Size1>>;
+    using Size2Allocator = CascadingAllocator<BlockAllocator<256, Size1 + 1, Size2>>;
+    using Size3Allocator = CascadingAllocator<BlockAllocator<256, Size2 + 1, Size3>>;
+    using Size4Allocator = CascadingAllocator<BlockAllocator<256, Size3 + 1, Size4>>;
+    using Size5Allocator = CascadingAllocator<BlockAllocator<256, Size4 + 1, Size5>>;
+    using Size6Allocator = CascadingAllocator<BlockAllocator<256, Size5 + 1, Size6>>;
+    using Size7Allocator = CascadingAllocator<BlockAllocator<256, Size6 + 1, Size7>>;
+    using Size8Allocator = CascadingAllocator<BlockAllocator<256, Size7 + 1, Size8>>;
+
+public:
+    UU_ALWAYS_INLINE void lock(std::atomic_flag &lock) {
+        while (lock.test_and_set(std::memory_order_acquire)) {
+            lock.wait(true, std::memory_order_relaxed);
+        }
+    }
+
+    UU_ALWAYS_INLINE void unlock(std::atomic_flag &lock) {
+        lock.clear(std::memory_order_release);
+        lock.notify_one();
+    }
+
+    Memory alloc(Size capacity) {
+        Size ecapacity = align_up(capacity);
+        Memory mem;
+        if (ecapacity <= Size1) {
+            lock(x1);
+            mem = a1.alloc(ecapacity);
+            unlock(x1);
+        }
+        else if (ecapacity <= Size2) {
+            lock(x2);
+            mem = a2.alloc(ecapacity);
+            unlock(x2);
+        }
+        else if (ecapacity <= Size3) {
+            lock(x3);
+            mem = a3.alloc(ecapacity);
+            unlock(x3);
+        }
+        else if (ecapacity <= Size4) {
+            lock(x4);
+            mem = a4.alloc(ecapacity);
+            unlock(x4);
+        }
+        else if (ecapacity <= Size5) {
+            lock(x5);
+            mem = a5.alloc(ecapacity);
+            unlock(x5);
+        }
+        else if (ecapacity <= Size6) {
+            lock(x6);
+            mem = a6.alloc(ecapacity);
+            unlock(x6);
+        }
+        else if (ecapacity <= Size7) {
+            lock(x7);
+            mem = a7.alloc(ecapacity);
+            unlock(x7);
+        }
+        else if (ecapacity <= Size8) {
+            lock(x8);
+            mem = a8.alloc(ecapacity);
+            unlock(x8);
+        }
+        if (mem.is_empty()) {
+            lock(xm);
+            mem = mallocator.alloc(ecapacity);
+            unlock(xm);
+        }
+        return mem;
+    }
+
+    UU_ALWAYS_INLINE void mallocator_dealloc(Memory &mem) {
+        lock(xm);
+        mallocator.dealloc(mem);
+        unlock(xm);
+    }
+
+    bool dealloc(Memory mem) {
+        if (mem.capacity <= Size1) {
+            lock(x1);
+            bool b = a1.dealloc(mem);
+            unlock(x1);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else if (mem.capacity <= Size2) {
+            lock(x2);
+            bool b = a2.dealloc(mem);
+            unlock(x2);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else if (mem.capacity <= Size3) {
+            lock(x3);
+            bool b = a3.dealloc(mem);
+            unlock(x3);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else if (mem.capacity <= Size4) {
+            lock(x4);
+            bool b = a4.dealloc(mem);
+            unlock(x4);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else if (mem.capacity <= Size5) {
+            lock(x5);
+            bool b = a5.dealloc(mem);
+            unlock(x5);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else if (mem.capacity <= Size6) {
+            lock(x6);
+            bool b = a6.dealloc(mem);
+            unlock(x6);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else if (mem.capacity <= Size7) {
+            lock(x7);
+            bool b = a7.dealloc(mem);
+            unlock(x7);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else if (mem.capacity <= Size8) {
+            lock(x8);
+            bool b = a8.dealloc(mem);
+            unlock(x8);
+            if (!b) {
+                mallocator_dealloc(mem);
+            }
+        }
+        else {
+            mallocator_dealloc(mem);
+        }
+        return true;
+    }
+
+    void free(Memory mem) {
+        dealloc(mem);
+    }
+
+    bool owns(const Memory &mem) const { return true; }
+
+private:
+    Size1Allocator a1;
+    Size2Allocator a2;
+    Size3Allocator a3;
+    Size4Allocator a4;
+    Size5Allocator a5;
+    Size6Allocator a6;
+    Size7Allocator a7;
+    Size8Allocator a8;
+    Mallocator mallocator;
+    std::atomic_flag x1 = ATOMIC_FLAG_INIT;
+    std::atomic_flag x2 = ATOMIC_FLAG_INIT;
+    std::atomic_flag x3 = ATOMIC_FLAG_INIT;
+    std::atomic_flag x4 = ATOMIC_FLAG_INIT;
+    std::atomic_flag x5 = ATOMIC_FLAG_INIT;
+    std::atomic_flag x6 = ATOMIC_FLAG_INIT;
+    std::atomic_flag x7 = ATOMIC_FLAG_INIT;
+    std::atomic_flag x8 = ATOMIC_FLAG_INIT;
+    std::atomic_flag xm = ATOMIC_FLAG_INIT;
 };
 
 
