@@ -109,7 +109,7 @@ public:
         return size_t((char *)CapacityX - (char *)BeginX);
     }
 
-    __nodiscard__ bool empty() const { return BeginX == EndX; }
+    UU_NO_DISCARD bool empty() const { return BeginX == EndX; }
 
 protected:
     void *BeginX;
@@ -499,7 +499,7 @@ public:
         }
     }
 
-    __nodiscard__ T pop_back_val() {
+    UU_NO_DISCARD T pop_back_val() {
         T ParseResult = ::std::move(this->back());
         this->pop_back();
         return ParseResult;

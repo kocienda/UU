@@ -37,6 +37,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/AcquireReleaseGuard.h
   ${CODE_DIR}/ANSICode.h
   ${CODE_DIR}/Any.h
+  ${CODE_DIR}/Array.h
   ${CODE_DIR}/Bits.h
   ${CODE_DIR}/BitBlock.h
   ${CODE_DIR}/CloseGuard.h
@@ -65,6 +66,7 @@ set(PUBLIC_HEADERS
 )
 
 set(SOURCES
+  ${CODE_DIR}/Array.cpp
   ${CODE_DIR}/Assertions.cpp
   ${CODE_DIR}/Context.cpp
   ${CODE_DIR}/FileLike.cpp
