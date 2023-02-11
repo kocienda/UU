@@ -104,7 +104,7 @@
 
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 
-#define __nodiscard__
+#define UU_NO_DISCARD
 
 #endif /* COMPILER(GCC) */
 
@@ -120,8 +120,8 @@
 #endif /* COMPILER(MSVC) */
 
 
-#ifndef __nodiscard__
-#define __nodiscard__ [[nodiscard]]
+#ifndef UU_NO_DISCARD
+#define UU_NO_DISCARD [[nodiscard]]
 #endif
 
 #ifdef __cplusplus
