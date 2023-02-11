@@ -29,7 +29,6 @@
 
 #include <UU/Assertions.h>
 #include <UU/Bits.h>
-#include <UU/Stretch.h>
 #include <UU/Types.h>
 
 namespace UU {
@@ -50,7 +49,6 @@ public:
     constexpr UInt64 mask_for(Size idx, Size blk) { ASSERT(idx < bits()); return UInt64(1) << (idx & ~(blk << BitBlockBitShift)); }
     constexpr void fill() { memset(&m_blocks, 1, BlockCount * sizeof(UInt64)); }
     constexpr void set(Size idx) { Size blk = block_for(idx); m_blocks[blk] |= mask_for(idx, blk); }
-    constexpr void set(const Stretch<Size> &s) { for (auto it : s) { set(it); } }
     constexpr void clear(Size idx) { Size blk = block_for(idx); m_blocks[blk] &= ~(mask_for(idx, blk)); }
     constexpr bool test(Size idx) { Size blk = block_for(idx); return m_blocks[blk] & mask_for(idx, blk); }
     constexpr void reset() { memset(&m_blocks, 0, BlockCount * sizeof(UInt64)); }
@@ -115,7 +113,6 @@ public:
     constexpr UInt64 mask_for(Size idx) { ASSERT(idx < bits()); return UInt64(1) << idx; }
     constexpr void fill() { memset(&m_block, 1, sizeof(UInt64)); }
     constexpr void set(Size idx) { m_block |= mask_for(idx); }
-    constexpr void set(const Stretch<Size> &s) { for (auto it : s) { set(it); } }
     constexpr void clear(Size idx) { m_block &= ~(mask_for(idx)); }
     constexpr bool test(Size idx) { return m_block & mask_for(idx); }
     constexpr void reset() { memset(&m_block, 0, sizeof(UInt64)); }
