@@ -272,19 +272,19 @@ public:
     reverse_iterator rend() { return reverse_iterator(begin()); }
     const_reverse_iterator rend() const { return const_reverse_iterator(begin());}
 
-    size_type size_in_bytes() const { return size() * sizeof(T); }
-    size_type max_size() const { return std::min(this->SizeTMax(), size_type(-1) / sizeof(T)); }
+    size_t size_in_bytes() const { return size() * sizeof(T); }
+    size_t max_size() const { return std::min(this->SizeTMax(), SizeT(-1) / sizeof(T)); }
     size_t capacity_in_bytes() const { return capacity() * sizeof(T); }
 
     pointer data() { return pointer(begin()); }
     const_pointer data() const { return const_pointer(begin()); }
 
-    reference operator[](size_type idx) {
+    reference operator[](SizeT idx) {
         ASSERT(idx < size());
         return begin()[idx];
     }
 
-    const_reference operator[](size_type idx) const {
+    const_reference operator[](SizeT idx) const {
         ASSERT(idx < size());
         return begin()[idx];
     }
@@ -559,9 +559,9 @@ public:
     using iterator = typename SuperClass::iterator;
     using const_iterator = typename SuperClass::const_iterator;
     using reference = typename SuperClass::reference;
-    using size_type = typename SuperClass::size_type;
-    static_assert(sizeof(size_type) == sizeof(ArraySizeType<T>), 
-        "sizeof(size_type) must equal sizeof(ArraySizeType<T>)");
+    using SizeT = typename SuperClass::SizeT;
+    static_assert(sizeof(SizeT) == sizeof(ArraySizeType<T>), 
+        "sizeof(SizeT) must equal sizeof(ArraySizeType<T>)");
 
 protected:
     using ArrayTypedBase<T>::TakesElementsByValue;
@@ -598,7 +598,7 @@ public:
     }
 
 private:
-    template <bool ForOverwrite> void resize_impl(size_type N) {
+    template <bool ForOverwrite> void resize_impl(SizeT N) {
         if (N == this->size()) {
             return;
         }
@@ -621,19 +621,19 @@ private:
     }
 
 public:
-    void resize(size_type N) { resize_impl<false>(N); }
+    void resize(SizeT N) { resize_impl<false>(N); }
 
     // Like resize, but T is POD, the new values won't be initialized.
-    void resize_for_overwrite(size_type N) { resize_impl<true>(N); }
+    void resize_for_overwrite(SizeT N) { resize_impl<true>(N); }
 
     // Like resize, but requires that N is less than size().
-    void truncate(size_type size) {
+    void truncate(SizeT size) {
         ASSERT_WITH_MESSAGE(this->size() >= size, "Can't increase size with truncate");
         this->call_destructors_on_range(this->begin() + size, this->end());
         this->set_size(size);
     }
 
-    void resize(size_type size, ElementT new_element) {
+    void resize(SizeT size, ElementT new_element) {
         // same size
         if (size == this->size()) {
             return;
@@ -649,13 +649,13 @@ public:
         this->append(size - this->size(), new_element);
     }
 
-    void reserve(size_type size) {
+    void reserve(SizeT size) {
         if (this->capacity() < size) {
             this->grow(size);
         }
     }
 
-    void pop_back_n(size_type size) {
+    void pop_back_n(SizeT size) {
         ASSERT(this->size() >= size);
         truncate(this->size() - size);
     }
@@ -672,14 +672,14 @@ public:
     template <typename I, typename = std::enable_if_t<IsInputIteratorCategory<I>>>
     void append(I begin_it, I end_it) {
         this->assert_safe_to_add_range(begin_it, end_it);
-        size_type size = size_type(std::distance(begin_it, end_it));
+        SizeT size = SizeT(std::distance(begin_it, end_it));
         this->reserve(this->size() + size);
         this->uninitialized_copy(begin_it, end_it, this->end());
         this->increase_size(size);
     }
 
     // Append copies of element to the end.
-    void append(size_type size, ElementT element) {
+    void append(SizeT size, ElementT element) {
         const T *element_ptr = this->reserve_for_element_and_get_address(element, size);
         std::uninitialized_fill_n(this->end(), size, *element_ptr);
         this->increase_size(size);
@@ -691,7 +691,7 @@ public:
 
     void append(const ArrayForm &a) { append(a.begin(), a.end()); }
 
-    void assign(size_type size, ElementT element) {
+    void assign(SizeT size, ElementT element) {
         // Note that element could be an internal reference.
         if (size > this->capacity()) {
             this->grow_and_assign(size, element);
@@ -774,7 +774,7 @@ private:
         ASSERT_WITH_MESSAGE(this->is_reference_to_storage(it), "Iterator to erase out of bounds.");
 
         // Grow if necessary.
-        size_type index = it - this->begin();
+        SizeT index = it - this->begin();
         std::remove_reference_t<ElementArgT> *element_ptr = 
             this->reserve_for_element_and_get_address(element);
         it = this->begin() + index;
@@ -804,10 +804,10 @@ public:
         return insert_one_impl(it, this->forward_element(element));
     }
 
-    iterator insert(iterator it, size_type insert_size, ElementT element) {
+    iterator insert(iterator it, SizeT insert_size, ElementT element) {
         // Convert iterator to an index to avoid invalidating iterator after 
         // calling reserve_for_element_and_get_address()
-        size_type insert_index = it - this->begin();
+        SizeT insert_index = it - this->begin();
 
         if (it == this->end()) {  // Important special case for is_empty array.
             append(insert_size, element);
@@ -849,7 +849,7 @@ public:
         // Move over the elements about to be overwritten.
         T *old_end = this->end();
         this->set_size(this->size() + insert_size);
-        size_type overwritten_size = old_end - it;
+        SizeT overwritten_size = old_end - it;
         this->uninitialized_move(it, old_end, this->end() - overwritten_size);
 
         // If we just moved the element we're inserting, be sure to update
@@ -869,7 +869,7 @@ public:
     template <typename I, typename = std::enable_if_t<IsInputIteratorCategory<I>>>
     iterator insert(iterator it, I from, I to) {
         // Convert iterator to an index to avoid invalidating iterator after calling reserve()
-        size_type insert_index = size_type(it - this->begin());
+        SizeT insert_index = SizeT(it - this->begin());
 
         if (it == this->end()) {  // Important special case for is_empty array.
             append(from, to);
@@ -881,7 +881,7 @@ public:
         // Check that the reserve that follows doesn't invalidate the iterators.
         this->assert_safe_to_add_range(from, to);
 
-        size_type insert_size = std::distance(from, to);
+        SizeT insert_size = SizeT(std::distance(from, to));
 
         // Ensure there is enough space.
         reserve(this->size() + insert_size);
@@ -910,7 +910,7 @@ public:
         // Move over the elements about to be overwritten.
         T *old_end = this->end();
         this->increase_size(insert_size);
-        size_type overwritten_size = SizeT(old_end - it);
+        SizeT overwritten_size = SizeT(old_end - it);
         this->uninitialized_move(it, old_end, this->end() - overwritten_size);
 
         // Replace the overwritten part.
@@ -1194,6 +1194,8 @@ template <typename T> struct CalculateArrayDefaultInlinedElements
 //
 // Not exception safe.
 //
+// This class is based (mightily) on SmallVector.h from the LLVM project. 
+// See their documentation:
 // https://llvm.org/docs/ProgrammersManual.html#llvm-adt-smallvector-h
 //
 template <typename T, unsigned N = CalculateArrayDefaultInlinedElements<T>::value>
@@ -1280,7 +1282,7 @@ public:
 };
 
 template <typename T, unsigned N>
-UU_ALWAYS_INLINE ArraySizeType<T> capacity_in_bytes(const Array<T, N> &a) {
+UU_ALWAYS_INLINE size_t capacity_in_bytes(const Array<T, N> &a) {
     return a.capacity_in_bytes();
 }
 
