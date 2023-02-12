@@ -72,7 +72,7 @@ protected:
     // Set the array size, which must be less than or equal to the current capacity
     // Does not construct or destroy elements.
     void set_size(SizeT size) {
-        ASSERT(size <= capacity());
+        ASSERT_WITH_MESSAGE(size <= capacity(), "size: %lu ; capacity: %lu", size, capacity());
         m_size = size;
     }
 
@@ -576,8 +576,9 @@ protected:
             free(this->begin());
         }
         this->set_base(a.base());
-        this->set_size(a.size());
+        // essential to set capacity before size to prevent asserts from firing
         this->set_capacity(a.capacity());
+        this->set_size(a.size());
         a.reset_to_inline_storage();
     }
 

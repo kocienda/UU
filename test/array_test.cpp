@@ -116,6 +116,22 @@ TEST_CASE( "array swap char", "[array]" ) {
     REQUIRE(a2.size_in_bytes() == 10 * sizeof(char));
 }
 
+TEST_CASE( "array swap trivial", "[array]" ) {
+    Array<Trivial> a1;
+    Array<Trivial> a2;
+
+    for (int i = 0; i < 10; i++) {
+        a1.push_back(Trivial());
+    }
+
+    std::swap(a1, a2);
+
+    REQUIRE(a1.size() == 0);
+    REQUIRE(a1.size_in_bytes() == 0);
+    REQUIRE(a2.size() == 10);
+    REQUIRE(a2.size_in_bytes() == 10 * sizeof(Trivial));
+}
+
 TEST_CASE( "array assign and clear int", "[array]" ) {
     Array<int> a1;
     Array<int> a2;
