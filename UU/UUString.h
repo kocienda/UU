@@ -127,17 +127,8 @@ private:
     } while (0)
 
     UU_ALWAYS_INLINE constexpr void null_terminate() {
-        ensure_capacity(m_length);
+        reserve(m_length);
         data()[m_length] = '\0';
-    }
-
-    UU_ALWAYS_INLINE 
-    constexpr void ensure_capacity(Size new_capacity) {
-        new_capacity++; // room for null termination
-        if (new_capacity <= m_capacity) {
-            return;
-        }
-        grow(new_capacity);
     }
 
     UU_ALWAYS_INLINE CharT return_empty_or_throw_out_of_range(Size pos) const { 
@@ -204,7 +195,7 @@ public:
     constexpr BasicString() noexcept { null_terminate(); }
     
     constexpr explicit BasicString(Size capacity) {
-        ensure_capacity(capacity);
+        reserve(capacity);
         null_terminate();
     }
     
@@ -337,11 +328,22 @@ public:
 
     // resizing ===================================================================================
 
-    void reserve(Size length) { ensure_capacity(length); }
-    constexpr void clear() { resize(0); }
+    constexpr void reserve(Size new_capacity) { 
+        new_capacity++; // room for null termination
+        if (new_capacity <= m_capacity) {
+            return;
+        }
+        grow(new_capacity);
+        UU_STRING_ASSERT_NULL_TERMINATED;
+    }
+
+    constexpr void clear() {
+        m_length = 0; 
+        null_terminate();
+    }
 
     constexpr void resize(Size length) { 
-        ensure_capacity(length);
+        reserve(length);
         m_length = length; 
         null_terminate();
     }
@@ -527,7 +529,7 @@ public:
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
 
     constexpr BasicString &append(Size count, CharT c) {
-        ensure_capacity(m_length + count);
+        reserve(m_length + count);
         for (Size idx = 0; idx < count; idx++) {
             data()[m_length + idx] = c;
         }
@@ -557,7 +559,7 @@ public:
 
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     constexpr BasicString &append(const char *ptr, Size length) {
-        ensure_capacity(m_length + length);
+        reserve(m_length + length);
         for (Size idx = 0; idx < length; idx++) {
             data()[m_length + idx] = ptr[idx];
         }
@@ -567,7 +569,7 @@ public:
     }
     
     constexpr BasicString &append(const CharT *ptr, Size length) {
-        ensure_capacity(m_length + length);
+        reserve(m_length + length);
         TraitsT::copy(data() + m_length, ptr, length);
         m_length += length;
         null_terminate();
@@ -577,7 +579,7 @@ public:
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     constexpr BasicString &append(const char *ptr) {
         Size length = strlen(ptr);
-        ensure_capacity(m_length + length);
+        reserve(m_length + length);
         for (Size idx = 0; idx < length; idx++) {
             data()[idx + length] = ptr[idx];
         }
@@ -588,7 +590,7 @@ public:
 
     constexpr BasicString &append(const CharT *ptr) {
         Size length = TraitsT::length(ptr);
-        ensure_capacity(m_length + length);
+        reserve(m_length + length);
         TraitsT::copy(data() + m_length, ptr, length);
         m_length += length;
         null_terminate();
@@ -599,7 +601,7 @@ public:
         std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     constexpr BasicString &append(InputIt first, InputIt last) {
         for (auto it = first; it != last; ++it) {
-            ensure_capacity(m_length);
+            reserve(m_length);
             data()[m_length] = *it;
             m_length++;
         }
@@ -609,7 +611,7 @@ public:
 
     constexpr BasicString &append(std::initializer_list<CharT> ilist) {
         for (auto it = ilist.begin(); it != ilist.end(); ++it) {
-            ensure_capacity(m_length);
+            reserve(m_length);
             data()[m_length] = *it;
             m_length++;
         }
@@ -634,7 +636,7 @@ public:
 
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     constexpr BasicString &append(char c) {
-        ensure_capacity(m_length);
+        reserve(m_length);
         data()[m_length] = c;
         m_length++;
         null_terminate();
@@ -642,7 +644,7 @@ public:
     }
 
     constexpr BasicString &append(CharT c) {
-        ensure_capacity(m_length);
+        reserve(m_length);
         data()[m_length] = c;
         m_length++;
         null_terminate();
@@ -660,7 +662,7 @@ public:
         char *ptr = buf;
         integer_to_string(val, ptr);
         Size len = strlen(ptr);
-        ensure_capacity(m_length + len);
+        reserve(m_length + len);
         append(ptr, len);
         UU_STRING_ASSERT_NULL_TERMINATED;
         return *this;
@@ -670,7 +672,7 @@ public:
     // all calls in this section must end with null_terminate() or UU_STRING_ASSERT_NULL_TERMINATED
 
     constexpr BasicString &insert(Size index, Size count, CharT c) {
-        ensure_capacity(m_length + count);
+        reserve(m_length + count);
         iterator pos = begin() + index;
         iterator dst = pos + count;
         TraitsT::move(dst, pos, end() - pos);
@@ -688,7 +690,7 @@ public:
     }
 
     constexpr BasicString &insert(Size index, const CharT *s, Size count) {
-        ensure_capacity(m_length + count);
+        reserve(m_length + count);
         iterator pos = begin() + index;
         iterator dst = pos + count;
         TraitsT::move(dst, pos, end() - pos);
@@ -706,7 +708,7 @@ public:
 
     constexpr BasicString &insert(Size index, const BasicString &str, Size index_str, Size count = npos) {
         Size ecount = std::min(count, str.length() - index_str);
-        ensure_capacity(m_length + ecount);
+        reserve(m_length + ecount);
         iterator pos = begin() + index;
         iterator dst = pos + ecount;
         TraitsT::move(dst, pos, end() - pos);
@@ -717,7 +719,7 @@ public:
     }
 
     constexpr iterator insert(const_iterator pos, CharT c) {
-        ensure_capacity(m_length);
+        reserve(m_length);
         iterator dst = unconst_copy(pos);
         TraitsT::move(dst + 1, pos, end() - pos);
         data()[pos - begin()] = c;
@@ -727,7 +729,7 @@ public:
     }
 
     constexpr iterator insert(const_iterator pos, Size count, CharT c) {
-        ensure_capacity(m_length + count);
+        reserve(m_length + count);
         iterator dst = unconst_copy(pos);
         TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t diff = pos - begin();
@@ -743,7 +745,7 @@ public:
         std::enable_if_t<IsInputIteratorCategory<MaybeT>, int> = 0>
     iterator insert(const_iterator pos, InputIt first, InputIt last) {
         ptrdiff_t count = last - first;
-        ensure_capacity(m_length + count);
+        reserve(m_length + count);
         iterator dst = unconst_copy(pos);
         TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
@@ -757,7 +759,7 @@ public:
 
     constexpr iterator insert(const_iterator pos, std::initializer_list<CharT> ilist) {
         ptrdiff_t count = ilist.size();
-        ensure_capacity(m_length + count);
+        reserve(m_length + count);
         iterator dst = unconst_copy(pos);
         TraitsT::move(dst + count, pos, end() - pos);
         ptrdiff_t offset = pos - begin(); 
