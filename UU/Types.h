@@ -144,6 +144,24 @@ struct IsInputIteratorCategory_ :
 
 template <typename T> constexpr bool IsInputIteratorCategory = IsInputIteratorCategory_<T>::value;
 
+template <typename T>
+using IsByteSized_ = std::bool_constant<sizeof(T) == sizeof(char)>;
+template <typename T> constexpr bool IsByteSized = IsByteSized_<T>::value;
+
+template <typename T, typename CharT, typename TraitsT>
+using IsConvertibleToStringView_ = std::is_convertible<T, std::basic_string_view<CharT, TraitsT>>;
+template <typename T, typename CharT, typename TraitsT> 
+    constexpr bool IsConvertibleToStringView = IsConvertibleToStringView_<T, CharT, TraitsT>::value;
+
+template <typename T, typename CharT>
+using IsConvertibleToConstCharTStar_ = std::is_convertible<T, const CharT *>;
+template <typename T, typename CharT> 
+    constexpr bool IsConvertibleToConstCharTStar = IsConvertibleToConstCharTStar_<T, CharT>::value;
+
+template <typename T, typename CharT, typename TraitsT>
+constexpr bool IsStringViewLike = IsConvertibleToStringView<T, CharT, TraitsT> && 
+    !IsConvertibleToConstCharTStar<T, CharT>;
+
 }  // namespace UU
 
 #endif  // UU_TYPES_H

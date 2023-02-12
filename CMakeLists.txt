@@ -44,6 +44,7 @@ set(PUBLIC_HEADERS
   ${CODE_DIR}/Compiler.h
   ${CODE_DIR}/Context.h
   ${CODE_DIR}/FileLike.h
+  ${CODE_DIR}/IString.h
   ${CODE_DIR}/IteratorWrapper.h
   ${CODE_DIR}/MappedFile.h
   ${CODE_DIR}/MathLike.h

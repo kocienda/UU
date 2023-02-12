@@ -147,8 +147,8 @@ protected:
     // is managed elsewhere.
     void reset_to_inline_storage() {
         this->set_base(first_element());
-        this->set_size(0);
         this->set_capacity(0); // FIXME: Setting capacity to 0 is suspect.
+        this->set_size(0);
     }
 
     // Return true if V is an internal reference to the given range.
