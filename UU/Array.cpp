@@ -72,9 +72,9 @@ static void report_at_maximum_capacity(size_t max_size)
 
 // Note: Moving this function into the header may cause performance regression.
 template <class SizeT>
-static size_t calculate_new_capacity(size_t min_size, size_t t_size, size_t old_capacity) 
+static SizeT calculate_new_capacity(SizeT min_size, SizeT t_size, SizeT old_capacity) 
 {
-    constexpr size_t max_size = std::numeric_limits<SizeT>::max();
+    constexpr SizeT max_size = std::numeric_limits<SizeT>::max();
 
     // Ensure we can fit the new capacity.
     // This is only going to be applicable when the capacity is 32 bit.
@@ -92,23 +92,23 @@ static size_t calculate_new_capacity(size_t min_size, size_t t_size, size_t old_
 
     // In theory 2*old_capacity can overflow if the capacity is 64 bit, but the
     // old capacity would never be large enough for this to be a problem.
-    size_t new_capacity = (2 * old_capacity) + 1; // Always grow.
+    SizeT new_capacity = (2 * old_capacity) + 1; // Always grow.
     return std::min(std::max(new_capacity, min_size), max_size);
 }
 
 // Note: Moving this function into the header may cause performance regression.
 template <class SizeT>
-void *ArrayBase<SizeT>::allocate_for_grow(size_t min_size, size_t t_size, size_t &new_capacity) 
+void *ArrayBase<SizeT>::allocate_for_grow(SizeT min_size, SizeT t_size, SizeT &new_capacity) 
 {
-    new_capacity = calculate_new_capacity<SizeT>(min_size, t_size, this->capacity());
+    new_capacity = calculate_new_capacity(min_size, t_size, this->capacity());
     return malloc(new_capacity * t_size);
 }
 
 // Note: Moving this function into the header may cause performance regression.
 template <class ArraySizeType>
-void ArrayBase<ArraySizeType>::grow_pod(void *first_element, size_t min_size, size_t t_size) 
+void ArrayBase<ArraySizeType>::grow_pod(void *first_element, ArraySizeType min_size, ArraySizeType t_size) 
 {
-    ArraySizeType new_capacity = (ArraySizeType)calculate_new_capacity<ArraySizeType>(min_size, t_size, this->capacity());
+    ArraySizeType new_capacity = calculate_new_capacity(min_size, t_size, this->capacity());
     void *base;
 
     if (this->base() == first_element) {

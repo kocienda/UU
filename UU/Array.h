@@ -59,7 +59,7 @@ public:
     UU_NO_DISCARD bool is_empty() const { return m_size == 0; }
 
 protected:
-    static constexpr size_t SizeTMax() {
+    static constexpr SizeT SizeTMax() {
         return std::numeric_limits<SizeT>::max();
     }
 
@@ -89,11 +89,11 @@ protected:
     }
 
     // A helper for grow(). Defined out of line to reduce code duplication.
-    void *allocate_for_grow(size_t min_size, size_t t_size, size_t &new_capacity);
+    void *allocate_for_grow(SizeT min_size, SizeT t_size, SizeT &new_capacity);
 
     // An implementation of grow() for POD types.
     // Defined out of line to reduce code duplication.
-    void grow_pod(void *first_element, size_t min_size, size_t t_size);
+    void grow_pod(void *first_element, SizeT min_size, SizeT t_size);
 
     // data members
     void *m_base;
@@ -132,8 +132,8 @@ class ArrayCommon : public ArrayBase<ArraySizeType<T>> {
 protected:
     ArrayCommon(ArraySizeType<T> size) : ArrayBaseT(first_element(), size) {}
 
-    void grow_pod(size_t MinSize, size_t TSize) {
-        ArrayBaseT::grow_pod(first_element(), MinSize, TSize);
+    void grow_pod(ArraySizeType<T> min_size, ArraySizeType<T> t_size) {
+        ArrayBaseT::grow_pod(first_element(), min_size, t_size);
     }
 
     // Return true if the array is using its inline storage and false 
@@ -225,8 +225,8 @@ protected:
     // Reserve enough space to add one element, and return the updated element
     // pointer in case it was a reference to the storage.
     template <class U>
-    static const T *reserve_for_element_and_get_address_impl(U *u, const T &element, size_t size) {
-        size_t new_size = u->size() + size;
+    static const T *reserve_for_element_and_get_address_impl(U *u, const T &element, ArraySizeType<T> size) {
+        ArraySizeType<T> new_size = u->size() + size;
         if (LIKELY(new_size <= u->capacity()))
             return &element;
 
@@ -328,7 +328,7 @@ protected:
     static constexpr bool TakesElementsByValue = false;
     using ElementT = const T &;
 
-    ArrayTypedBase(size_t size) : ArrayCommon<T>(size) {}
+    ArrayTypedBase(ArraySizeType<T> size) : ArrayCommon<T>(size) {}
 
     static void call_destructors_on_range(T *start, T *end) {
         while (start != end) {
@@ -354,11 +354,11 @@ protected:
     // Grow the allocated memory (without initializing new elements), doubling
     // the size of the allocated memory. Guarantees space for at least one more
     // element, or min_size more elements if specified.
-    void grow(size_t min_size = 0);
+    void grow(ArraySizeType<T> min_size = 0);
 
     // Allocate enough for min_size and pass back its size in new_capacity. 
     // This is the first step of grow().
-    T *allocate_for_grow(size_t min_size, size_t &new_capacity) {
+    T *allocate_for_grow(ArraySizeType<T> min_size, ArraySizeType<T> &new_capacity) {
         using A = ArrayBase<ArraySizeType<T>>;
         return static_cast<T *>(A::allocate_for_grow(min_size, sizeof(T), new_capacity));
     }
@@ -367,14 +367,14 @@ protected:
     void move_elements_for_grow(T *new_elements);
 
     // Transfer ownership of the allocation, the last step up for grow().
-    void transfer_allocation_for_grow(T *new_elements, size_t new_capacity);
+    void transfer_allocation_for_grow(T *new_elements, ArraySizeType<T> new_capacity);
 
     // Reserve enough space to add one element, and return the updated element
     // pointer in case it was a reference to the storage.
     const T *reserve_for_element_and_get_address(const T &element, size_t size = 1) {
         return this->reserve_for_element_and_get_address_impl(this, element, size);
     }
-    T *reserve_for_element_and_get_address(T &element, size_t size = 1) {
+    T *reserve_for_element_and_get_address(T &element, ArraySizeType<T> size = 1) {
         const T *addr = this->reserve_for_element_and_get_address_impl(this, element, size);
         return const_cast<T *>(addr);
     }
@@ -384,7 +384,7 @@ protected:
 
     void grow_and_assign(size_t num_elements, const T &element) {
         // Grow manually in case element is an internal reference.
-        size_t new_capacity;
+        ArraySizeType<T> new_capacity;
         T *new_elements = allocate_for_grow(num_elements, new_capacity);
         std::uninitialized_fill_n(new_elements, num_elements, element);
         this->call_destructors_on_range(this->begin(), this->end());
@@ -394,7 +394,7 @@ protected:
 
     template <typename... ArgTypes> T &grow_and_emplace_back(ArgTypes &&... args) {
         // Grow manually in case one of args is an internal reference.
-        size_t new_capacity;
+        ArraySizeType<T> new_capacity;
         T *new_elements = allocate_for_grow(0, new_capacity);
         ::new ((void *)(new_elements + this->size())) T(std::forward<ArgTypes>(args)...);
         move_elements_for_grow(new_elements);
@@ -425,8 +425,8 @@ public:
 
 // Define out-of-line to dissuade the C++ compiler from inlining it.
 template <typename T, bool TriviallyCopyable>
-void ArrayTypedBase<T, TriviallyCopyable>::grow(size_t min_size) {
-    size_t new_capacity;
+void ArrayTypedBase<T, TriviallyCopyable>::grow(ArraySizeType<T> min_size) {
+    ArraySizeType<T> new_capacity;
     T *new_elements = allocate_for_grow(min_size, new_capacity);
     move_elements_for_grow(new_elements);
     transfer_allocation_for_grow(new_elements, new_capacity);
@@ -441,7 +441,7 @@ void ArrayTypedBase<T, TriviallyCopyable>::move_elements_for_grow(T *new_element
 
 // Define this out-of-line to dissuade the C++ compiler from inlining it.
 template <typename T, bool TriviallyCopyable>
-void ArrayTypedBase<T, TriviallyCopyable>::transfer_allocation_for_grow(T *new_elements, size_t new_capacity) {
+void ArrayTypedBase<T, TriviallyCopyable>::transfer_allocation_for_grow(T *new_elements, ArraySizeType<T> new_capacity) {
     // If this wasn't grown from the inline copy, deallocate the old space.
     if (!this->is_using_inline_storage()) {
         free(this->begin());
@@ -501,15 +501,15 @@ protected:
     }
 
     // Double the size of the allocated memory, guaranteeing space for at
-    // least one more element or MinSize if specified.
-    void grow(size_t MinSize = 0) { this->grow_pod(MinSize, sizeof(T)); }
+    // least one more element or min_size if specified.
+    void grow(ArraySizeType<T> min_size = 0) { this->grow_pod(min_size, sizeof(T)); }
 
     // Reserve enough space to add one element, and return the updated element
     // pointer in case it was a reference to the storage.
-    const T *reserve_for_element_and_get_address(const T &element, size_t size = 1) {
+    const T *reserve_for_element_and_get_address(const T &element, ArraySizeType<T> size = 1) {
         return this->reserve_for_element_and_get_address_impl(this, element, size);
     }
-    T *reserve_for_element_and_get_address(T &element, size_t size = 1) {
+    T *reserve_for_element_and_get_address(T &element, ArraySizeType<T> size = 1) {
         const T *addr = this->reserve_for_element_and_get_address_impl(this, element, size);
         return const_cast<T *>(addr);
     }
@@ -570,7 +570,7 @@ protected:
             free(this->begin());
         }
         this->set_base(a.base());
-        this->set_size(a.size);
+        this->set_size(a.size());
         this->set_capacity(a.capacity());
         a.reset_to_inline_storage();
     }
@@ -592,9 +592,6 @@ public:
     }
 
 private:
-    // Make set_size() private to avoid misuse in subclasses.
-    using SuperClass::set_size;
-
     template <bool ForOverwrite> void resize_impl(size_type N) {
         if (N == this->size()) {
             return;
@@ -1258,7 +1255,7 @@ public:
         }
         if (a.is_empty()) {
             this->call_destructors_on_range(this->begin(), this->end());
-            this->size = 0;
+            this->set_size(0);
         } 
         else {
             this->assign_remote(std::move(a));
