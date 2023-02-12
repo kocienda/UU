@@ -113,11 +113,12 @@ template <class T, typename = void> struct ArrayAlignmentAndSize {
 };
 
 // This is the part of ArrayTypedBase which does not depend on whether
-// the type T is a POD. The extra dummy template argument is used by ArrayRef
-// to avoid unnecessarily requiring T to be complete.
+// the type T is a POD. The extra dummy template argument avoids
+// requiring T to be complete.
 template <typename T, typename = void>
 class ArrayCommon : public ArrayBase<ArraySizeType<T>> {
-    using ArrayBaseT = ArrayBase<ArraySizeType<T>>;
+    using SizeT = ArraySizeType<T>;
+    using ArrayBaseT = ArrayBase<SizeT>;
 
     // Find the address of the first element.  For this pointer math to be valid
     // with small-size of 0 for T with lots of alignment, it's important that
@@ -130,9 +131,9 @@ class ArrayCommon : public ArrayBase<ArraySizeType<T>> {
     // Space after 'm_first_element' is clobbered, do not add any instance vars after it.
 
 protected:
-    ArrayCommon(ArraySizeType<T> size) : ArrayBaseT(first_element(), size) {}
+    ArrayCommon(SizeT size) : ArrayBaseT(first_element(), size) {}
 
-    void grow_pod(ArraySizeType<T> min_size, ArraySizeType<T> t_size) {
+    void grow_pod(SizeT min_size, SizeT t_size) {
         ArrayBaseT::grow_pod(first_element(), min_size, t_size);
     }
 
@@ -243,7 +244,7 @@ protected:
     }
 
 public:
-    using size_type = ArraySizeType<T>;
+    using size_type = SizeT;
     using difference_type = ptrdiff_t;
     using value_type = T;
     using iterator = T *;
@@ -326,9 +327,10 @@ class ArrayTypedBase : public ArrayCommon<T>
 
 protected:
     static constexpr bool TakesElementsByValue = false;
+    using SizeT = ArraySizeType<T>;
     using ElementT = const T &;
 
-    ArrayTypedBase(ArraySizeType<T> size) : ArrayCommon<T>(size) {}
+    ArrayTypedBase(SizeT size) : ArrayCommon<T>(size) {}
 
     static void call_destructors_on_range(T *start, T *end) {
         while (start != end) {
@@ -354,12 +356,12 @@ protected:
     // Grow the allocated memory (without initializing new elements), doubling
     // the size of the allocated memory. Guarantees space for at least one more
     // element, or min_size more elements if specified.
-    void grow(ArraySizeType<T> min_size = 0);
+    void grow(SizeT min_size = 0);
 
     // Allocate enough for min_size and pass back its size in new_capacity. 
     // This is the first step of grow().
-    T *allocate_for_grow(ArraySizeType<T> min_size, ArraySizeType<T> &new_capacity) {
-        using A = ArrayBase<ArraySizeType<T>>;
+    T *allocate_for_grow(SizeT min_size, SizeT &new_capacity) {
+        using A = ArrayBase<SizeT>;
         return static_cast<T *>(A::allocate_for_grow(min_size, sizeof(T), new_capacity));
     }
 
@@ -367,14 +369,14 @@ protected:
     void move_elements_for_grow(T *new_elements);
 
     // Transfer ownership of the allocation, the last step up for grow().
-    void transfer_allocation_for_grow(T *new_elements, ArraySizeType<T> new_capacity);
+    void transfer_allocation_for_grow(T *new_elements, SizeT new_capacity);
 
     // Reserve enough space to add one element, and return the updated element
     // pointer in case it was a reference to the storage.
     const T *reserve_for_element_and_get_address(const T &element, size_t size = 1) {
         return this->reserve_for_element_and_get_address_impl(this, element, size);
     }
-    T *reserve_for_element_and_get_address(T &element, ArraySizeType<T> size = 1) {
+    T *reserve_for_element_and_get_address(T &element, SizeT size = 1) {
         const T *addr = this->reserve_for_element_and_get_address_impl(this, element, size);
         return const_cast<T *>(addr);
     }
@@ -384,7 +386,7 @@ protected:
 
     void grow_and_assign(size_t num_elements, const T &element) {
         // Grow manually in case element is an internal reference.
-        ArraySizeType<T> new_capacity;
+        SizeT new_capacity;
         T *new_elements = allocate_for_grow(num_elements, new_capacity);
         std::uninitialized_fill_n(new_elements, num_elements, element);
         this->call_destructors_on_range(this->begin(), this->end());
@@ -394,7 +396,7 @@ protected:
 
     template <typename... ArgTypes> T &grow_and_emplace_back(ArgTypes &&... args) {
         // Grow manually in case one of args is an internal reference.
-        ArraySizeType<T> new_capacity;
+        SizeT new_capacity;
         T *new_elements = allocate_for_grow(0, new_capacity);
         ::new ((void *)(new_elements + this->size())) T(std::forward<ArgTypes>(args)...);
         move_elements_for_grow(new_elements);
@@ -458,6 +460,8 @@ class ArrayTypedBase<T, true> : public ArrayCommon<T> {
     friend class ArrayCommon<T>;
 
 protected:
+    using SizeT = ArraySizeType<T>;
+
     // True if it's cheap enough to take parameters by value. Doing so avoids
     // overhead related to mitigations for reference invalidation.
     static constexpr bool TakesElementsByValue = sizeof(T) <= 2 * sizeof(void *);
@@ -466,7 +470,7 @@ protected:
     // parameters by value.
     using ElementT = typename std::conditional<TakesElementsByValue, T, const T &>::type;
 
-    ArrayTypedBase(ArraySizeType<T> size) : ArrayCommon<T>(size) {}
+    ArrayTypedBase(SizeT size) : ArrayCommon<T>(size) {}
 
     // No need to do a destroy loop for trivial elements.
     static void call_destructors_on_range(T *, T *) {}
@@ -502,14 +506,14 @@ protected:
 
     // Double the size of the allocated memory, guaranteeing space for at
     // least one more element or min_size if specified.
-    void grow(ArraySizeType<T> min_size = 0) { this->grow_pod(min_size, sizeof(T)); }
+    void grow(SizeT min_size = 0) { this->grow_pod(min_size, sizeof(T)); }
 
     // Reserve enough space to add one element, and return the updated element
     // pointer in case it was a reference to the storage.
-    const T *reserve_for_element_and_get_address(const T &element, ArraySizeType<T> size = 1) {
+    const T *reserve_for_element_and_get_address(const T &element, SizeT size = 1) {
         return this->reserve_for_element_and_get_address_impl(this, element, size);
     }
-    T *reserve_for_element_and_get_address(T &element, ArraySizeType<T> size = 1) {
+    T *reserve_for_element_and_get_address(T &element, SizeT size = 1) {
         const T *addr = this->reserve_for_element_and_get_address_impl(this, element, size);
         return const_cast<T *>(addr);
     }
@@ -556,6 +560,8 @@ public:
     using const_iterator = typename SuperClass::const_iterator;
     using reference = typename SuperClass::reference;
     using size_type = typename SuperClass::size_type;
+    static_assert(sizeof(size_type) == sizeof(ArraySizeType<T>), 
+        "sizeof(size_type) must equal sizeof(ArraySizeType<T>)");
 
 protected:
     using ArrayTypedBase<T>::TakesElementsByValue;
@@ -665,9 +671,8 @@ public:
     // Add the specified range to the end of the Array.
     template <typename I, typename = std::enable_if_t<IsInputIteratorCategory<I>>>
     void append(I begin_it, I end_it) {
-        using SizeT = ArraySizeType<T>;
         this->assert_safe_to_add_range(begin_it, end_it);
-        size_type size = SizeT(std::distance(begin_it, end_it));
+        size_type size = size_type(std::distance(begin_it, end_it));
         this->reserve(this->size() + size);
         this->uninitialized_copy(begin_it, end_it, this->end());
         this->increase_size(size);
@@ -769,7 +774,7 @@ private:
         ASSERT_WITH_MESSAGE(this->is_reference_to_storage(it), "Iterator to erase out of bounds.");
 
         // Grow if necessary.
-        size_t index = it - this->begin();
+        size_type index = it - this->begin();
         std::remove_reference_t<ElementArgT> *element_ptr = 
             this->reserve_for_element_and_get_address(element);
         it = this->begin() + index;
@@ -802,7 +807,7 @@ public:
     iterator insert(iterator it, size_type insert_size, ElementT element) {
         // Convert iterator to an index to avoid invalidating iterator after 
         // calling reserve_for_element_and_get_address()
-        size_t insert_index = it - this->begin();
+        size_type insert_index = it - this->begin();
 
         if (it == this->end()) {  // Important special case for is_empty array.
             append(insert_size, element);
@@ -820,7 +825,7 @@ public:
         // If there are more elements between the insertion point and the end of the
         // range than there are being inserted, use a simple approach to insertion.
         // Since space is already reserved, this won't reallocate the array.
-        if (size_t(this->end()-it) >= insert_size) {
+        if (this->end()-it >= insert_size) {
             T *old_end = this->end();
             append(std::move_iterator<iterator>(this->end() - insert_size),
                 std::move_iterator<iterator>(this->end()));
@@ -844,7 +849,7 @@ public:
         // Move over the elements about to be overwritten.
         T *old_end = this->end();
         this->set_size(this->size() + insert_size);
-        size_t overwritten_size = old_end - it;
+        size_type overwritten_size = old_end - it;
         this->uninitialized_move(it, old_end, this->end() - overwritten_size);
 
         // If we just moved the element we're inserting, be sure to update
@@ -863,10 +868,8 @@ public:
 
     template <typename I, typename = std::enable_if_t<IsInputIteratorCategory<I>>>
     iterator insert(iterator it, I from, I to) {
-        using SizeT = ArraySizeType<T>;
-
         // Convert iterator to an index to avoid invalidating iterator after calling reserve()
-        SizeT insert_index = SizeT(it - this->begin());
+        size_type insert_index = size_type(it - this->begin());
 
         if (it == this->end()) {  // Important special case for is_empty array.
             append(from, to);
@@ -878,7 +881,7 @@ public:
         // Check that the reserve that follows doesn't invalidate the iterators.
         this->assert_safe_to_add_range(from, to);
 
-        SizeT insert_size = SizeT(std::distance(from, to));
+        size_type insert_size = std::distance(from, to);
 
         // Ensure there is enough space.
         reserve(this->size() + insert_size);
@@ -889,7 +892,7 @@ public:
         // If there are more elements between the insertion point and the end of the
         // range than there are being inserted, use a simple approach to insertion.
         // Since space is already reserved, this won't reallocate the array.
-        if (SizeT(this->end() - it) >= insert_size) {
+        if (this->end() - it >= insert_size) {
             T *old_end = this->end();
             append(std::move_iterator<iterator>(this->end() - insert_size),
                 std::move_iterator<iterator>(this->end()));
@@ -907,7 +910,7 @@ public:
         // Move over the elements about to be overwritten.
         T *old_end = this->end();
         this->increase_size(insert_size);
-        SizeT overwritten_size = SizeT(old_end - it);
+        size_type overwritten_size = SizeT(old_end - it);
         this->uninitialized_move(it, old_end, this->end() - overwritten_size);
 
         // Replace the overwritten part.
@@ -1197,13 +1200,15 @@ template <typename T, unsigned N = CalculateArrayDefaultInlinedElements<T>::valu
 class Array : public ArrayForm<T>, ArrayStorage<T, N> 
 {
 public:
+    using SizeT = ArraySizeType<T>;
+
     Array() : ArrayForm<T>(N) {}
 
     ~Array() {
         this->call_destructors_on_range(this->begin(), this->end());
     }
 
-    explicit Array(size_t size, const T &Value = T()) : ArrayForm<T>(N) {
+    explicit Array(SizeT size, const T &Value = T()) : ArrayForm<T>(N) {
         this->assign(size, Value);
     }
 
@@ -1275,7 +1280,7 @@ public:
 };
 
 template <typename T, unsigned N>
-UU_ALWAYS_INLINE size_t capacity_in_bytes(const Array<T, N> &a) {
+UU_ALWAYS_INLINE ArraySizeType<T> capacity_in_bytes(const Array<T, N> &a) {
     return a.capacity_in_bytes();
 }
 
