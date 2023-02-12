@@ -61,7 +61,7 @@ class TextRef;
 
 // string size ====================================================================================
 
-static constexpr Size BasicStringDefaultInlineCapacity = 192;
+static constexpr Size BasicStringDefaultInlineCapacity = 48;
 
 // template metaprogramming =======================================================================
 
@@ -361,6 +361,7 @@ public:
             Memory old_mem = { data(), capacity() };
             Allocator &allocator = Context::get().allocator();
             m_ptr = m_buf;
+            m_capacity = InlineCapacity;
             TraitsT::copy(data(), (CharT *)old_mem.ptr, length());
             allocator.dealloc(old_mem);
             null_terminate();
@@ -378,6 +379,7 @@ public:
         Size amt = (shrink_length * sizeof(CharT)) + 1;
         Memory mem = allocator.alloc(amt);
         m_ptr = (CharT *)mem.ptr;
+        m_capacity = mem.capacity;
         TraitsT::copy(m_ptr, (CharT *)old_mem.ptr, length());
         allocator.dealloc(old_mem);
         null_terminate();
