@@ -57,6 +57,7 @@ public:
     UU_ALWAYS_INLINE SizeT capacity() const { return m_capacity; }
 
     UU_NO_DISCARD bool is_empty() const { return m_size == 0; }
+    UU_NO_DISCARD bool not_empty() const { return !is_empty(); }
 
 protected:
     static constexpr SizeT SizeTMax() {
@@ -757,7 +758,7 @@ public:
         iterator result_it = begin_it;
         iterator it = std::move(end_it, this->end(), begin_it);
         this->call_destructors_on_range(it, this->end());
-        this->set_size(it - this->begin());
+        this->set_size(SizeT(it - this->begin()));
         return result_it;
     }
 
