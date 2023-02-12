@@ -68,7 +68,7 @@ namespace UU {
 
 // grow_pod - This is an implementation of the grow() method which only works
 // on POD-like datatypes and is out of line to reduce code duplication.
-void SmallVectorBase::grow_pod(void *FirstEl, size_t MinSizeInBytes, size_t TSize) 
+void SmallVectorBase::grow_pod(void *m_first_element, size_t MinSizeInBytes, size_t TSize) 
 {
     size_t CurSizeBytes = size_in_bytes();
     size_t NewCapacityInBytes = 2 * capacity_in_bytes() + TSize; // Always grow.
@@ -77,7 +77,7 @@ void SmallVectorBase::grow_pod(void *FirstEl, size_t MinSizeInBytes, size_t TSiz
     }
 
     void *NewElts;
-    if (BeginX == FirstEl) {
+    if (BeginX == m_first_element) {
         NewElts = malloc(NewCapacityInBytes);
         if (NewElts == nullptr) {
             ASSERT_WITH_MESSAGE(false, "Allocation of SmallVector element failed.");

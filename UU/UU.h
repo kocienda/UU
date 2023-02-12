@@ -35,6 +35,7 @@ static constexpr int UU_FIXES_VERSION = 0;
 #include <UU/Allocator.h>
 #include <UU/ANSICode.h>
 #include <UU/Any.h>
+#include <UU/Array.h>
 #include <UU/Bits.h>
 #include <UU/BitBlock.h>
 #include <UU/CloseGuard.h>

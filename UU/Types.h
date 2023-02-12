@@ -123,6 +123,27 @@ template <Size A, Size B, Size C = 0> concept IsLessThanOrEqual = (A + C <= B);
 template <Size S> concept IsMultipleOfChar32Size = (S % sizeof(Char32) == 0);
 template <Size S> concept IsMutipleOf64 = (S % 64 == 0);
 
+template <typename T>
+struct HasIteratorCategory
+{
+private:
+    template <class U> static std::false_type test(...);
+    template <class U> static std::true_type test(typename U::iterator_category* = nullptr);
+public:
+    static const bool value = decltype(test<T>(nullptr))::value;
+};
+
+template <typename T, typename U, bool = HasIteratorCategory<std::iterator_traits<T>>::value>
+struct HasIteratorCategoryConvertibleTo : 
+    std::is_convertible<typename std::iterator_traits<T>::iterator_category, U>
+{};
+
+template <typename T>
+struct IsInputIteratorCategory_ : 
+    public HasIteratorCategoryConvertibleTo<T, std::input_iterator_tag> {};
+
+template <typename T> constexpr bool IsInputIteratorCategory = IsInputIteratorCategory_<T>::value;
+
 }  // namespace UU
 
 #endif  // UU_TYPES_H

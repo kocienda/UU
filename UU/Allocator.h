@@ -467,10 +467,10 @@ public:
     constexpr bool fits(Size capacity) const { return capacity >= LoFit && capacity <= HiFit; }
 
     Memory alloc(Size capacity) {
+        Size ecap = align_up(capacity);
         Memory mem;
         bool test_fit = true;
         if constexpr (ChecksFit) {
-            Size ecap = align_up(capacity);
             test_fit = fits(ecap);
         }
         if (test_fit && m_block.not_full()) {

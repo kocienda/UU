@@ -69,28 +69,6 @@ template <typename T>
 using IsByteSized_ = std::bool_constant<sizeof(T) == sizeof(char)>;
 template <typename T> constexpr bool IsByteSized = IsByteSized_<T>::value;
 
-
-template <typename T>
-struct HasIteratorCategory
-{
-private:
-    template <class U> static std::false_type test(...);
-    template <class U> static std::true_type test(typename U::iterator_category* = nullptr);
-public:
-    static const bool value = decltype(test<T>(nullptr))::value;
-};
-
-template <typename T, typename U, bool = HasIteratorCategory<std::iterator_traits<T>>::value>
-struct HasIteratorCategoryConvertibleTo : 
-    std::is_convertible<typename std::iterator_traits<T>::iterator_category, U>
-{};
-
-template <typename T>
-struct IsInputIteratorCategory_ : 
-    public HasIteratorCategoryConvertibleTo<T, std::input_iterator_tag> {};
-
-template <typename T> constexpr bool IsInputIteratorCategory = IsInputIteratorCategory_<T>::value;
-
 template <typename T, typename CharT, typename TraitsT>
 using IsConvertibleToStringView_ = std::is_convertible<T, std::basic_string_view<CharT, TraitsT>>;
 template <typename T, typename CharT, typename TraitsT> 

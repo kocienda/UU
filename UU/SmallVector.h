@@ -116,15 +116,15 @@ protected:
     void *EndX;
     void *CapacityX;
 
-    SmallVectorBase(void *FirstEl, size_t Size) : 
-        BeginX(FirstEl), 
-        EndX(FirstEl), 
-        CapacityX((char *)FirstEl + Size)
+    SmallVectorBase(void *m_first_element, size_t Size) : 
+        BeginX(m_first_element), 
+        EndX(m_first_element), 
+        CapacityX((char *)m_first_element + Size)
     {}
 
     // An implementation of the grow() method which only works
     // on POD-like data types and is out of line to reduce code duplication.
-    void grow_pod(void *FirstEl, size_t MinSizeInBytes, size_t TSize);
+    void grow_pod(void *m_first_element, size_t MinSizeInBytes, size_t TSize);
 };
 
 // The part of SmallVectorTemplateBase which does not depend on whether
@@ -137,21 +137,21 @@ class SmallVectorTemplateCommon : public SmallVectorBase
 
 protected:
     SmallVectorTemplateCommon(size_t Size) : 
-        SmallVectorBase(&FirstEl, Size) 
+        SmallVectorBase(&m_first_element, Size) 
     {}
 
     void grow_pod(size_t MinSizeInBytes, size_t TSize) {
-        SmallVectorBase::grow_pod(&FirstEl, MinSizeInBytes, TSize);
+        SmallVectorBase::grow_pod(&m_first_element, MinSizeInBytes, TSize);
     }
 
     // Return true if this is a smallvector which has not had dynamic memory allocated for it.
     bool is_small() const {
-        return BeginX == static_cast<const void *>(&FirstEl);
+        return BeginX == static_cast<const void *>(&m_first_element);
     }
 
     // Put this vector in a state of being small.
-    void resetToSmall() {
-        BeginX = EndX = CapacityX = &FirstEl;
+    void reset_to_inline_storage() {
+        BeginX = EndX = CapacityX = &m_first_element;
     }
 
     void setEnd(T *P) { this->EndX = P; }
@@ -241,8 +241,8 @@ private:
     // don't want it to be automatically run, so we need to represent the space as
     // something else.  Use an array of char of sufficient alignment.
     using U = AlignedCharArrayUnion<T>;
-    U FirstEl;
-    // Space after 'FirstEl' is clobbered, do not add any instance vars after it.
+    U m_first_element;
+    // Space after 'm_first_element' is clobbered, do not add any instance vars after it.
 };
 
 // SmallVectorTemplateBase<isTriviallyCopyable = false>
@@ -954,7 +954,7 @@ SmallVectorImpl<T> &SmallVectorImpl<T>::operator=(SmallVectorImpl<T> &&RHS)
         this->BeginX = RHS.BeginX;
         this->EndX = RHS.EndX;
         this->CapacityX = RHS.CapacityX;
-        RHS.resetToSmall();
+        RHS.reset_to_inline_storage();
         return *this;
     }
 
