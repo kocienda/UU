@@ -52,27 +52,26 @@
 
 namespace UU {
 
-// string size ====================================================================================
-
-static constexpr Size BasicIStringDefaultInlineCapacity = 24;
-
 class ProtoIStringBase
 {
 public:
-    UU_ALWAYS_INLINE Size length() const { return m_length; }
     UU_ALWAYS_INLINE Size capacity() const { return m_capacity; }
+    UU_ALWAYS_INLINE Size length() const { return m_length; }
 
     UU_NO_DISCARD bool is_empty() const { return m_length == 0; }
     UU_NO_DISCARD bool not_empty() const { return !is_empty(); }
     
-// protected:
+protected:
     ProtoIStringBase() = delete;
-    ProtoIStringBase(void *base, Size capacity) : m_base(base), m_capacity(capacity) {
-        LOG(General, "base: %p ; capacity: %lu", m_base, m_capacity);
-    }
+    ProtoIStringBase(void *base, Size capacity) : m_base(base), m_capacity(capacity) {}
 
     UU_ALWAYS_INLINE void *base() const { return m_base; }
     UU_ALWAYS_INLINE void set_base(void *base) { m_base = base; }
+    
+    // Set the capacity data member, but does not handle actually changing the capacity.
+    void set_capacity(Size capacity) {
+        m_capacity = capacity;
+    }
     
     // Set the string size, which must be less than or equal to the current capacity
     void set_length(Size length) {
@@ -81,15 +80,10 @@ public:
         m_length = length;
     }
 
-    // Set the capacity data member, but does not handle actually changing the capacity.
-    void set_capacity(Size capacity) {
-        m_capacity = capacity;
-    }
-    
     // data members
     void *m_base;
-    Size m_length = 0;
     Size m_capacity = 0;
+    Size m_length = 0;
 };
 
 // ================================================================================================
@@ -149,6 +143,11 @@ public:
 #define UU_STRING_ASSERT_NULL_TERMINATED \
     do { \
         ASSERT_WITH_MESSAGE(data()[m_length] == '\0', "string not null terminated"); \
+    } while (0)
+
+#define UU_STRING_DATA_ASSERT_NULL_TERMINATED(data_ptr, length) \
+    do { \
+        ASSERT_WITH_MESSAGE(data_ptr[length] == '\0', "string not null terminated"); \
     } while (0)
 
     UU_ALWAYS_INLINE constexpr void null_terminate() {
@@ -265,40 +264,27 @@ public:
         UU_STRING_ASSERT_NULL_TERMINATED;
     }
 
-    // FIXME
-    // constexpr void shrink_to_fit() {
-    //     if (is_using_inline_buffer()) {
-    //         return;
-    //     }
+    constexpr void shrink_to_fit() {
+        if (is_using_inline_buffer()) {
+            return;
+        }
 
-    //     if (length() < InlineCapacity) {
-    //         Memory old_mem = { data(), capacity() };
-    //         Allocator &allocator = Context::get().allocator();
-    //         m_ptr = m_buf;
-    //         m_capacity = InlineCapacity;
-    //         TraitsT::copy(data(), (CharT *)old_mem.ptr, length());
-    //         allocator.dealloc(old_mem);
-    //         null_terminate();
-    //         ASSERT(is_using_inline_buffer());
-    //         return;
-    //     }
+        Size shrink_length = ceil_to_page_size(length());
+        if (shrink_length == ceil_to_page_size(capacity())) {
+            return;
+        }
 
-    //     Size shrink_length = ceil_to_page_size(length());
-    //     if (shrink_length == ceil_to_page_size(capacity())) {
-    //         return;
-    //     }
-
-    //     Memory old_mem = { data(), capacity() };
-    //     Allocator &allocator = Context::get().allocator();
-    //     Size amt = (shrink_length * sizeof(CharT)) + 1;
-    //     Memory mem = allocator.alloc(amt);
-    //     m_ptr = (CharT *)mem.ptr;
-    //     m_capacity = mem.capacity;
-    //     TraitsT::copy(m_ptr, (CharT *)old_mem.ptr, length());
-    //     allocator.dealloc(old_mem);
-    //     null_terminate();
-    //     ASSERT(is_using_allocated_buffer());
-    // }
+        Memory old_mem = { data(), capacity() };
+        Allocator &allocator = Context::get().allocator();
+        Size amt = (shrink_length * sizeof(CharT)) + 1;
+        Memory mem = allocator.alloc(amt);
+        set_base(mem.ptr);
+        set_capacity(mem.capacity);
+        TraitsT::copy(data(), (CharT *)old_mem.ptr, length());
+        allocator.dealloc(old_mem);
+        null_terminate();
+        ASSERT(is_using_allocated_buffer());
+    }
 
     // push and pop ===============================================================================
 
@@ -563,10 +549,10 @@ public:
         return *this;
     }
 
-    ProtoIStringForm &append(const Spread<int> &);
-    ProtoIStringForm &append(const Spread<Size> &);
-    ProtoIStringForm &append(const Spread<Int64> &);
-    ProtoIStringForm &append(const TextRef &);
+    // ProtoIStringForm &append(const Spread<int> &);
+    // ProtoIStringForm &append(const Spread<Size> &);
+    // ProtoIStringForm &append(const Spread<Int64> &);
+    // ProtoIStringForm &append(const TextRef &);
 
     template <typename N>
     ProtoIStringForm &append_as_string(N val) {
@@ -1299,13 +1285,14 @@ public:
     constexpr ProtoIStringForm &operator=(ProtoIStringForm &&other) noexcept {
         clear();
         if (other.is_using_allocated_buffer()) {
-            // FIXME
-            // if (is_using_allocated_buffer()) {
-            //     free(data());
-            // }
-            // m_ptr = other.data();
-            // m_length = other.length();
-            // m_capacity = other.capacity();
+            if (is_using_allocated_buffer()) {
+                Memory mem = { data(), capacity() };
+                Allocator &allocator = Context::get().allocator();
+                allocator.dealloc(mem);
+            }
+            set_base(other.base());
+            set_capacity(other.capacity());
+            set_length(other.length());
         }
         else {
             assign(other.data(), other.length());
@@ -1464,78 +1451,77 @@ public:
     // swap ==================================================================================
 
     constexpr void swap(ProtoIStringForm &other) noexcept {
-        // FIXME
+        CharT *char_addr = (CharT *)first_char_addr();        
+        CharT *other_char_addr = (CharT *)other.first_char_addr();        
+
         // four cases
-        // if (is_using_inline_buffer() && other.is_using_inline_buffer()) {
-        //     // m_buf
-        //     CharT tmp_buf[InlineCapacity];
-        //     TraitsT::copy(tmp_buf, m_buf, InlineCapacity);
-        //     TraitsT::copy(m_buf, other.m_buf, InlineCapacity);
-        //     TraitsT::copy(other.m_buf, tmp_buf, InlineCapacity);
+        if (is_using_inline_buffer() && other.is_using_inline_buffer()) {
+            // first case has three sub-cases
+            if (capacity() == other.capacity()) {
+                CharT tmp_buf[capacity()];
+                TraitsT::copy(tmp_buf, char_addr, capacity());
+                TraitsT::copy(char_addr, other_char_addr, capacity());
+                TraitsT::copy(other_char_addr, tmp_buf, capacity());
+            }
+            else if (capacity() > other.capacity()) {
+                CharT tmp_buf[capacity()];
+                TraitsT::copy(tmp_buf, char_addr, capacity());
+                TraitsT::copy(char_addr, other_char_addr, other.capacity());
 
-        //     // data()
-        //     // no-op
+                Allocator &allocator = Context::get().allocator();
+                Memory mem = allocator.alloc(capacity());
+                other.set_base(static_cast<CharT *>(mem.ptr));
+                other.set_capacity(mem.capacity);
+                TraitsT::copy(other.data(), tmp_buf, length());
+            }
+            else {
+                ASSERT(capacity() < other.capacity());
+                CharT tmp_buf[other.capacity()];
+                TraitsT::copy(tmp_buf, other_char_addr, other.capacity());
+                TraitsT::copy(other_char_addr, char_addr, capacity());
 
-        //     // m_length
-        //     Size tmp_length = length();
-        //     m_length = other.length();
-        //     other.m_length = tmp_length;
+                Allocator &allocator = Context::get().allocator();
+                Memory mem = allocator.alloc(other.capacity());
+                set_base(static_cast<CharT *>(mem.ptr));
+                set_capacity(mem.capacity);
+                TraitsT::copy(data(), tmp_buf, length());
+            }
+        }
+        else if (is_using_inline_buffer() && other.is_using_allocated_buffer()) {
+            void *tmp_ptr = other.base();
+            TraitsT::copy(other_char_addr, char_addr, capacity());
+            other.set_base(other.first_char_addr());
+            set_base(tmp_ptr);
+        }
+        else if (is_using_allocated_buffer() && other.is_using_inline_buffer()) {
+            void *tmp_ptr = base();
+            TraitsT::copy(char_addr, other_char_addr, other.capacity());
+            set_base(first_char_addr());
+            other.set_base(tmp_ptr);
+        }
+        else {
+            ASSERT(is_using_allocated_buffer());
+            ASSERT(other.is_using_allocated_buffer());
+            void *tmp_ptr = base();
+            set_base(other.base());
+            other.set_base(tmp_ptr);
+        }
 
-        //     // m_capacity
-        //     // no-op
-        // }
-        // else if (is_using_inline_buffer() && other.is_using_allocated_buffer()) {
-        //     // m_buf and data()
-        //     CharT *tmp_ptr = other.data();
-        //     TraitsT::copy(other.m_buf, m_buf, InlineCapacity);
-        //     other.m_ptr = other.m_buf;
-        //     m_ptr = tmp_ptr;
+        // capacity
+        Size tmp_capacity = capacity();
+        set_capacity(other.capacity());
+        other.set_capacity(tmp_capacity);
 
-        //     // m_length
-        //     Size tmp_length = length();
-        //     m_length = other.length();
-        //     other.m_length = tmp_length;
+        // length
+        Size tmp_length = length();
+        set_length(other.length());
+        other.set_length(tmp_length);
 
-        //     // m_capacity
-        //     Size tmp_capacity = capacity();
-        //     m_capacity = other.capacity();
-        //     other.m_capacity = tmp_capacity;
-        // }
-        // else if (is_using_allocated_buffer() && other.is_using_inline_buffer()) {
-        //     // m_buf and data()
-        //     CharT *tmp_ptr = data();
-        //     TraitsT::copy(m_buf, other.m_buf, InlineCapacity);
-        //     m_ptr = m_buf;
-        //     other.m_ptr = tmp_ptr;
+        null_terminate();
+        other.null_terminate();
 
-        //     // m_length
-        //     Size tmp_length = length();
-        //     m_length = other.length();
-        //     other.m_length = tmp_length;
-
-        //     // m_capacity
-        //     Size tmp_capacity = capacity();
-        //     m_capacity = other.capacity();
-        //     other.m_capacity = tmp_capacity;
-        // }
-        // else {
-        //     ASSERT(is_using_allocated_buffer());
-        //     ASSERT(other.is_using_allocated_buffer());
-        //     // m_buf and data()
-        //     CharT *tmp_ptr = data();
-        //     m_ptr = other.data();
-        //     other.m_ptr = tmp_ptr;
-
-        //     // m_length
-        //     Size tmp_length = length();
-        //     m_length = other.length();
-        //     other.m_length = tmp_length;
-
-        //     // m_capacity
-        //     Size tmp_capacity = capacity();
-        //     m_capacity = other.capacity();
-        //     other.m_capacity = tmp_capacity;
-        // }
+        UU_STRING_ASSERT_NULL_TERMINATED;
+        UU_STRING_DATA_ASSERT_NULL_TERMINATED(other.data(), other.length());
     }
 
     // extensions =================================================================================
@@ -1640,34 +1626,32 @@ public:
     }
 
 protected:
-    // Default ctor - Initialize to empty.
     explicit ProtoIStringForm(Size size) : ProtoIStringBase(first_char_addr(), size) {}
 
 private:
     void grow(Size new_capacity) {
-        // FIXME
-        // Size old_capacity = m_capacity;
-        // while (m_capacity < new_capacity) {
-        //     m_capacity *= 2;
-        // }
-        // Size amt = m_capacity * sizeof(CharT);
-        // if (is_using_allocated_buffer()) {
-        //     Memory old_mem = { m_ptr, old_capacity };
-        //     Allocator &allocator = Context::get().allocator();
-        //     Memory mem = allocator.alloc(amt);
-        //     TraitsT::copy((CharT *)mem.ptr, m_ptr, length());
-        //     m_ptr = static_cast<CharT *>(mem.ptr);
-        //     m_capacity = mem.capacity;
-        //     allocator.dealloc(old_mem);
-        // }
-        // else {
-        //     Allocator &allocator = Context::get().allocator();
-        //     Memory mem = allocator.alloc(amt);
-        //     m_ptr = static_cast<CharT *>(mem.ptr);
-        //     m_capacity = mem.capacity;
-        //     TraitsT::copy(m_ptr, m_buf, length());
-        // }
-        // null_terminate();
+        Size old_capacity = m_capacity;
+        while (m_capacity < new_capacity) {
+            m_capacity *= 2;
+        }
+        Size amt = m_capacity * sizeof(CharT);
+        if (is_using_allocated_buffer()) {
+            Memory old_mem = { data(), old_capacity };
+            Allocator &allocator = Context::get().allocator();
+            Memory mem = allocator.alloc(amt);
+            TraitsT::copy((CharT *)mem.ptr, data(), length());
+            set_base(static_cast<CharT *>(mem.ptr));
+            m_capacity = mem.capacity;
+            allocator.dealloc(old_mem);
+        }
+        else {
+            Allocator &allocator = Context::get().allocator();
+            Memory mem = allocator.alloc(amt);
+            set_base(static_cast<CharT *>(mem.ptr));
+            m_capacity = mem.capacity;
+            TraitsT::copy(data(), (CharT *)first_char_addr(), length());
+        }
+        null_terminate();
     }
 };
 
@@ -1682,99 +1666,98 @@ std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const Proto
 
 // operator+ ======================================================================================
 
-// FIXME
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &lhs,
-//     const ProtoIStringForm<CharT, S, TraitsT> &rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs,
+    const ProtoIStringForm<CharT, TraitsT> &rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &lhs, 
-//     const CharT* rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs, 
+    const CharT* rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &lhs, CharT rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs, CharT rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const CharT* lhs, 
-//     const ProtoIStringForm<CharT, S, TraitsT> &rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const CharT* lhs, 
+    const ProtoIStringForm<CharT, TraitsT> &rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(CharT lhs, const ProtoIStringForm<CharT, S, TraitsT> &rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(1, lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(CharT lhs, const ProtoIStringForm<CharT, TraitsT> &rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(1, lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &&lhs,
-//     const ProtoIStringForm<CharT, S, TraitsT> &&rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &&lhs,
-//     const ProtoIStringForm<CharT, S, TraitsT> &rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
+    const ProtoIStringForm<CharT, TraitsT> &rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &&lhs,
-//     const CharT *rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
+    const CharT *rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &&lhs, CharT rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs, CharT rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const ProtoIStringForm<CharT, S, TraitsT> &lhs,
-//     const ProtoIStringForm<CharT, S, TraitsT> &&rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs,
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(const CharT *lhs, 
-//     const ProtoIStringForm<CharT, S, TraitsT> &&rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const CharT *lhs, 
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(lhs);
+        str += rhs;
+        return str;
+}
 
-// template <typename CharT, Size S, typename TraitsT>
-// ProtoIStringForm<CharT, S, TraitsT> operator+(CharT lhs,
-//     const ProtoIStringForm<CharT, S, TraitsT> &&rhs) {
-//         ProtoIStringForm<CharT, S, TraitsT> str(1, lhs);
-//         str += rhs;
-//         return str;
-// }
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(CharT lhs,
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+        ProtoIStringForm<CharT, TraitsT> str(1, lhs);
+        str += rhs;
+        return str;
+}
 
 // IStringStrorage ================================================================================
 
@@ -1791,7 +1774,9 @@ template <typename CharT> struct alignas(CharT) IStringStrorage<CharT, 0> {};
 
 // ProtoIString =========================================================================================
 
-template <typename CharT, Size InlineCapacity = BasicIStringDefaultInlineCapacity, 
+static constexpr Size ProtoIStringDefaultInlineCapacity = 24;
+
+template <typename CharT, Size InlineCapacity = ProtoIStringDefaultInlineCapacity, 
     typename TraitsT = std::char_traits<CharT>>
 class ProtoIString : 
     public ProtoIStringForm<CharT, TraitsT>, IStringStrorage<CharT, InlineCapacity>
@@ -1866,16 +1851,15 @@ public:
     }
 
     constexpr ProtoIString(ProtoIString &&other) {
-        // FIXME
-        // if (other.is_using_allocated_buffer()) {
-        //     m_ptr = other.data();
-        //     m_length = other.length();
-        //     m_capacity = other.capacity();
-        //     other.reset();
-        // }
-        // else {
-        //     assign(other.data(), other.length());
-        // }
+        if (other.is_using_allocated_buffer()) {
+            set_base(other.base());
+            set_capacity(other.capacity());
+            set_length(other.length());
+            other.reset();
+        }
+        else {
+            assign(other.data(), other.length());
+        }
     }
 
     constexpr ProtoIString(std::initializer_list<CharT> ilist) {
@@ -1897,8 +1881,6 @@ public:
     // destructor =================================================================================
 
     constexpr ~ProtoIString() {
-        LOG(General, "is_using_allocated_buffer: %s (%p : %p)", 
-            this->is_using_allocated_buffer() ? "Y" : "N", this->data(), this->base());
         if (this->is_using_allocated_buffer()) {
             Memory mem = { this->data(), this->capacity() };
             Allocator &allocator = Context::get().allocator();
@@ -1907,37 +1889,30 @@ public:
     }
 };
 
+using ShortIString = ProtoIString<char>;
+using MediumIString = ProtoIString<char, 64>;
+using LongIString = ProtoIString<char, 96>;
+using IString = ShortIString;
 
 }  // namespace UU
 
-
-// FIXME
-// namespace std
-// {
-//     template <typename CharT, UU::Size S, typename TraitsT>
-//     struct std::formatter<UU::ProtoIStringForm<CharT, S, TraitsT>, CharT> : std::formatter<std::basic_string_view<CharT, TraitsT>, CharT> {
-//         using SV = std::basic_string_view<CharT, TraitsT>;
-//         template <class FormatContext>
-//         auto format(UU::ProtoIStringForm<CharT, S, TraitsT> str, FormatContext &fc) const {
-//             SV sv(str.data(), str.length());
-//             return std::formatter<SV>::format(sv, fc);
-//         }
-//     };
-
-//     // Implement std::swap in terms of ProtoIStringForm swap
-//     template <typename CharT, UU::Size S>
-//     UU_ALWAYS_INLINE void swap(UU::ProtoIStringForm<CharT, S, std::char_traits<CharT>> &lhs, UU::ProtoIStringForm<CharT, S, std::char_traits<CharT>> &rhs) {
-//         lhs.swap(rhs);
-//     }
+namespace std
+{
+    // Implement std::swap in terms of ProtoIStringForm swap
+    template <typename CharT>
+    UU_ALWAYS_INLINE void swap(UU::ProtoIStringForm<CharT, std::char_traits<CharT>> &lhs, 
+                               UU::ProtoIStringForm<CharT, std::char_traits<CharT>> &rhs) {
+        lhs.swap(rhs);
+    }
     
-//     template <typename CharT, UU::Size S>
-//     struct less<UU::ProtoIStringForm<CharT, S, std::char_traits<CharT>>>
-//     {
-//         using StringT = UU::ProtoIStringForm<CharT, S, std::char_traits<CharT>>;
-//         bool operator()(const StringT &lhs, const StringT &rhs) const {
-//             return lhs < rhs;
-//         }
-//     };
-// }
+    template <typename CharT>
+    struct less<UU::ProtoIStringForm<CharT, std::char_traits<CharT>>>
+    {
+        using StringT = UU::ProtoIStringForm<CharT, std::char_traits<CharT>>;
+        bool operator()(const StringT &lhs, const StringT &rhs) const {
+            return lhs < rhs;
+        }
+    };
+}  // namespace std
 
 #endif  // UU_ISTRING_H
