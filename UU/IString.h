@@ -63,7 +63,7 @@ public:
     
 protected:
     ProtoIStringBase() = delete;
-    ProtoIStringBase(void *base, Size capacity) : m_base(base), m_capacity(capacity) {}
+    constexpr ProtoIStringBase(void *base, Size capacity) : m_base(base), m_capacity(capacity) {}
 
     UU_ALWAYS_INLINE void *base() const { return m_base; }
     UU_ALWAYS_INLINE void set_base(void *base) { m_base = base; }
@@ -133,7 +133,7 @@ public:
     // Find the address of the first element.  For this pointer math to be valid
     // with small-size of 0 for CharT with lots of alignment, it's important that
     // IStringAlignmentAndSize is properly-aligned even for small-size of 0.
-    void *first_char_addr() const {
+    constexpr void *first_char_addr() const {
         auto offset = offsetof(IStringAlignmentAndSize<CharT>, m_first_char);
         auto addr = reinterpret_cast<const char *>(this) + offset;
         return const_cast<void *>(reinterpret_cast<const void *>(addr));
@@ -584,18 +584,7 @@ public:
     }
 
     constexpr ProtoIStringForm &insert(Size index, const CharT *s) {
-        return insert(index, s, strlen(s));
-    }
-
-    constexpr ProtoIStringForm &insert(Size index, const CharT *s, Size count) {
-        reserve(m_length + count);
-        iterator pos = begin() + index;
-        iterator dst = pos + count;
-        TraitsT::move(dst, pos, end() - pos);
-        TraitsT::copy(pos, s, count);
-        m_length += count;
-        null_terminate();
-        return *this;
+        return insert(index, s, TraitsT::length(s));
     }
 
     constexpr ProtoIStringForm &insert(Size index, const ProtoIStringForm& str) {
@@ -611,6 +600,30 @@ public:
         iterator dst = pos + ecount;
         TraitsT::move(dst, pos, end() - pos);
         TraitsT::copy(pos, str.begin() + index_str, ecount);
+        m_length += ecount;
+        null_terminate();
+        return *this;
+    }
+
+    // constexpr ProtoIStringForm &insert(Size index, const CharT *s, Size count) {
+    //     reserve(m_length + count);
+    //     iterator pos = begin() + index;
+    //     iterator dst = pos + count;
+    //     TraitsT::move(dst, pos, end() - pos);
+    //     TraitsT::copy(pos, s, count);
+    //     m_length += count;
+    //     null_terminate();
+    //     return *this;
+    // }
+
+    constexpr ProtoIStringForm &insert(Size index, const CharT *s, Size index_str, Size count = npos) {
+        Size length = TraitsT::length(s);
+        Size ecount = std::min(count, length - index_str);
+        reserve(m_length + ecount);
+        iterator pos = begin() + index;
+        iterator dst = pos + ecount;
+        TraitsT::move(dst, pos, end() - pos);
+        TraitsT::copy(pos, s + index_str, ecount);
         m_length += ecount;
         null_terminate();
         return *this;
@@ -1194,21 +1207,21 @@ public:
     }
 
     constexpr ProtoIStringForm &replace(Size pos, Size count, Size count2, CharT c) {
-        ProtoIStringForm str(count2, c);
+        std::basic_string<CharT> str(count2, c);
         return replace(pos, count, str);
     }
 
     constexpr ProtoIStringForm &replace(const_iterator first, const_iterator last, Size count2, CharT c) {
         Size pos = first - begin();
         Size count = last - first;
-        ProtoIStringForm str(count2, c);
+        std::basic_string<CharT> str(count2, c);
         return replace(pos, count, str);
     }
 
     constexpr ProtoIStringForm &replace(const_iterator first, const_iterator last, std::initializer_list<CharT> ilist) {
         Size pos = first - begin();
         Size count = last - first;
-        ProtoIStringForm str(ilist);
+        std::basic_string<CharT> str(ilist);
         return replace(pos, count, str);
     }
 
@@ -1273,52 +1286,6 @@ public:
         return data()[index];
     }
 
-    // operator= ==================================================================================
-
-    constexpr ProtoIStringForm &operator=(const ProtoIStringForm &other) {
-        if (is_same_string(other)) {
-            return *this;
-        }
-        return assign(other);
-    }
-
-    constexpr ProtoIStringForm &operator=(ProtoIStringForm &&other) noexcept {
-        clear();
-        if (other.is_using_allocated_buffer()) {
-            if (is_using_allocated_buffer()) {
-                Memory mem = { data(), capacity() };
-                Allocator &allocator = Context::get().allocator();
-                allocator.dealloc(mem);
-            }
-            set_base(other.base());
-            set_capacity(other.capacity());
-            set_length(other.length());
-        }
-        else {
-            assign(other.data(), other.length());
-        }
-        other.reset();
-        return *this;
-    }
-
-    constexpr ProtoIStringForm &operator=(const CharT *s) {
-        return assign(s);
-    }
-
-    constexpr ProtoIStringForm &operator=(CharT c) {
-        return assign(c);
-    }
-
-    constexpr ProtoIStringForm &operator=(std::initializer_list<CharT> ilist) {
-        return assign(ilist);
-    }
-
-    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
-        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
-    constexpr ProtoIStringForm &operator=(const StringViewLikeT &t) {
-        return assign(t);
-    }
-
     // operator+= =================================================================================
 
     constexpr ProtoIStringForm &operator+=(const ProtoIStringForm &other) {
@@ -1363,12 +1330,12 @@ public:
         return TraitsT::compare(a.data(), b.data(), std::min(a.length(), b.length()));
     }
 
+    // conversion operators =======================================================================
+
     template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
     operator std::string() const noexcept {
         return std::string(data(), length());
     }
-
-    // conversion operators =======================================================================
 
     operator std::basic_string<CharT>() const noexcept {
         return std::basic_string<CharT>(data(), length());
@@ -1383,13 +1350,6 @@ public:
     }
 
     // substrings =================================================================================
-
-    constexpr ProtoIStringForm substr(Size pos = 0, Size count = npos) const {
-        if (UNLIKELY(pos > length())) {
-            return_string_or_throw_out_of_range(pos);
-        }
-        return ProtoIStringForm(data(), pos, std::min(count, length() - pos));
-    }
 
     constexpr BasicStringView substrview(Size pos = 0, Size count = npos) const noexcept {
         if (UNLIKELY(pos > length())) {
@@ -1626,7 +1586,7 @@ public:
     }
 
 protected:
-    explicit ProtoIStringForm(Size size) : ProtoIStringBase(first_char_addr(), size) {}
+    constexpr explicit ProtoIStringForm(Size size) : ProtoIStringBase(first_char_addr(), size) {}
 
 private:
     void grow(Size new_capacity) {
@@ -1664,101 +1624,6 @@ std::basic_ostream<CharT> &operator<<(std::basic_ostream<CharT> &os, const Proto
     return os;
 }
 
-// operator+ ======================================================================================
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs,
-    const ProtoIStringForm<CharT, TraitsT> &rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs, 
-    const CharT* rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs, CharT rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const CharT* lhs, 
-    const ProtoIStringForm<CharT, TraitsT> &rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(CharT lhs, const ProtoIStringForm<CharT, TraitsT> &rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(1, lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
-    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
-    const ProtoIStringForm<CharT, TraitsT> &rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
-    const CharT *rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs, CharT rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs,
-    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(const CharT *lhs, 
-    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(lhs);
-        str += rhs;
-        return str;
-}
-
-template <typename CharT, typename TraitsT>
-ProtoIStringForm<CharT, TraitsT> operator+(CharT lhs,
-    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
-        ProtoIStringForm<CharT, TraitsT> str(1, lhs);
-        str += rhs;
-        return str;
-}
-
 // IStringStrorage ================================================================================
 
 // Storage for the Array elements.  This is specialized for the N=0 case
@@ -1769,23 +1634,24 @@ struct IStringStrorage {
 };
 
 // Storage must be properly aligned even for small-size of 0 so that the
-// pointer math in ProtoIStringForm::first_element() is well-defined.
+// pointer math in ProtoIStringForm::first_char_addr() is well-defined.
 template <typename CharT> struct alignas(CharT) IStringStrorage<CharT, 0> {};
 
 // ProtoIString =========================================================================================
 
 static constexpr Size ProtoIStringDefaultInlineCapacity = 24;
 
-template <typename CharT, Size InlineCapacity = ProtoIStringDefaultInlineCapacity, 
+template <typename CharT, Size S = ProtoIStringDefaultInlineCapacity, 
     typename TraitsT = std::char_traits<CharT>>
 class ProtoIString : 
-    public ProtoIStringForm<CharT, TraitsT>, IStringStrorage<CharT, InlineCapacity>
+    public ProtoIStringForm<CharT, TraitsT>, IStringStrorage<CharT, S>
 {
 public:
     using Super = ProtoIStringForm<CharT, TraitsT>;
 
     // constants ==================================================================================
 
+    static constexpr const Size InlineCapacity = S;
     static constexpr const Size npos = Super::npos;
     static constexpr CharT empty_value = Super::empty_value;
 
@@ -1850,32 +1716,32 @@ public:
         this->assign(path.string());
     }
 
-    constexpr ProtoIString(ProtoIString &&other) {
+    constexpr ProtoIString(ProtoIString &&other) : Super(InlineCapacity) {
         if (other.is_using_allocated_buffer()) {
-            set_base(other.base());
-            set_capacity(other.capacity());
-            set_length(other.length());
+            this->set_base(other.base());
+            this->set_capacity(other.capacity());
+            this->set_length(other.length());
             other.reset();
         }
         else {
-            assign(other.data(), other.length());
+            this->assign(other.data(), other.length());
         }
     }
 
-    constexpr ProtoIString(std::initializer_list<CharT> ilist) {
-        assign(ilist);
+    constexpr ProtoIString(std::initializer_list<CharT> ilist) : Super(InlineCapacity) {
+        this->assign(ilist);
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
-    constexpr ProtoIString(const StringViewLikeT &str) {
-        assign(str);
+    constexpr ProtoIString(const StringViewLikeT &str) : Super(InlineCapacity) {
+        this->assign(str);
     }
 
     template <typename StringViewLikeT, typename MaybeT = StringViewLikeT,
         std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
-    constexpr ProtoIString(const StringViewLikeT &str, Size pos, Size count = npos) {
-        assign(str, pos, count);
+    constexpr ProtoIString(const StringViewLikeT &str, Size pos, Size count = npos) : Super(InlineCapacity) {
+        this->assign(str, pos, count);
     }
 
     // destructor =================================================================================
@@ -1887,12 +1753,191 @@ public:
             allocator.dealloc(mem);
         }
     }
+
+    // operator= ==================================================================================
+
+    constexpr ProtoIString &operator=(const ProtoIString &other) {
+        if (this->is_same_string(other)) {
+            return *this;
+        }
+        this->assign(other);
+        return *this;
+    }
+
+    constexpr ProtoIString &operator=(ProtoIString &&other) noexcept {
+        this->clear();
+        if (other.is_using_allocated_buffer()) {
+            if (this->is_using_allocated_buffer()) {
+                Memory mem = { this->data(), this->capacity() };
+                Allocator &allocator = Context::get().allocator();
+                allocator.dealloc(mem);
+            }
+            this->set_base(other.base());
+            this->set_capacity(other.capacity());
+            this->set_length(other.length());
+        }
+        else {
+            this->assign(other.data(), other.length());
+        }
+        other.reset();
+        return *this;
+    }
+
+    constexpr ProtoIString &operator=(const CharT *s) {
+        this->assign(s);
+        return *this;
+    }
+
+    constexpr ProtoIString &operator=(CharT c) {
+        this->assign(c);
+        return *this;
+    }
+
+    constexpr ProtoIString &operator=(std::initializer_list<CharT> ilist) {
+        this->assign(ilist);
+        return *this;
+    }
+
+    template <class StringViewLikeT, typename MaybeT = StringViewLikeT,
+        std::enable_if_t<IsStringViewLike<MaybeT, CharT, TraitsT>, int> = 0>
+    constexpr ProtoIString &operator=(const StringViewLikeT &t) {
+        this->assign(t);
+        return *this;
+    }
+
+
+    constexpr ProtoIString substr(Size pos = 0, Size count = npos) const {
+        if (UNLIKELY(pos > this->length())) {
+            // FIXME
+            // return_string_or_throw_out_of_range(pos);
+        }
+        return ProtoIString(this->data(), pos, std::min(count, this->length() - pos));
+    }
+
+    friend constexpr bool operator==(const ProtoIString &a, const ProtoIString &b) {
+        if (a.length() != b.length()) {
+            return false;
+        }
+        if (a.length() == 0) {
+            return true;
+        }
+        return TraitsT::compare(a.data(), b.data(), a.length()) == 0;
+    }
+
+    friend constexpr int operator<=>(const ProtoIString &a, const ProtoIString &b) noexcept {
+        return TraitsT::compare(a.data(), b.data(), std::min(a.length(), b.length()));
+    }
+
+    template <class CharX = CharT, std::enable_if_t<!IsByteSized<CharX>, int> = 0>
+    operator std::string() const noexcept {
+        return std::string(this->data(), this->length());
+    }
+
+    operator std::basic_string<CharT>() const noexcept {
+        return std::basic_string<CharT>(this->data(), this->length());
+    }
+
 };
 
 using ShortIString = ProtoIString<char>;
 using MediumIString = ProtoIString<char, 64>;
 using LongIString = ProtoIString<char, 96>;
 using IString = ShortIString;
+
+// operator+ ======================================================================================
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs,
+    const ProtoIStringForm<CharT, TraitsT> &rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs, 
+    const CharT* rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs, CharT rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const CharT* lhs, 
+    const ProtoIStringForm<CharT, TraitsT> &rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(CharT lhs, const ProtoIStringForm<CharT, TraitsT> &rhs) {
+    IString str(1, lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
+    const ProtoIStringForm<CharT, TraitsT> &rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs,
+    const CharT *rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &&lhs, CharT rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const ProtoIStringForm<CharT, TraitsT> &lhs,
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(const CharT *lhs, 
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+    IString str(lhs);
+    str += rhs;
+    return str;
+}
+
+template <typename CharT, typename TraitsT>
+ProtoIStringForm<CharT, TraitsT> operator+(CharT lhs,
+    const ProtoIStringForm<CharT, TraitsT> &&rhs) {
+    IString str(1, lhs);
+    str += rhs;
+    return str;
+}
 
 }  // namespace UU
 
