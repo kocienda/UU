@@ -35,6 +35,7 @@
 
 #include <vector>
 #include <string>
+#include <cstring>
 
 #include "Assertions.h"
 #include "StackTrace.h"
