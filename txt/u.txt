@@ -1,0 +1,125 @@
+===============================================================================
+
+/u dev environment
+
+===============================================================================
+cmake v3.25.1
+
+$ /u/src/cmake-3.25.1
+./bootstrap; make; make install
+
+===============================================================================
+ninja v1.11.1
+
+$ /u/src/ninja
+cmake --build build-cmake; cd build-cmake; make; cp ninja /u/bin
+
+===============================================================================
+llvm v15.0.5
+
+$ /u/src/llvm-project-llvmorg-15.0.5
+cmake -S . -B build -G Ninja \
+    -DCMAKE_INSTALL_PREFIX=/u \
+    -DCMAKE_OSX_ARCHITECTURES='arm64' \
+    -DLLVM_LOCAL_RPATH=$INSTALLDIR/lib \
+    -DLLVM_ENABLE_WERROR=FALSE \
+    -DLLVM_TARGETS_TO_BUILD='AArch64' \
+    -DLLVM_DEFAULT_TARGET_TRIPLE='arm64-apple-darwin21.6.0' \
+    -DDEFAULT_SYSROOT="$(xcrun --show-sdk-path)" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_ENABLE_PROJECTS='clang;clang-tools-extra;libc;lld;lldb;polly' \
+    -DLLVM_ENABLE_RUNTIMES='libcxx;libcxxabi;libunwind'
+
+cmake --build build --target install
+
+===============================================================================
+git 2.39.0
+
+$ /u/src/git
+NO_GETTEXT=1 make prefix=/u all install
+
+===============================================================================
+make v4.4
+
+$ /u/src/make-4.4
+./configure --prefix=/u; make; make install
+
+===============================================================================
+Catch2 v3.2.1
+https://github.com/catchorg/Catch2
+
+$ /u/src/Catch2
+cmake -S . -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/u; cd build; ninja
+ninja install
+
+===============================================================================
+zlib 1.2.13
+https://www.zlib.net
+
+$ /u/src/zlib-1.2.13
+./configure --prefix=/u --archs="-arch arm64"; make install
+
+===============================================================================
+openssl 1.1.1n
+
+$ /u/src/openssl-1.1.1n
+./config --prefix=/u --openssldir=/u/etc/ssl --with-zlib-include=/u/include \
+    --with-zlib-lib=/u/lib zlib
+make -j8; make install
+
+===============================================================================
+readline 8.2
+
+$ /u/src/readline-8.2
+./configure --prefix=/u; make; make install
+
+===============================================================================
+sqlite 3.40.0
+
+$ /u/src/sqlite-autoconf-3400000
+CFLAGS="-I/u/include" CPPFLAGS="-I/u/include" LDFLAGS="-L/u/lib" \
+    ./configure --prefix=/u; make -j8; make install
+
+===============================================================================
+tcl 8.6.13
+
+grrr… I gave up and used `brew install tcl-tk`
+
+===============================================================================
+pyenv 2.3.9
+
+$ /u/src/pyenv
+cd /u/bin; ln -s /u/src/pyenv/bin/pyenv pyenv
+
+# added to .zshrc
+export PYENV_ROOT=$UDIR/etc/pyenv
+if command -v pyenv 1>/dev/null 2>&1; then
+    eval "$(pyenv init -)"
+fi
+
+To build and install python-3.11.1:
+CFLAGS="-I/u/include" CPPFLAGS="-I/u/include" LDFLAGS="-L/u/lib" \
+    pyenv install 3.9.12
+
+===============================================================================
+libyaml 0.2.5
+
+$ /u/src/libyaml
+cmake -S . -B build -G Ninja -DCMAKE_INSTALL_PREFIX=/opt/u
+cd build; ninja install
+
+===============================================================================
+gmp 6.2.1
+
+$ /u/src/gmp-6.2.1
+CFLAGS="-I/u/include" CPPFLAGS="-I/u/include" LDFLAGS="-L/u/lib" \
+    ./configure --prefix=/u
+make -j8; make check; make install
+
+===============================================================================
+ruby 3.1.3
+
+$ /u/src/ruby-3.1.3
+CFLAGS="-I/u/include" CPPFLAGS="-I/u/include" LDFLAGS="-L/u/lib" \
+    ./configure --prefix=/u
+make -j8; make test; make install
