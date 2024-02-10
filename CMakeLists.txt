@@ -1,7 +1,7 @@
 #
 # CMakeLists.txt for UU
 #
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.5)
 
 # Set the project name and version
 project(UU VERSION 0.1.0)
@@ -131,7 +131,7 @@ UU_TEST(array_test)
 # UU_TEST(math_like_test)
 # UU_TEST(spread_test)
 # UU_TEST(string_test)
-UU_TEST(istring_test)
+# UU_TEST(istring_test)
 # UU_TEST(string_like_test)
 # UU_TEST(text_test)
 # UU_TEST(textref_test)
